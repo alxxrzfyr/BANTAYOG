@@ -1,0 +1,24 @@
+{
+  "name": "bantayog",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BANTAYOG — civic-tech nutrition-subsidy PWA. QR-card + sari-sari merchant on-chain settlement via mock PHPC on Ronin Saigon testnet.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

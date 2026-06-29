@@ -1,0 +1,6 @@
+{
+  "name": "@bantayog/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BANTAYOG Next.js 16 PWA — frontend only, no business logic (FE1+FE2 ownership)"
+}

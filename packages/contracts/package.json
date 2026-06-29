@@ -1,0 +1,6 @@
+{
+  "name": "@bantayog/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BANTAYOG Solidity contracts — PHPC, PHPCSubsidy, registries (BE2 ownership)"
+}

@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.turbo/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Keep the .example files tracked
+!.env.example
+
+# Testing
+coverage/
+*.lcov
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Hardhat / contracts
+cache/
+artifacts/
+typechain-types/
+
+# Editor / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
