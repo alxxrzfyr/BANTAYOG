@@ -1,0 +1,14 @@
+{
+  "extends": "@bantayog/config/tsconfig/nextjs-web.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["./components/*"],
+      "@/stores/*": ["./stores/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/app/*": ["./app/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
