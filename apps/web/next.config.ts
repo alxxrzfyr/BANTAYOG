@@ -1,13 +1,26 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
+  scope: "/",
+  fallbacks: {
+    entries: [
+      {
+        url: "/~offline",
+        matcher({ request }) {
+          return request.destination === "document";
+        },
+      },
+    ],
+  },
+});
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  experimental: {
-    // PWA optimizations
-    optimizePackageImports: ["@bantayog/web"],
-  },
-  // Output as standalone for PWA deployment
-  output: "standalone",
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
