@@ -12,6 +12,16 @@ export type UserRole = z.infer<typeof UserRoleSchema>
 // Auth DTOs
 // ---------------------------------------------------------------------------
 
+/** DTO for the authenticated user profile. */
+export const AuthDto = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: UserRoleSchema,
+  fullName: z.string().min(1).max(200),
+  createdAt: z.string().datetime(),
+})
+export type AuthDto = z.infer<typeof AuthDto>
+
 /** DTO for login (email + password via Supabase Auth). */
 export const LoginDto = z.object({
   email: z.string().email(),

@@ -8,11 +8,16 @@ build/
 .next/
 .turbo/
 out/
+tsconfig.tsbuildinfo
 
 # Environment
 .env
 .env.local
 .env.*.local
+.env.supabase
+
+# Docs (local only, not pushed)
+docs/
 
 # Keep the .example files tracked
 !.env.example
@@ -39,6 +44,18 @@ typechain-types/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local / generated artifacts
+1.svg
+2.svg
+3.svg
+4.svg
+2026-06-29-bantayog-team-roles-per-phase.md
+2026-06-29-bantayog-team-roles-per-phase (1).md
+graphify-out/
+.mimocode/
+BANTAYOG_PROJECT_PLAN.md
+BANTAYOG_ROADMAP_TASKS.md
 
 # Logs
 *.log

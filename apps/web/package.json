@@ -2,5 +2,29 @@
   "name": "@bantayog/web",
   "version": "0.0.0",
   "private": true,
-  "description": "BANTAYOG Next.js 16 PWA — frontend only, no business logic (FE1+FE2 ownership)"
+  "description": "BANTAYOG Next.js 16 PWA — frontend only, no business logic (FE1+FE2 ownership)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --config ../../packages/config/eslint.config.js --max-warnings 0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2"
+  },
+  "devDependencies": {
+    "@bantayog/config": "workspace:*",
+    "@serwist/next": "^9.5.11",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "serwist": "^9.5.11",
+    "typescript": "^5.7.2"
+  }
 }
