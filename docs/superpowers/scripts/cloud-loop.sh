@@ -129,6 +129,53 @@ else
   echo "[D2] PASS — uint256 wei fits in stablecoin_amount_wei"
 fi
 
+# -----------------------------------------------------------------------
+# D3 — qr_tokens.jws_compact must be UNIQUE.
+# -----------------------------------------------------------------------
+echo "[D3-JWS] qr_tokens.jws_compact UNIQUE…"
+
+# Pre-seed the beneficiary (idempotent). The transaction merchant + beneficiary
+# are already seeded by D2, so this is a no-op when re-run.
+psql_cloud -c "
+INSERT INTO public.beneficiaries (id, guardian_name, guardian_mobile_hash, child_name,
+                                  child_age_months, monthly_income_php, gps_lat, gps_lng,
+                                  card_serial)
+  VALUES ('e3333333-3333-3333-3333-333333333333',
+          'g', '\$argon2id\$demo', 'c', 12, 1000, 7.0, 125.0,
+          'CLD-NPY-0001-AABB')
+  ON CONFLICT (id) DO NOTHING;" >/dev/null
+
+d3_out=$(
+  psql_cloud <<'SQL'
+INSERT INTO public.qr_tokens (beneficiary_id, jws_compact, expires_at)
+  VALUES ('e3333333-3333-3333-3333-333333333333',
+          'cloud.demo.jws.compact.demo',
+          '2030-01-01T00:00:00Z');
+SQL
+) 2>&1 || true   # First INSERT must succeed (no rows on prior run); capture errors.
+
+d3_out2=$(
+  psql_cloud <<'SQL'
+INSERT INTO public.qr_tokens (beneficiary_id, jws_compact, expires_at)
+  VALUES ('e3333333-3333-3333-3333-333333333333',
+          'cloud.demo.jws.compact.demo',
+          '2030-01-01T00:00:00Z');
+SQL
+) 2>&1 || true   # Second INSERT must FAIL on UNIQUE; capture the error.
+
+# Cleanup: even on PASS path, remove the inserted token so re-runs are clean.
+psql_cloud -c "
+DELETE FROM public.qr_tokens
+ WHERE jws_compact = 'cloud.demo.jws.compact.demo';" >/dev/null
+
+# PostgreSQL unique-violation error message is stable across PG 13–16.
+if echo "$d3_out2" | grep -q 'duplicate key value violates unique constraint'; then
+  echo "[D3] PASS — UNIQUE constraint blocks duplicate jws_compact"
+else
+  echo "[D3] FAIL — duplicate jws_compact accepted (the bug)"
+  failures=$((failures + 1))
+fi
+
 echo
 echo "[summary] failures=$failures"
 exit $failures
