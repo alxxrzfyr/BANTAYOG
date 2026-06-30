@@ -44,6 +44,13 @@ typechain-types/
 .DS_Store
 Thumbs.db
 
+# Local / generated artifacts
+1.svg
+2.svg
+3.svg
+4.svg
+2026-06-29-bantayog-team-roles-per-phase.md
+
 # Logs
 *.log
 npm-debug.log*
