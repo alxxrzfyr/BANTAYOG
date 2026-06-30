@@ -8,6 +8,7 @@ build/
 .next/
 .turbo/
 out/
+tsconfig.tsbuildinfo
 
 # Environment
 .env
@@ -50,6 +51,11 @@ Thumbs.db
 3.svg
 4.svg
 2026-06-29-bantayog-team-roles-per-phase.md
+2026-06-29-bantayog-team-roles-per-phase (1).md
+graphify-out/
+.mimocode/
+BANTAYOG_PROJECT_PLAN.md
+BANTAYOG_ROADMAP_TASKS.md
 
 # Logs
 *.log

@@ -25,7 +25,6 @@ export type ScanErrorCallback = (error: Error) => void;
  */
 export class QRScanner {
   private videoElement: HTMLVideoElement | null = null;
-  private isScanning = false;
 
   /**
    * Start scanning from the given video element.
@@ -42,7 +41,6 @@ export class QRScanner {
 
   /** Stop scanning and release the camera stream. */
   stop(): void {
-    this.isScanning = false;
     if (this.videoElement?.srcObject) {
       const tracks = (this.videoElement.srcObject as MediaStream).getTracks();
       tracks.forEach((track) => track.stop());

@@ -1,19 +1,28 @@
 -- =============================================================================
 -- BANTAYOG — Seed data
--- BE1 owns this file. Seeds the nutritional allowlist (10 categories)
--- that domain/nutrition-policy.ts uses for item validation.
+-- BE1 owns this file. Seeds the products catalog with eligible and
+-- ineligible items for AI scan validation and manual entry flows.
 -- =============================================================================
 
--- Nutritional allowlist categories (matches domain/nutrition-policy.ts ALLOWLIST)
-INSERT INTO public.item_categories (category, label_en, label_fil, sort_order) VALUES
-  ('EGGS',        'Eggs',              'Itlog',              1),
-  ('FRESH_MILK',  'Fresh Milk',        'Sariwang Gatas',     2),
-  ('POWDERED_MILK','Powdered Milk',    'Gatas na Pulbos',    3),
-  ('VEGETABLES',  'Vegetables',        'Gulay',              4),
-  ('LEAN_MEAT',   'Lean Meat',         'Karne',              5),
-  ('FISH',        'Fish',              'Isda',               6),
-  ('BEANS_LENTILS','Beans & Lentils',  'Munggo at Sitsaro',  7),
-  ('RICE_BROWN',  'Brown Rice',        'Itim na Bigas',      8),
-  ('FRUIT_FRESH', 'Fresh Fruit',       'Sariwang Prutas',    9),
-  ('NUT_BUTTER',  'Nut Butter',        'Mani na Mantika',   10)
-ON CONFLICT (category) DO NOTHING;
+-- Products catalog — eligible nutritional items (government-subsidized)
+INSERT INTO public.products (name, category, eligibility_status, price_range_min, price_range_max) VALUES
+    ('Fresh Eggs (1 tray)',       'Eggs',         'eligible',   80.00,  120.00),
+    ('Fresh Milk (1L)',           'Dairy',        'eligible',   65.00,   95.00),
+    ('Powdered Milk (400g)',      'Dairy',        'eligible',  180.00,  250.00),
+    ('Leafy Vegetables (1 bundle)','Vegetables',  'eligible',   20.00,   50.00),
+    ('Lean Pork (1kg)',           'Meat',         'eligible',  220.00,  320.00),
+    ('Fresh Fish (1kg)',          'Seafood',      'eligible',  150.00,  280.00),
+    ('Mung Beans (500g)',         'Legumes',      'eligible',   40.00,   70.00),
+    ('Brown Rice (2kg)',          'Grains',       'eligible',   55.00,   85.00),
+    ('Fresh Bananas (1 bunch)',   'Fruits',       'eligible',   30.00,   60.00),
+    ('Peanut Butter (250g)',      'Spreads',      'eligible',   75.00,  130.00)
+ON CONFLICT DO NOTHING;
+
+-- Products catalog — ineligible items (NOT subsidized)
+INSERT INTO public.products (name, category, eligibility_status, price_range_min, price_range_max) VALUES
+    ('Instant Noodles (1 pack)',  'Instant Food', 'ineligible',  12.00,   18.00),
+    ('Cola (500mL)',              'Beverages',    'ineligible',  18.00,   25.00),
+    ('Candy Bar',                 'Snacks',       'ineligible',  15.00,   30.00),
+    ('Potato Chips (100g)',       'Snacks',       'ineligible',  25.00,   45.00),
+    ('Instant Coffee (1 stick)',  'Beverages',    'ineligible',   5.00,   12.00)
+ON CONFLICT DO NOTHING;

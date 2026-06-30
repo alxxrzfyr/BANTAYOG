@@ -36,6 +36,16 @@ port = 54324
 enabled = true
 file_size_limit = "50MiB"
 
+# =============================================================================
+# Auth configuration
+#
+# LOCAL/DEV: confirmations OFF so sign-ups work without email verification.
+# PRODUCTION: confirmations MUST be ON. Set via Supabase Dashboard > Auth > Email:
+#   - Enable "Confirm email" checkbox
+#   - This prevents unverified email signups in production.
+#   - Do NOT set enable_confirmations = true in this file; use the dashboard
+#     or environment-level config for production.
+# =============================================================================
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
@@ -44,7 +54,7 @@ jwt_expiry = 3600
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = false   # <-- LOCAL ONLY. Production: enable via dashboard.
 
 [auth.external.github]
 enabled = false
