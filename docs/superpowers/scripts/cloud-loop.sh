@@ -79,6 +79,56 @@ else
   failures=$((failures + 1))
 fi
 
+# -----------------------------------------------------------------------
+# D2 — transactions.stablecoin_amount_wei must accept the full uint256 range.
+# -----------------------------------------------------------------------
+echo "[D2-WEI] transactions.stablecoin_amount_wei NUMERIC upper bound…"
+
+d2_out=$(
+  psql_cloud <<'SQL'
+BEGIN;
+-- Seed beneficiary + transaction merchant fixtures (idempotent).
+INSERT INTO public.beneficiaries (id, guardian_name, guardian_mobile_hash, child_name,
+                                  child_age_months, monthly_income_php, gps_lat, gps_lng,
+                                  card_serial)
+  VALUES ('e3333333-3333-3333-3333-333333333333',
+          'g', '$argon2id$demo', 'c', 12, 1000, 7.0, 125.0,
+          'CLD-NPY-0001-AABB')
+  ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.merchants (id, auth_user_id, store_name, owner_name,
+                              mobile_number_e164, wallet_address, status)
+  VALUES ('f4444444-4444-4444-4444-444444444444',
+          'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          'Cloud Tx Test Sari-sari', 'Cloud Tx Owner',
+          '+639170000002',
+          '0x0000000000000000000000000000000000000002', 'APPROVED')
+  ON CONFLICT (id) DO NOTHING;
+
+-- Attempt the insert with full uint256-max wei; rollback regardless.
+INSERT INTO public.transactions
+  (beneficiary_id, merchant_id, item_list_jsonb, total_credit_deducted,
+   stablecoin_amount_wei, idempotency_key, status)
+  VALUES
+  ('e3333333-3333-3333-3333-333333333333',
+   'f4444444-4444-4444-4444-444444444444',
+   '[{"category":"EGGS","labelLocal":"Itlog","quantity":1,"subTotalCredits":1.00}]'::jsonb,
+   1.00,
+   115792089237316195423570985008687907853269984665640564039457584007913129639935::numeric,
+   gen_random_uuid(),
+   'PENDING_CHAIN');
+ROLLBACK;
+SQL
+) 2>&1
+
+# Postgres overflow errors match these substrings across versions 13–16.
+if echo "$d2_out" | grep -qE 'value overflows|too large|out of range|numeric field overflow'; then
+  echo "[D2] FAIL — uint256 wei does not fit in stablecoin_amount_wei (the bug)"
+  failures=$((failures + 1))
+else
+  echo "[D2] PASS — uint256 wei fits in stablecoin_amount_wei"
+fi
+
 echo
 echo "[summary] failures=$failures"
 exit $failures
