@@ -1,6 +1,28 @@
 {
   "name": "@bantayog/contracts",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "BANTAYOG Solidity contracts — PHPC, PHPCSubsidy, registries (BE2 ownership)"
+  "description": "BANTAYOG Solidity contracts — MockPHPC, PHPCSubsidy, BeneficiaryRegistry, MerchantRegistry (BE2 ownership)",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf artifacts cache typechain-types .turbo",
+    "deploy:saigon": "hardhat ignition deploy --network saigon",
+    "deploy:local": "hardhat ignition deploy --network localhost",
+    "generate-types": "hardhat compile"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0",
+    "@openzeppelin/contracts-upgradeable": "^5.1.0"
+  },
+  "devDependencies": {
+    "@bantayog/config": "workspace:*",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "hardhat": "^3.0.0",
+    "typescript": "^5.7.2",
+    "viem": "latest"
+  }
 }
