@@ -1,0 +1,84 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DTO Mappers Snapshot Tests > should correctly map a beneficiary record 1`] = `
+{
+  "activatedAt": "2026-07-01T12:00:00.000Z",
+  "cardSerial": "BTY-12345678",
+  "childAgeMonths": 6,
+  "childName": "Jose Santos",
+  "createdAt": "2026-07-01T12:00:00.000Z",
+  "creditBalance": 500.5,
+  "deactivatedAt": null,
+  "eligibilityStatus": "ELIGIBLE",
+  "gpsLat": 14.5995,
+  "gpsLng": 120.9842,
+  "guardianMobileHash": "hash123",
+  "guardianName": "Maria Santos",
+  "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "monthlyIncomePhp": 15000,
+  "tier": 1,
+}
+`;
+
+exports[`DTO Mappers Snapshot Tests > should correctly map a merchant record 1`] = `
+{
+  "authUserId": "a47ac10b-58cc-4372-a567-0e02b2c3d477",
+  "createdAt": "2026-07-01T12:00:00.000Z",
+  "id": "e47ac10b-58cc-4372-a567-0e02b2c3d478",
+  "mobileNumberE164": "+639171234567",
+  "ownerName": "Pedro Santos",
+  "status": "APPROVED",
+  "storeName": "Santos Sari-Sari Store",
+  "walletAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+}
+`;
+
+exports[`DTO Mappers Snapshot Tests > should correctly map a product classification result 1`] = `
+{
+  "candidates": [
+    {
+      "confidence": 0.95,
+      "name": "Gerber Baby Oatmeal",
+      "product": {
+        "category": "POWDERED_MILK",
+        "eligibilityStatus": "eligible",
+        "id": "b47ac10b-58cc-4372-a567-0e02b2c3d474",
+        "name": "Gerber Baby Oatmeal",
+      },
+    },
+  ],
+  "identified": true,
+}
+`;
+
+exports[`DTO Mappers Snapshot Tests > should correctly map a transaction record 1`] = `
+{
+  "beneficiaryId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "confirmedAt": "2026-07-01T12:05:00.000Z",
+  "createdAt": "2026-07-01T12:00:00.000Z",
+  "id": "d47ac10b-58cc-4372-a567-0e02b2c3d476",
+  "idempotencyKey": "c47ac10b-58cc-4372-a567-0e02b2c3d475",
+  "items": [
+    {
+      "category": "FRESH_MILK",
+      "creditCost": 190,
+      "name": "Cowhead Milk 1L",
+      "quantity": 2,
+      "unitPricePhp": 95,
+    },
+  ],
+  "merchantId": "e47ac10b-58cc-4372-a567-0e02b2c3d478",
+  "onchainTxHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "stablecoinAmountWei": "190000000000000000000",
+  "status": "CONFIRMED",
+  "totalCreditDeducted": 190,
+}
+`;
+
+exports[`DTO Mappers Snapshot Tests > should correctly map a wallet balance result 1`] = `
+{
+  "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+  "balance": "10000000000000000000000",
+  "formatted": "10000.0",
+}
+`;

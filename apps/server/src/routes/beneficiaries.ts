@@ -4,60 +4,17 @@ import { zValidator } from '@hono/zod-validator'
 import { CreateBeneficiaryDto } from '@bantayog/schema'
 import { createServiceClient } from '../lib/supabase.js'
 import { BeneficiaryService } from '../services/beneficiary.service.js'
-import { createPublicClient, http, formatUnits, defineChain } from 'viem'
+import { ChainClient } from '../services/chain.client.js'
+import { toBeneficiaryDTO } from '../dto/mappers.js'
+import { formatUnits } from 'viem'
 import type { Env } from '../types/env.js'
 
 const beneficiaryRoutes = new Hono<{ Bindings: Env }>()
-
-// Define Saigon testnet chain custom to avoid dependency issues
-const saigon = defineChain({
-  id: 202601,
-  name: 'Ronin Saigon Testnet',
-  nativeCurrency: { name: 'RON', symbol: 'RON', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://saigon-testnet.roninchain.com/rpc'] },
-  },
-})
 
 // Validation Schema for Credits top-up
 const addCreditsSchema = z.object({
   amount: z.number().positive()
 })
-
-/**
- * Helper to fetch LGU balance from the blockchain.
- */
-async function getLguBalance(env: Env): Promise<bigint> {
-  const rpcUrl = env.RONIN_SAIGON_RPC_URL || 'https://saigon-testnet.roninchain.com/rpc';
-  const tokenAddress = env.PHPC_TOKEN_ADDRESS as `0x${string}`;
-  const treasuryAddress = env.LGU_TREASURY_ADDRESS as `0x${string}`;
-
-  if (!tokenAddress || !treasuryAddress) {
-    throw new Error('PHPC_TOKEN_ADDRESS or LGU_TREASURY_ADDRESS is not set');
-  }
-
-  const client = createPublicClient({
-    chain: saigon,
-    transport: http(rpcUrl),
-  });
-
-  const abi = [
-    {
-      inputs: [{ name: 'account', type: 'address' }],
-      name: 'balanceOf',
-      outputs: [{ name: '', type: 'uint256' }],
-      stateMutability: 'view',
-      type: 'function',
-    }
-  ] as const;
-
-  return client.readContract({
-    address: tokenAddress,
-    abi,
-    functionName: 'balanceOf',
-    args: [treasuryAddress],
-  });
-}
 
 /**
  * POST /api/beneficiaries/register
@@ -78,9 +35,13 @@ beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto), as
       gpsLat: dto.gpsLat,
       gpsLng: dto.gpsLng,
       pin: dto.pin
-    });
+    })
 
-    return c.json(result, 201)
+    return c.json({
+      beneficiary: toBeneficiaryDTO({ ...result.beneficiary, tier: result.tier }),
+      qrToken: result.qrToken,
+      cardSerial: result.cardSerial
+    }, 201)
   } catch (err: any) {
     return c.json({ error: 'registration_failed', message: err.message }, 500)
   }
@@ -99,7 +60,10 @@ beneficiaryRoutes.get('/', async (c) => {
 
   try {
     const result = await service.list(page, limit)
-    return c.json(result)
+    return c.json({
+      data: result.data.map(toBeneficiaryDTO),
+      count: result.count
+    })
   } catch (err: any) {
     return c.json({ error: 'list_failed', message: err.message }, 500)
   }
@@ -117,8 +81,9 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
 
   try {
     // 1. Fetch LGU balance from blockchain
-    const lguBalanceWei = await getLguBalance(c.env);
-    const lguBalance = Number(formatUnits(lguBalanceWei, 18));
+    const chainClient = new ChainClient()
+    const lguBalanceWei = await chainClient.getBalance(c.env.LGU_TREASURY_ADDRESS)
+    const lguBalance = Number(formatUnits(lguBalanceWei, 18))
 
     // 2. Validate sufficient LGU balance
     if (lguBalance < amount) {
@@ -130,7 +95,7 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
 
     // 3. Add credits
     const result = await service.addCredits(id, amount)
-    return c.json(result)
+    return c.json(toBeneficiaryDTO(result))
   } catch (err: any) {
     return c.json({ error: 'topup_failed', message: err.message }, 500)
   }

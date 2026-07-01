@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { createServiceClient } from '../lib/supabase.js'
 import { PinService } from '../services/pin.service.js'
+import { BeneficiaryService } from '../services/beneficiary.service.js'
+import { QrTokenService } from '../services/qr-token.service.js'
 import type { Env } from '../types/env.js'
 
 const authRoutes = new Hono<{ Bindings: Env }>()
@@ -137,6 +139,34 @@ authRoutes.post('/verify-pin', zValidator('json', verifyPinSchema), async (c) =>
   }
 
   return c.json({ status: 'success', verified: true })
+})
+
+const verifyQrSchema = z.object({
+  token: z.string().min(1)
+})
+
+/**
+ * POST /api/auth/verify-qr
+ * Verifies the beneficiary QR code, performs live tier re-evaluation, and returns details.
+ */
+authRoutes.post('/verify-qr', zValidator('json', verifyQrSchema), async (c) => {
+  const { token } = c.req.valid('json')
+  const qrTokenService = new QrTokenService()
+  
+  try {
+    const payload = await qrTokenService.verifyToken(token)
+    const db = createServiceClient()
+    const beneficiaryService = new BeneficiaryService(db)
+
+    const result = await beneficiaryService.verifyAndReevaluateTier(payload.beneficiaryId)
+    return c.json({
+      status: 'success',
+      beneficiary: result.beneficiary,
+      currentTier: result.tier
+    })
+  } catch (err: any) {
+    return c.json({ error: 'unauthorized', message: `Invalid or expired QR token: ${err.message}` }, 401)
+  }
 })
 
 export default authRoutes

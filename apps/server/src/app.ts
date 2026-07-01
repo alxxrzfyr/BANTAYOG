@@ -69,11 +69,17 @@ import authRoutes from './routes/auth.js'
 import beneficiaryRoutes from './routes/beneficiaries.js'
 import merchantRoutes from './routes/merchants.js'
 import chainRoutes from './routes/chain.js'
+import productRoutes from './routes/products.js'
+import visionRoutes from './routes/vision.js'
+import transactionRoutes from './routes/transactions.js'
 
 app.route('/api/auth', authRoutes)
 app.route('/api/beneficiaries', beneficiaryRoutes)
 app.route('/api/merchants', merchantRoutes)
 app.route('/api/chain', chainRoutes)
+app.route('/api/products', productRoutes)
+app.route('/api/vision', visionRoutes)
+app.route('/api/transactions', transactionRoutes)
 
 // --- 404 fallback ---
 app.notFound((c) => {

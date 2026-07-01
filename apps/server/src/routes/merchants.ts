@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import { CreateMerchantDto } from '@bantayog/schema'
 import { createServiceClient } from '../lib/supabase.js'
 import { MerchantService } from '../services/merchant.service.js'
+import { toMerchantDTO } from '../dto/mappers.js'
 import type { Env } from '../types/env.js'
 
 const merchantRoutes = new Hono<{ Bindings: Env }>()
@@ -31,7 +32,7 @@ merchantRoutes.post('/register', zValidator('json', registerMerchantSchema), asy
       password: dto.password
     })
 
-    return c.json(result, 201)
+    return c.json(toMerchantDTO(result), 201)
   } catch (err: any) {
     return c.json({ error: 'registration_failed', message: err.message }, 500)
   }
@@ -50,7 +51,10 @@ merchantRoutes.get('/', async (c) => {
 
   try {
     const result = await service.list(page, limit)
-    return c.json(result)
+    return c.json({
+      data: result.data.map(toMerchantDTO),
+      count: result.count
+    })
   } catch (err: any) {
     return c.json({ error: 'list_failed', message: err.message }, 500)
   }

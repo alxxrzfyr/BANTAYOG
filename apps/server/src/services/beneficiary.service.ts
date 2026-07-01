@@ -142,4 +142,20 @@ export class BeneficiaryService {
 
     return updated;
   }
+
+  /**
+   * Looks up a beneficiary and returns it with dynamically computed tier.
+   */
+  async verifyAndReevaluateTier(beneficiaryId: string): Promise<{ beneficiary: any; tier: number }> {
+    const beneficiary = await this.beneficiaryRepo.findById(beneficiaryId)
+    if (!beneficiary) {
+      throw new Error('Beneficiary not found')
+    }
+
+    const tier = computeTier(beneficiary.created_at, beneficiary.child_age_months)
+    return {
+      beneficiary,
+      tier
+    }
+  }
 }
