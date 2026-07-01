@@ -65,6 +65,8 @@ login-refactor-spec.md
 logout-feature-spec.md
 registration-form-bugfix-spec.md
 merchantPages/
+plan.md
+
 
 # Logs
 *.log

@@ -145,7 +145,7 @@ export function BeneficiaryRegistrationForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-7 border border-brand-sageBorder/30 shadow-sm h-full">
+    <div className="bg-bg-card rounded-2xl p-7 border border-border-input/30 shadow-sm h-full">
       {/* Card heading */}
       <div className="flex items-center gap-3 pb-4 border-b border-brand-sageBorder/20 mb-6">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/60 flex-shrink-0">
@@ -160,7 +160,7 @@ export function BeneficiaryRegistrationForm({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         {/* Child Name */}
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-coral mb-2">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2">
             Child Name
           </label>
           <input
@@ -170,7 +170,7 @@ export function BeneficiaryRegistrationForm({
             className={`w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal placeholder:text-brand-darkTeal/30 outline-none transition-colors ${
               errors.childName
                 ? "border-red-400"
-                : "border-brand-sageBorder focus:border-brand-activeTeal"
+                : "border-border-input focus:border-brand-activeTeal"
             }`}
           />
           {errors.childName && (
@@ -180,7 +180,7 @@ export function BeneficiaryRegistrationForm({
 
         {/* Guardian Name */}
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-coral mb-2">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2">
             Guardian Name
           </label>
           <input
@@ -190,7 +190,7 @@ export function BeneficiaryRegistrationForm({
             className={`w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal placeholder:text-brand-darkTeal/30 outline-none transition-colors ${
               errors.guardianName
                 ? "border-red-400"
-                : "border-brand-sageBorder focus:border-brand-activeTeal"
+                : "border-border-input focus:border-brand-activeTeal"
             }`}
           />
           {errors.guardianName && (
@@ -200,7 +200,7 @@ export function BeneficiaryRegistrationForm({
 
         {/* Child's Birthdate */}
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-coral mb-2">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2">
             Child&apos;s Birthdate
           </label>
           <input
@@ -210,7 +210,7 @@ export function BeneficiaryRegistrationForm({
             className={`w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal outline-none transition-colors ${
               errors.birthdate
                 ? "border-red-400"
-                : "border-brand-sageBorder focus:border-brand-activeTeal"
+                : "border-border-input focus:border-brand-activeTeal"
             }`}
           />
           {errors.birthdate && (
@@ -220,15 +220,15 @@ export function BeneficiaryRegistrationForm({
 
         {/* Alert Banner — content from API response, NOT hardcoded */}
         {alertBanner && (
-          <div className="flex items-start gap-3 bg-brand-coral/10 border border-brand-coral/30 rounded-xl px-4 py-3">
-            <span className="text-brand-coral mt-0.5 flex-shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-brand-coral">
+          <div className="flex items-start gap-3 bg-alert-bg border border-alert-border rounded-xl px-4 py-3">
+            <span className="text-alert-text mt-0.5 flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-alert-text">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" stroke="white" strokeWidth="2" strokeLinecap="round" />
                 <line x1="12" y1="16" x2="12.01" y2="16" stroke="white" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </span>
-            <p className="text-xs font-semibold text-brand-coral leading-relaxed">
+            <p className="text-xs font-semibold text-alert-text leading-relaxed">
               {alertBanner}
             </p>
           </div>
@@ -238,7 +238,7 @@ export function BeneficiaryRegistrationForm({
         <div className="grid grid-cols-2 gap-4">
           {/* Monthly Income */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-coral mb-2">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2">
               Monthly Income (PHP)
             </label>
             <input
@@ -249,7 +249,7 @@ export function BeneficiaryRegistrationForm({
               className={`w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal placeholder:text-brand-darkTeal/30 outline-none transition-colors ${
                 errors.monthlyIncomePhp
                   ? "border-red-400"
-                  : "border-brand-sageBorder focus:border-brand-activeTeal"
+                  : "border-border-input focus:border-brand-activeTeal"
               }`}
             />
             {errors.monthlyIncomePhp && (
@@ -259,7 +259,7 @@ export function BeneficiaryRegistrationForm({
 
           {/* Create PIN — single clean input, no dot-preview */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#004B49] mb-2">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2">
               Create Your PIN
             </label>
             <input
@@ -272,7 +272,7 @@ export function BeneficiaryRegistrationForm({
               className={`w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal placeholder:text-brand-darkTeal/30 outline-none transition-colors ${
                 errors.pin
                   ? "border-red-400"
-                  : "border-[#F3B3A3] focus:border-brand-activeTeal"
+                  : "border-border-input focus:border-brand-activeTeal"
               }`}
             />
             {errors.pin && (

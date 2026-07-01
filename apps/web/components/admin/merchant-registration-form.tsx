@@ -121,14 +121,14 @@ export function MerchantRegistrationForm({
     `w-full border-2 rounded-xl px-4 py-3 text-sm text-brand-darkTeal placeholder:text-brand-darkTeal/30 outline-none transition-colors ${
       hasError
         ? "border-red-400"
-        : "border-brand-sageBorder focus:border-brand-activeTeal"
+        : "border-border-input focus:border-brand-activeTeal"
     }`;
 
   const labelClass =
-    "block text-[10px] font-bold uppercase tracking-widest text-brand-coral mb-2";
+    "block text-[10px] font-bold uppercase tracking-widest text-brand-darkTeal mb-2";
 
   return (
-    <div className="bg-white rounded-2xl p-7 border border-brand-sageBorder/30 shadow-sm h-full">
+    <div className="bg-bg-card rounded-2xl p-7 border border-border-input/30 shadow-sm h-full">
       {/* Card heading */}
       <div className="flex items-center gap-3 pb-4 border-b border-brand-sageBorder/20 mb-6">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/60 flex-shrink-0">
@@ -173,9 +173,9 @@ export function MerchantRegistrationForm({
         {/* Phone Number — PH flag + +63 prefix */}
         <div>
           <label className={labelClass}>Phone Number</label>
-          <div className={`flex border-2 rounded-xl overflow-hidden transition-colors ${errors.phoneLocal ? "border-red-400" : "border-brand-sageBorder focus-within:border-brand-activeTeal"}`}>
+          <div className={`flex border-2 rounded-xl overflow-hidden transition-colors ${errors.phoneLocal ? "border-red-400" : "border-border-input focus-within:border-brand-activeTeal"}`}>
             {/* Flag + country code prefix pill */}
-            <div className="flex items-center gap-2 px-3 py-3 bg-brand-peachBg/50 border-r border-brand-sageBorder/40 flex-shrink-0">
+            <div className="flex items-center gap-2 px-3 py-3 bg-brand-peachBg/50 border-r border-border-input/40 flex-shrink-0">
               {/* PH flag emoji */}
               <span className="text-base">🇵🇭</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/40">

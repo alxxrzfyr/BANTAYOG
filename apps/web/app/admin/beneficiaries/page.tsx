@@ -300,9 +300,10 @@ export default function BeneficiariesPage() {
   const pageCount = table.getPageCount();
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Status bar */}
-      <StatusBar />
+    <>
+      <div className="space-y-5 animate-fade-in">
+        {/* Status bar */}
+        <StatusBar />
 
       {/* ── Metric cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -490,7 +491,9 @@ export default function BeneficiariesPage() {
         )}
       </div>
 
-      {/* ── Modals ── */}
+      </div>
+
+      {/* ── Modals (rendered outside animation wrapper to avoid stacking context trap) ── */}
       <AddCreditsModal
         open={creditsModal.open}
         onClose={() => setCreditsModal((s) => ({ ...s, open: false }))}
@@ -503,7 +506,7 @@ export default function BeneficiariesPage() {
         onClose={() => setQrModal((s) => ({ ...s, open: false }))}
         data={qrModal.data}
       />
-    </div>
+    </>
   );
 }
 

@@ -19,7 +19,7 @@ export function StatusBar({
   status = "online",
 }: StatusBarProps) {
   return (
-    <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-sageBorder/30 px-6 py-4 flex items-center justify-between gap-4 shadow-sm">
+    <div className="w-full bg-bg-card/80 backdrop-blur-sm rounded-2xl border border-border-input/30 px-6 py-4 flex items-center justify-between gap-4 shadow-sm">
       {/* Left: icon + heading + subtext */}
       <div className="flex items-center gap-4">
         {/* Building / grid icon — sampled from mock */}
@@ -58,7 +58,7 @@ export function StatusBar({
           px-5 py-2.5 rounded-full border
           text-xs font-semibold
           ${status === "online"
-            ? "bg-[#e8f4f4] border-brand-sageBorder/50 text-brand-darkTeal"
+            ? "bg-badge-status-bg border-brand-sageBorder/50 text-brand-darkTeal"
             : "bg-red-50 border-red-200 text-red-700"
           }
         `}
