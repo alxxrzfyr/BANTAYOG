@@ -2,365 +2,407 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { createBrowserClient } from "@supabase/ssr";
 import { useAuth } from "@/stores/auth-context";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-const portalTabs = [
-  { id: "lgu", label: "LGU Portal" },
-  { id: "merchant", label: "Merchant Portal" },
-];
+/* ── Supabase browser client ── */
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
 
-export default function AuthPage() {
+/* ── Dev bypass credentials (remove after Supabase users are seeded) ── */
+const DEV_BYPASS_EMAIL = "admin@bantayog.gov.ph";
+const DEV_BYPASS_PASSWORD = "bantayog2026";
+
+/* ── Zod schema ── */
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+export default function LoginPage() {
   const router = useRouter();
-  const { state, setPortal, setWalletConnected, setUsername, authenticate } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [walletLoading, setWalletLoading] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
+  const { setUsername, authenticate } = useAuth();
 
-  /* ── Wallet Connect ── */
-  const handleConnectWallet = async () => {
-    setWalletLoading(true);
-    // Simulate wallet connection delay
-    await new Promise((r) => setTimeout(r, 1200));
-    setWalletConnected(true);
-    setWalletLoading(false);
-  };
+  const [authError, setAuthError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  /* ── Authenticate ── */
-  const handleAuthenticate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-    // Basic validation
-    if (!email.trim()) {
-      setEmailError("Username or email is required");
+  const onSubmit = async (values: LoginFormValues) => {
+    setLoading(true);
+    setAuthError("");
+
+    const email = values.email.trim();
+    const password = values.password;
+
+    /* ── Dev bypass — works without Supabase user seeding ── */
+    if (
+      process.env.NODE_ENV !== "production" &&
+      email === DEV_BYPASS_EMAIL &&
+      password === DEV_BYPASS_PASSWORD
+    ) {
+      setUsername(email);
+      authenticate();
+      router.push("/admin/register");
       return;
     }
-    setEmailError("");
 
-    setAuthLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    setUsername(email.trim());
-    authenticate();
-
-    // Route based on portal
-    if (state.portal === "lgu") {
-      router.push("/admin/dashboard");
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes("invalid") || msg.includes("credentials") || msg.includes("email not confirmed")) {
+          setAuthError("Invalid email or password. Please check your credentials and try again.");
+        } else if (msg.includes("too many")) {
+          setAuthError("Too many login attempts. Please wait a moment before trying again.");
+        } else {
+          setAuthError(`Authentication failed: ${error.message}`);
+        }
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setAuthError("Network error. Please check your connection and try again.");
+      setLoading(false);
+      return;
     }
-    // Merchant stays on page with "loading" state handled by context
-    setAuthLoading(false);
-  };
 
-  /* ── Portal Tab Change ── */
-  const handleTabChange = (tabId: string) => {
-    setPortal(tabId as "lgu" | "merchant");
-    setEmailError("");
+    setUsername(email);
+    authenticate();
+    router.push("/admin/register");
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#ffbeb3]">
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-20">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-        {/* ═══════ LEFT SIDE — Branding ═══════ */}
-        <div className="animate-fade-in space-y-8 lg:col-span-7 order-2 lg:order-1">
-          {/* DOH Pill Badge */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-brand-sageBorder bg-white/20 backdrop-blur-sm shadow-sm">
-              <svg className="w-4 h-4 text-brand-activeTeal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-              <span className="font-body text-xs font-bold text-brand-activeTeal tracking-wider uppercase">
-                DOH SUPPORTED SOCIAL INITIATIVE
-              </span>
-            </div>
+    <div className="w-full min-h-screen flex flex-col font-body" style={{ backgroundColor: "#FFD2C4" }}>
+      {/* ═══════════════════════════════════
+          MAIN CONTENT — Two-column layout
+          ═══════════════════════════════════ */}
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 items-center px-8 py-10 lg:px-16 lg:py-12 gap-10 lg:gap-0">
+
+        {/* ─── LEFT COLUMN ─── */}
+        <div className="flex flex-col items-start gap-6 animate-fade-in">
+
+          {/* DOH Badge */}
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 select-none"
+            style={{ border: "1px solid rgba(3,62,57,0.25)", backgroundColor: "rgba(255,255,255,0.35)" }}
+          >
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0 text-[#003E39]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span
+              className="text-[10px] font-bold uppercase tracking-widest text-[#003E39]"
+            >
+              DOH Supported Social Initiative
+            </span>
           </div>
 
-          {/* Brand Title & Subtitle */}
-          <div className="space-y-4">
-            <h1 className="font-title text-5xl md:text-7xl font-extrabold tracking-tight text-brand-darkTeal">
-              BANTAYOG
-            </h1>
-            {/* Descriptive Paragraph */}
-            <p className="font-body text-base md:text-lg text-brand-darkTeal font-medium leading-relaxed max-w-2xl">
-              Breaking the cycle of childhood stunting at the grassroots level. Bantayog leverages smart digital cards and automated AI receipt tracking to ensure that community health subsidies are spent exclusively on nutrient-dense foods—safeguarding a child's critical early development while instantly settling balances with local micro-merchants.
-            </p>
+          {/* BANTAYOG Logo / Title */}
+          <div className="w-full max-w-[420px]">
+            <Image
+              src="/adminAssets/title.png"
+              alt="BANTAYOG"
+              width={1440}
+              height={810}
+              className="w-full h-auto object-contain"
+              priority
+            />
           </div>
 
-          {/* Feature Badges — side-by-side white containers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* LGU Beneficiary Registry */}
-            <div className="flex items-start gap-4 p-6 rounded-3xl bg-white border border-brand-sageBorder/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.05)] hover:-translate-y-0.5">
-              <div className="w-12 h-12 rounded-2xl bg-[#e3f0f2] flex items-center justify-center text-[#0a7b83] flex-shrink-0">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          {/* Hero Paragraph */}
+          <p
+            className="text-sm sm:text-base leading-relaxed max-w-2xl font-medium text-[#003E39]"
+          >
+            Breaking the cycle of childhood stunting at the grassroots level.
+            Bantayog leverages smart digital cards and automated AI receipt
+            tracking to ensure that community health subsidies are spent
+            exclusively on nutrient-dense foods—safeguarding a child&apos;s
+            critical early development while instantly settling balances with
+            local micro-merchants.
+          </p>
+
+          {/* Feature Highlight Cards */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-2 w-full max-w-lg">
+
+            {/* Card 1 — LGU Beneficiary Registry */}
+            <div
+              className="flex flex-col items-start p-5 rounded-xl flex-1 bg-white"
+              style={{ boxShadow: "0 2px 16px rgba(3,62,57,0.08)" }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 flex-shrink-0 bg-[#E3F0F2] text-[#003E39]"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <div className="space-y-1">
-                <h3 className="font-body font-bold text-brand-darkTeal text-sm">LGU Beneficiary Registry</h3>
-                <p className="font-body text-brand-darkTeal/75 text-xs leading-relaxed">
-                  Onboard mother-child units, track stunting metrics, and issue unique secure QR passes.
-                </p>
-              </div>
+              <h3 className="font-bold text-sm mb-1.5 text-[#003E39]">
+                LGU Beneficiary Registry
+              </h3>
+              <p className="text-xs leading-relaxed text-[rgba(3,62,57,0.7)]">
+                Onboard mother-child units, track stunting metrics, and issue unique secure QR passes.
+              </p>
             </div>
 
-            {/* AI Merchant Verification */}
-            <div className="flex items-start gap-4 p-6 rounded-3xl bg-white border border-brand-sageBorder/40 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.05)] hover:-translate-y-0.5">
-              <div className="w-12 h-12 rounded-2xl bg-[#fbe9e8] flex items-center justify-center text-[#c27668] flex-shrink-0">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            {/* Card 2 — AI Merchant Verification */}
+            <div
+              className="flex flex-col items-start p-5 rounded-xl flex-1 bg-white"
+              style={{ boxShadow: "0 2px 16px rgba(3,62,57,0.08)" }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 flex-shrink-0 bg-[#FBE9E8] text-[#C27668]"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <path d="M16 10a4 4 0 0 1-8 0" />
                 </svg>
               </div>
-              <div className="space-y-1">
-                <h3 className="font-body font-bold text-brand-darkTeal text-sm">AI Merchant Verification</h3>
-                <p className="font-body text-brand-darkTeal/75 text-xs leading-relaxed">
-                  Merchants scan QR cards, capture checkout photos, and filters nutritional products instantly.
-                </p>
-              </div>
+              <h3 className="font-bold text-sm mb-1.5 text-[#003E39]">
+                AI Merchant Verification
+              </h3>
+              <p className="text-xs leading-relaxed text-[rgba(3,62,57,0.7)]">
+                Merchants scan QR cards, capture checkout photos, and filter nutritional products instantly.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* ═══════ RIGHT SIDE — Portal Gateway Card ═══════ */}
-        <div className="animate-slide-up lg:col-span-5 order-1 lg:order-2">
-          <div className="w-full max-w-md mx-auto bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(3,76,82,0.12)] border border-brand-sageBorder/20">
-            {/* Header Titles */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-brand-darkTeal font-body tracking-tight">
+        {/* ─── RIGHT COLUMN — Login Card ─── */}
+        <div className="flex items-center justify-center lg:justify-end animate-slide-in-right">
+          <div
+            className="w-full max-w-[480px] rounded-[2rem] p-8 md:p-10"
+            style={{
+              backgroundColor: "#FDF2EE",
+              boxShadow: "0 24px 64px rgba(3,62,57,0.14), 0 4px 16px rgba(0,0,0,0.06)",
+            }}
+          >
+            {/* Card Header */}
+            <div className="text-center mb-7">
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#003E39]">
                 Gateway Portal Access
-              </h2>
-              <p className="text-sm text-brand-mutedGray font-body mt-1">
+              </h1>
+              <p className="text-xs mt-2 font-medium uppercase tracking-wider text-[rgba(3,62,57,0.55)]">
                 Select your portal pathway and authenticate
               </p>
             </div>
 
-            {/* Tab Switcher — capsule with activeTeal active state */}
-            <div className="flex justify-center mb-6">
-              <div className="inline-flex w-full bg-[#f4e2de]/70 rounded-2xl p-1 gap-1" role="tablist">
-                {portalTabs.map((tab) => {
-                  const isActive = state.portal === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      role="tab"
-                      aria-selected={isActive}
-                      className={`
-                        flex-1 flex items-center justify-center py-3 text-xs md:text-sm font-bold rounded-xl transition-all duration-300 cursor-pointer font-body
-                        ${
-                          isActive
-                            ? "bg-brand-activeTeal text-white shadow-md"
-                            : "bg-transparent text-brand-darkTeal hover:text-brand-activeTeal"
-                        }
-                      `}
-                      onClick={() => handleTabChange(tab.id)}
-                    >
-                      {tab.id === "lgu" ? (
-                        <svg className="w-4 h-4 mr-2 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-                          <path d="M9 22v-4h6v4" />
-                          <path d="M8 6h2" />
-                          <path d="M14 6h2" />
-                          <path d="M8 10h2" />
-                          <path d="M14 10h2" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 mr-2 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                          <line x1="3" y1="6" x2="21" y2="6" />
-                          <path d="M16 10a4 4 0 0 1-8 0" />
-                        </svg>
-                      )}
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* LGU Portal Indicator Bar */}
+            <div
+              className="w-full rounded-md px-4 h-12 flex items-center gap-2.5 mb-7 select-none bg-[#003E39]"
+            >
+              <svg
+                className="w-5 h-5 flex-shrink-0 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                <path d="M9 22v-4h6v4" />
+                <path d="M8 6h2" />
+                <path d="M14 6h2" />
+                <path d="M8 10h2" />
+                <path d="M14 10h2" />
+              </svg>
+              <span className="text-white font-bold text-sm tracking-wide">LGU Portal</span>
             </div>
 
-            {/* Merchant Loading State */}
-            {state.status === "loading-merchant" ? (
-              <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-brand-sageBg/50 flex items-center justify-center animate-pulse-soft">
+            {/* Auth Error Banner */}
+            {authError && (
+              <div
+                className="mb-6 p-3.5 rounded-xl text-xs font-semibold leading-relaxed animate-fade-in bg-red-50 border border-red-200 text-red-700"
+              >
+                ⚠ {authError}
+              </div>
+            )}
+
+            {/* Dev Hint (only shown in development) */}
+            {process.env.NODE_ENV !== "production" && (
+              <div
+                className="mb-5 p-3 rounded-xl text-[11px] leading-relaxed text-[#003E39]"
+                style={{ backgroundColor: "rgba(3,62,57,0.06)", border: "1px solid rgba(3,62,57,0.12)" }}
+              >
+                <span className="font-bold">Dev bypass:</span>{" "}
+                <span className="font-mono">{DEV_BYPASS_EMAIL}</span> /{" "}
+                <span className="font-mono">{DEV_BYPASS_PASSWORD}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Email Field */}
+              <div>
+                <label
+                  htmlFor="login-email"
+                  className="block text-[10px] font-bold uppercase tracking-wider mb-2 text-[#003E39]"
+                >
+                  Username / Email ID
+                </label>
+                <input
+                  id="login-email"
+                  type="text"
+                  placeholder="paangmanok@metromanilacity.gov.ph"
+                  autoComplete="email"
+                  {...register("email")}
+                  className="w-full h-12 rounded-xl bg-white px-4 text-sm outline-none transition-all duration-200"
+                  style={{
+                    border: errors.email
+                      ? "1.5px solid #DC2626"
+                      : "1.5px solid #F18F76",
+                    color: "#003E39",
+                    boxShadow: errors.email
+                      ? "0 0 0 3px rgba(220,38,38,0.08)"
+                      : "none",
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.email) {
+                      e.target.style.border = "1.5px solid #003E39";
+                      e.target.style.boxShadow = "0 0 0 3px rgba(3,62,57,0.08)";
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!errors.email) {
+                      e.target.style.border = "1.5px solid #F18F76";
+                      e.target.style.boxShadow = "none";
+                    }
+                  }}
+                />
+                {errors.email && (
+                  <p className="text-xs font-semibold mt-1.5 ml-1 text-red-600">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="block text-[10px] font-bold uppercase tracking-wider mb-2 text-[#003E39]"
+                >
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  {...register("password")}
+                  className="w-full h-12 rounded-xl bg-white px-4 text-sm outline-none transition-all duration-200"
+                  style={{
+                    border: errors.password
+                      ? "1.5px solid #DC2626"
+                      : "1.5px solid #F18F76",
+                    color: "#003E39",
+                    boxShadow: errors.password
+                      ? "0 0 0 3px rgba(220,38,38,0.08)"
+                      : "none",
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.password) {
+                      e.target.style.border = "1.5px solid #003E39";
+                      e.target.style.boxShadow = "0 0 0 3px rgba(3,62,57,0.08)";
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!errors.password) {
+                      e.target.style.border = "1.5px solid #F18F76";
+                      e.target.style.boxShadow = "none";
+                    }
+                  }}
+                />
+                {errors.password && (
+                  <p className="text-xs font-semibold mt-1.5 ml-1 text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              {/* CTA Button */}
+              <button
+                id="login-submit"
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed mt-2 bg-[#F18F76] hover:bg-[#e8795f] text-[#003E39]"
+                style={{
+                  boxShadow: "0 4px 20px rgba(241,143,118,0.4)",
+                }}
+              >
+                {loading ? (
                   <svg
-                    className="w-8 h-8 text-brand-activeTeal animate-spin"
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
-                </div>
-                <h3 className="text-lg font-bold text-brand-darkTeal font-body">
-                  Loading Merchant Portal...
-                </h3>
-                <p className="text-sm text-brand-darkTeal/60 font-body">
-                  Awaiting Co-worker Frontend
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setPortal("lgu")}
-                  className="mt-4 text-sm font-semibold text-brand-activeTeal hover:text-brand-darkTeal underline cursor-pointer"
-                >
-                  ← Back to portal selection
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleAuthenticate} className="space-y-6">
-                {/* ── Ronin Blockchain Auth Panel ── */}
-                <div className="p-4 rounded-2xl bg-brand-sageBg/10 border border-brand-sageBorder/80">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-brand-darkTeal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
-                        <line x1="2" y1="10" x2="22" y2="10" />
-                      </svg>
-                      <span className="text-xs font-bold text-brand-darkTeal font-body uppercase tracking-wider">
-                        Ronin Blockchain Auth
-                      </span>
-                    </div>
-                    <span className="bg-[#d1e7dd] text-[#0f5132] border border-[#a3cfbb] text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      STABLE COIN READY
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={state.walletConnected || walletLoading}
-                    onClick={handleConnectWallet}
-                    className={`
-                      w-full py-3 px-4 rounded-xl font-body font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 border
-                      ${
-                        state.walletConnected
-                          ? "bg-transparent border-[#a3cfbb] text-[#0f5132] bg-[#d1e7dd]/20"
-                          : "bg-brand-darkTeal border-brand-darkTeal text-white hover:bg-brand-activeTeal hover:border-brand-activeTeal active:scale-[0.98]"
-                      }
-                      disabled:opacity-80 disabled:cursor-not-allowed
-                    `}
-                  >
-                    {walletLoading ? (
-                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                      </svg>
-                    ) : state.walletConnected ? (
-                      <>
-                        <svg className="w-4 h-4 text-[#0f5132]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Ronin Wallet Connected
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 text-brand-coral" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2L2 12l10 10 10-10L12 2z" />
-                        </svg>
-                        Connect Ronin Wallet
-                      </>
-                    )}
-                  </button>
-
-                  {state.walletConnected && (
-                    <p className="text-xs text-center mt-2 text-[#0f5132] font-semibold font-body animate-fade-in">
-                      0x7b...3f2a · PHPC Balance: 1,250.00
-                    </p>
-                  )}
-                </div>
-
-                {/* ── Divider ── */}
-                <div className="divider-text text-[10px] tracking-wider uppercase font-semibold text-brand-mutedGray">
-                  OR SIGN IN WITH CREDENTIALS
-                </div>
-
-                {/* ── Web2 Auth Block ── */}
-                <div className="space-y-4">
-                  {/* Email/Username Input */}
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-brand-darkTeal tracking-wider uppercase mb-1.5 font-body">
-                      Username / Email ID
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="paangmanok@metromanilacity.gov.ph"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setEmailError("");
-                      }}
-                      className={`w-full px-4 py-3 rounded-2xl border ${
-                        emailError ? "border-red-500 ring-1 ring-red-500" : "border-brand-sageBorder"
-                      } focus:border-brand-activeTeal focus:ring-1 focus:ring-brand-activeTeal outline-none font-body text-sm text-brand-darkTeal placeholder-brand-mutedGray/50 bg-white transition-all`}
-                    />
-                    {emailError && (
-                      <p className="text-xs text-red-500 font-semibold mt-1 font-body">{emailError}</p>
-                    )}
-                  </div>
-
-                  {/* Password Input */}
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-brand-darkTeal tracking-wider uppercase mb-1.5 font-body">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-brand-sageBorder focus:border-brand-activeTeal focus:ring-1 focus:ring-brand-activeTeal outline-none font-body text-sm text-brand-darkTeal placeholder-brand-mutedGray/50 bg-white transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Hero CTA Button ── */}
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full bg-brand-coral hover:bg-brand-coralHover text-white font-bold font-body py-4 px-6 rounded-2xl transition-colors duration-200 uppercase text-xs tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-                >
-                  {authLoading ? (
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                ) : (
+                  <>
+                    <span>AUTHENTICATE AND ENTER</span>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
                     </svg>
-                  ) : (
-                    <>
-                      <span>Authenticate and Enter</span>
-                      <svg className="w-3.5 h-3.5 stroke-[3.5] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-
-                {/* Portal-specific hint */}
-                <p className="text-xs text-center text-brand-mutedGray font-body leading-relaxed px-2">
-                  {state.portal === "lgu"
-                    ? "Authorized LGU personnel only. Secure access to beneficiary and merchant management."
-                    : "Merchant partner portal for transaction history and verification status."}
-                </p>
-              </form>
-            )}
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
-        </div>
-      </div>
-      {/* Bottom Cream Footer Band */}
-      <div className="h-[12vh] min-h-[80px] bg-[#fde2dc] w-full flex-shrink-0" />
+      </main>
+
+      {/* ═══════════════════════════════════
+          FOOTER BAR
+          ═══════════════════════════════════ */}
+      <footer
+        className="h-14 flex items-center justify-center w-full flex-shrink-0 bg-[#FFEBE5]"
+      >
+        <p className="text-[10px] sm:text-xs font-medium text-[#494949]">
+          © 2026 BANTAYOG. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 }

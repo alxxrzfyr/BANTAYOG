@@ -18,6 +18,8 @@
   --color-brand-sageBorder: #bdd5d6;
   --color-brand-sageBg: #c8dadb;
   --color-brand-mutedGray: #b4b4b4;
+  --color-brand-canvasPeach: #ffc0b4;
+  --color-brand-cardCream: #FDF5F2;
 
   /* Font Families */
   --font-title: "Intro Rust", system-ui, sans-serif;

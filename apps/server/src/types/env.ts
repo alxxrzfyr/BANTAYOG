@@ -34,6 +34,7 @@ export interface Env {
   PHPC_SUBSIDY_ADDRESS: string
   BENEFICIARY_REGISTRY_ADDRESS: string
   MERCHANT_REGISTRY_ADDRESS: string
+  LGU_TREASURY_ADDRESS: string
 
   // Optional
   CORS_ORIGIN?: string
