@@ -32,35 +32,40 @@ export function AdminHeaderNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-brand-sageBorder/30" style={{ backgroundColor: 'var(--color-canvas)' }}>
+    <header className="sticky top-0 z-40 border-b border-brand-sageBorder/30 bg-bg-navbar">
       <div className="max-w-[1280px] mx-auto px-6 h-[72px] flex items-center justify-between gap-4">
 
         {/* ── Left: Logo + wordmark + badge + subtext ── */}
-        <Link href="/admin/beneficiaries" className="flex items-center gap-3 select-none">
-          {/* Logo mark — SVG from public/adminAssets */}
-          <div className="w-12 h-12 flex-shrink-0">
-            <Image
-              src="/adminAssets/1.svg"
-              alt="Bantayog logo"
-              width={48}
-              height={48}
-              className="w-full h-full object-contain"
-              priority
-            />
-          </div>
+        <Link href="/admin/beneficiaries" className="flex flex-row items-center gap-3 flex-nowrap select-none">
+          {/* Logo emblem */}
+          <Image
+            src="/adminAssets/logo.png"
+            alt="Bantayog"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain shrink-0"
+            priority
+          />
 
-          {/* Wordmark + badge + subtext */}
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2">
-              <span className="text-[22px] font-black tracking-tight text-brand-darkTeal leading-none">
-                BANTAYOG
-              </span>
+          {/* Text column: row 1 (wordmark + badge) / row 2 (subtitle) */}
+          <div className="flex flex-col justify-center gap-0.5 flex-nowrap shrink-0">
+            {/* Row 1: wordmark + badge side by side */}
+            <div className="flex flex-row items-center gap-2 flex-nowrap">
+              <Image
+                src="/adminAssets/title2.png"
+                alt="Bantayog"
+                width={140}
+                height={28}
+                className="h-7 w-auto object-contain shrink-0"
+                priority
+              />
               {/* "Prototype" badge — grey pill sampled from mock */}
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#c8c8c8]/60 text-[#555] border border-[#bbb]/40 leading-none">
                 Prototype
               </span>
             </div>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-brand-darkTeal/50 mt-0.5 leading-none">
+            {/* Row 2: university subtitle */}
+            <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-brand-darkTeal/50 leading-none">
               Polytechnic University of the Philippines
             </span>
           </div>
@@ -80,7 +85,7 @@ export function AdminHeaderNav() {
                   px-4 py-2 rounded-full text-[11px] font-bold tracking-wider
                   transition-all duration-200 select-none
                   ${isActive
-                    ? "bg-brand-darkTeal text-white shadow-sm"
+                    ? "bg-route-active-bg text-route-active-text shadow-sm"
                     : "text-brand-darkTeal/70 hover:text-brand-darkTeal hover:bg-brand-sageBg/40"
                   }
                 `}

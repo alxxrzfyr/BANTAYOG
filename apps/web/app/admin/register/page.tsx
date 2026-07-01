@@ -36,17 +36,19 @@ export default function RegisterPage() {
   }, []);
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Status bar — shared across admin pages */}
-      <StatusBar />
+    <>
+      <div className="space-y-5 animate-fade-in">
+        {/* Status bar — shared across admin pages */}
+        <StatusBar />
 
-      {/* Two registration forms side-by-side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <BeneficiaryRegistrationForm onSuccess={handleBeneficiarySuccess} resetKey={beneficiaryResetKey} />
-        <MerchantRegistrationForm onSuccess={handleMerchantSuccess} />
+        {/* Two registration forms side-by-side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <BeneficiaryRegistrationForm onSuccess={handleBeneficiarySuccess} resetKey={beneficiaryResetKey} />
+          <MerchantRegistrationForm onSuccess={handleMerchantSuccess} />
+        </div>
       </div>
 
-      {/* QR Pass modal — opens after beneficiary registration */}
+      {/* QR Pass modal — opens after beneficiary registration (rendered outside animation wrapper to avoid stacking context trap) */}
       <QrPassModal
         open={qrPassOpen}
         onClose={handleQrModalClose}
@@ -58,6 +60,6 @@ export default function RegisterPage() {
         open={toastOpen}
         onClose={() => setToastOpen(false)}
       />
-    </div>
+    </>
   );
 }

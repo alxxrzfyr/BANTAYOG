@@ -137,7 +137,7 @@ export default function AdminLayout({
       </main>
 
       {/* Footer */}
-      <footer className="w-full py-5 border-t border-brand-sageBorder/20 bg-brand-peachLight/60">
+      <footer className="w-full py-5 border-t border-brand-sageBorder/20 bg-bg-navbar">
         <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-darkTeal/40">
           © 2026 BANTAYOG. All rights reserved.
         </p>
