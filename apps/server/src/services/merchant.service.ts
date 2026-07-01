@@ -83,4 +83,32 @@ export class MerchantService {
       count: count ?? 0
     };
   }
+
+  /**
+   * Approves a merchant and registers them on-chain.
+   */
+  async approve(merchantId: string): Promise<any> {
+    const { data: merchant, error: fetchError } = await (this.db as any)
+      .from('merchants')
+      .select('*')
+      .eq('id', merchantId)
+      .single();
+
+    if (fetchError || !merchant) {
+      throw new Error(`Merchant not found: ${fetchError?.message ?? merchantId}`);
+    }
+
+    const { data: updated, error: updateError } = await (this.db as any)
+      .from('merchants')
+      .update({ status: 'APPROVED' })
+      .eq('id', merchantId)
+      .select('*')
+      .single();
+
+    if (updateError || !updated) {
+      throw new Error(`Failed to approve merchant: ${updateError?.message}`);
+    }
+
+    return updated;
+  }
 }

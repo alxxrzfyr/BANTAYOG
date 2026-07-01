@@ -13,6 +13,8 @@
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { cors } from 'hono/cors'
+import { authMiddleware } from './middleware/auth.js'
+import { requireRole } from './middleware/rbac.js'
 import type { Env } from './types/env.js'
 
 // ---------------------------------------------------------------------------
@@ -69,11 +71,34 @@ import authRoutes from './routes/auth.js'
 import beneficiaryRoutes from './routes/beneficiaries.js'
 import merchantRoutes from './routes/merchants.js'
 import chainRoutes from './routes/chain.js'
+import productRoutes from './routes/products.js'
+import visionRoutes from './routes/vision.js'
+import transactionRoutes from './routes/transactions.js'
 
+// Auth routes: mostly public (login, merchant-login); logout protected inside authRoutes
 app.route('/api/auth', authRoutes)
+
+// Admin-only routes
+app.use('/api/beneficiaries/*', authMiddleware, requireRole('admin'))
 app.route('/api/beneficiaries', beneficiaryRoutes)
+
+app.use('/api/merchants/*', authMiddleware, requireRole('admin'))
 app.route('/api/merchants', merchantRoutes)
+
+// Admin + Merchant routes
+app.use('/api/chain/*', authMiddleware, requireRole('admin', 'merchant'))
 app.route('/api/chain', chainRoutes)
+
+app.use('/api/products/*', authMiddleware, requireRole('admin', 'merchant'))
+app.route('/api/products', productRoutes)
+
+// Merchant-only routes
+app.use('/api/vision/*', authMiddleware, requireRole('merchant'))
+app.route('/api/vision', visionRoutes)
+
+// Admin + Merchant routes
+app.use('/api/transactions/*', authMiddleware, requireRole('admin', 'merchant'))
+app.route('/api/transactions', transactionRoutes)
 
 // --- 404 fallback ---
 app.notFound((c) => {

@@ -13,6 +13,11 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: {},
+  async rewrites() {
+    return [
+      { source: '/api/:path*', destination: 'http://localhost:3001/api/:path*' },
+    ]
+  },
 };
 
 export default withSerwist(nextConfig);
