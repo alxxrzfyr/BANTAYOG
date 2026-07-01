@@ -21,6 +21,7 @@
     "@bantayog/config": "workspace:*",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@types/node": "^22.10.5",
+    "chai": "^6.2.2",
     "hardhat": "^3.0.0",
     "typescript": "^5.7.2",
     "viem": "latest"
