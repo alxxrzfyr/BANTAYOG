@@ -6,6 +6,7 @@
       "@/components/*": ["./components/*"],
       "@/stores/*": ["./stores/*"],
       "@/providers/*": ["./providers/*"],
+      "@/lib/*": ["./lib/*"],
       "@/app/*": ["./app/*"]
     }
   },
