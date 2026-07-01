@@ -56,6 +56,15 @@ graphify-out/
 .mimocode/
 BANTAYOG_PROJECT_PLAN.md
 BANTAYOG_ROADMAP_TASKS.md
+BANTAYOG_PROJECT_PLAN.md
+BANTAYOG_ROADMAP_TASKS.md
+IMPLEMENTATION_PLAN_PHASES_2-4.md
+auth-fix-spec.md
+dashboard-fix-spec.md
+login-refactor-spec.md
+logout-feature-spec.md
+registration-form-bugfix-spec.md
+merchantPages/
 
 # Logs
 *.log
