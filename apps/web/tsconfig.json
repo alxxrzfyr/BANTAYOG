@@ -6,6 +6,8 @@
       "@/components/*": ["./components/*"],
       "@/stores/*": ["./stores/*"],
       "@/providers/*": ["./providers/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/app/*": ["./app/*"]
       "@/app/*": ["./app/*"],
       "@/lib/*": ["./lib/*"],
       "@bantayog/db": ["../../packages/db/src/index.ts"],
