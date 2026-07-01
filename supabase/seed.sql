@@ -2,6 +2,11 @@
 -- BANTAYOG — Seed data
 -- BE1 owns this file. Seeds the products catalog with eligible and
 -- ineligible items for AI scan validation and manual entry flows.
+--
+-- TEST USERS: Create via Supabase Dashboard > Authentication > Users
+--   Admin:    admin@bantayog.test    / TestPassword123!
+--   Merchant: merchant@bantayog.test / TestPassword123!
+-- Set raw_app_meta_data to {"role": "admin"} or {"role": "merchant"}
 -- =============================================================================
 
 -- Products catalog — eligible nutritional items (government-subsidized)
