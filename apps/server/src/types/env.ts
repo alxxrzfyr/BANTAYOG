@@ -13,6 +13,7 @@ export interface Env {
 
   // Auth / JWT
   JWT_SIGNING_SECRET: string
+  QR_TOKEN_SECRET: string
 
   // Upstash
   UPSTASH_REDIS_REST_URL: string
@@ -23,10 +24,13 @@ export interface Env {
 
   // Gemini (BE2 owns)
   GEMINI_API_KEY: string
+  GEMINI_VISION_MODEL?: string
+  GEMINI_CONFIDENCE_THRESHOLD?: string
 
   // Ronin / Chain (BE2 owns)
-  RONIN_SAIGON_RPC_URL: string
-  RONIN_SAIGON_CHAIN_ID: string
+  RONIN_RPC_URL?: string
+  RONIN_SAIGON_RPC_URL?: string
+  RONIN_SAIGON_CHAIN_ID?: string
   DEPLOYER_PRIVATE_KEY: string
 
   // Deployed contract addresses (BE2 populates after deploy)

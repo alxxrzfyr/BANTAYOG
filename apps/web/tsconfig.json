@@ -6,7 +6,10 @@
       "@/components/*": ["./components/*"],
       "@/stores/*": ["./stores/*"],
       "@/providers/*": ["./providers/*"],
-      "@/app/*": ["./app/*"]
+      "@/app/*": ["./app/*"],
+      "@/lib/*": ["./lib/*"],
+      "@bantayog/db": ["../../packages/db/src/index.ts"],
+      "@bantayog/schema": ["../../packages/schema/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

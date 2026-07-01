@@ -82,7 +82,11 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
   try {
     // 1. Fetch LGU balance from blockchain
     const chainClient = new ChainClient()
-    const lguBalanceWei = await chainClient.getBalance(c.env.LGU_TREASURY_ADDRESS)
+    const lguTreasury = c.env.LGU_TREASURY_ADDRESS || process.env.LGU_TREASURY_ADDRESS
+    if (!lguTreasury) {
+      return c.json({ error: 'config', message: 'LGU_TREASURY_ADDRESS not set' }, 500)
+    }
+    const lguBalanceWei = await chainClient.getBalance(lguTreasury)
     const lguBalance = Number(formatUnits(lguBalanceWei, 18))
 
     // 2. Validate sufficient LGU balance
@@ -98,6 +102,22 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
     return c.json(toBeneficiaryDTO(result))
   } catch (err: any) {
     return c.json({ error: 'topup_failed', message: err.message }, 500)
+  }
+})
+
+/**
+ * GET /api/beneficiaries/metrics
+ * Dashboard aggregates: total beneficiaries, critical units, allocated PHPC, verified merchants.
+ */
+beneficiaryRoutes.get('/metrics', async (c) => {
+  const db = createServiceClient()
+  const service = new BeneficiaryService(db)
+
+  try {
+    const metrics = await service.getMetrics()
+    return c.json(metrics)
+  } catch (err: any) {
+    return c.json({ error: 'metrics_failed', message: err.message }, 500)
   }
 })
 

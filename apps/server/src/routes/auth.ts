@@ -5,6 +5,8 @@ import { createServiceClient } from '../lib/supabase.js'
 import { PinService } from '../services/pin.service.js'
 import { BeneficiaryService } from '../services/beneficiary.service.js'
 import { QrTokenService } from '../services/qr-token.service.js'
+import { authMiddleware } from '../middleware/auth.js'
+import { requireRole } from '../middleware/rbac.js'
 import type { Env } from '../types/env.js'
 
 const authRoutes = new Hono<{ Bindings: Env }>()
@@ -167,6 +169,21 @@ authRoutes.post('/verify-qr', zValidator('json', verifyQrSchema), async (c) => {
   } catch (err: any) {
     return c.json({ error: 'unauthorized', message: `Invalid or expired QR token: ${err.message}` }, 401)
   }
+})
+
+/**
+ * POST /api/auth/logout
+ * Signs out the current Supabase session.
+ */
+authRoutes.post('/logout', authMiddleware, requireRole('admin', 'merchant'), async (c) => {
+  const db = createServiceClient()
+  const { error } = await db.auth.signOut({ scope: 'local' })
+
+  if (error) {
+    return c.json({ error: 'logout_failed', message: error.message }, 500)
+  }
+
+  return c.json({ success: true, message: 'Signed out successfully' })
 })
 
 export default authRoutes

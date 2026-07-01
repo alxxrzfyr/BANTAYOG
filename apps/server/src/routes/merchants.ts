@@ -60,4 +60,21 @@ merchantRoutes.get('/', async (c) => {
   }
 })
 
+/**
+ * PATCH /api/merchants/:id/approve
+ * Approves a merchant (admin only).
+ */
+merchantRoutes.patch('/:id/approve', async (c) => {
+  const id = c.req.param('id')
+  const db = createServiceClient()
+  const service = new MerchantService(db)
+
+  try {
+    const result = await service.approve(id)
+    return c.json(toMerchantDTO(result))
+  } catch (err: any) {
+    return c.json({ error: 'approve_failed', message: err.message }, 500)
+  }
+})
+
 export default merchantRoutes

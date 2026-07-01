@@ -28,6 +28,16 @@ export const PHPC_ABI = [
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'transfer',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
   }
 ] as const
 
@@ -168,6 +178,24 @@ export class ChainClient {
       abi: PHPC_SUBSIDY_ABI,
       functionName: 'processTransaction',
       args: [benHash, merchantAddress as `0x${string}`, amountWei, txHash],
+    })
+
+    return hash
+  }
+
+  /**
+   * Transfers PHPC tokens from the server account to a recipient.
+   */
+  async transferPHPC(to: string, amountWei: bigint): Promise<`0x${string}`> {
+    if (!this.walletClient) {
+      throw new Error('Wallet client not initialized (missing DEPLOYER_PRIVATE_KEY)')
+    }
+
+    const hash = await this.walletClient.writeContract({
+      address: this.phpcAddress,
+      abi: PHPC_ABI,
+      functionName: 'transfer',
+      args: [to as `0x${string}`, amountWei],
     })
 
     return hash
