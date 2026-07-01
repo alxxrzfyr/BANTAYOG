@@ -64,20 +64,16 @@ app.get('/health', (c) => {
 // Example wiring in P2:
 //   app.post('/api/beneficiaries', authMiddleware, requireRole('admin'), handler)
 
-// --- Route groups (wired in later phases) ---
-// import authRoutes from './routes/auth.js'
-// import beneficiaryRoutes from './routes/beneficiaries.js'
-// import merchantRoutes from './routes/merchants.js'
-// import transactionRoutes from './routes/transactions.js'
-// import visionRoutes from './routes/vision.js'
-// import chainRoutes from './routes/chain.js'
-//
-// app.route('/api/auth', authRoutes)
-// app.route('/api/beneficiaries', beneficiaryRoutes)
-// app.route('/api/merchants', merchantRoutes)
-// app.route('/api/transactions', transactionRoutes)
-// app.route('/api/vision', visionRoutes)
-// app.route('/api/chain', chainRoutes)
+// --- Route groups ---
+import authRoutes from './routes/auth.js'
+import beneficiaryRoutes from './routes/beneficiaries.js'
+import merchantRoutes from './routes/merchants.js'
+import chainRoutes from './routes/chain.js'
+
+app.route('/api/auth', authRoutes)
+app.route('/api/beneficiaries', beneficiaryRoutes)
+app.route('/api/merchants', merchantRoutes)
+app.route('/api/chain', chainRoutes)
 
 // --- 404 fallback ---
 app.notFound((c) => {
