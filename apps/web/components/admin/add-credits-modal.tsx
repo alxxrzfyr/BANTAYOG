@@ -108,33 +108,33 @@ export function AddCreditsModal({
       <div className="relative w-full max-w-[420px] animate-scale-in">
         {/* Dark teal header */}
         <div className="rounded-t-[1.75rem] bg-brand-darkTeal px-8 pt-7 pb-6 flex items-start justify-between">
-          <div>
-            <p className="text-brand-coral font-black text-3xl leading-none tracking-tight">
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-black text-3xl leading-none tracking-tight">
               {balanceLoading ? "…" : lguBalance !== null
                 ? `${lguBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PHPC`
                 : "00.00 PHPC"}
             </p>
-            <p className="text-white/60 text-xs font-semibold mt-1 tracking-wide">
-              Avalable Balance
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mt-1.5">
+              Available Balance
             </p>
           </div>
-          {/* Ethereum / PHPC token diamond icon — using crypto.png from adminAssets */}
+          {/* PHPC token icon */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/adminAssets/crypto.png"
+            src="/adminAssets/crypto.svg"
             alt="PHPC token"
-            width={52}
-            height={52}
-            className="object-contain opacity-90"
+            width={56}
+            height={56}
+            className="object-contain flex-shrink-0 mt-1"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
 
         {/* White body */}
         <div className="rounded-b-[1.75rem] bg-white px-8 pt-6 pb-7 space-y-5">
-          {/* Beneficiary context */}
-          <p className="text-xs text-brand-darkTeal/50 font-semibold -mt-1">
-            Adding credits for:{" "}
-            <span className="text-brand-darkTeal">{beneficiaryName}</span>
+          {/* Beneficiary context — muted single-line caption */}
+          <p className="text-[11px] text-brand-darkTeal/40 -mt-1">
+            Adding credits for <span className="text-brand-darkTeal/60 font-medium">{beneficiaryName}</span>
           </p>
 
           {/* Amount input */}
@@ -163,7 +163,10 @@ export function AddCreditsModal({
               step={50}
               value={amount}
               onChange={(e) => handleAmountChange(Number(e.target.value))}
-              className="w-full accent-brand-darkTeal h-2 cursor-pointer"
+              className="w-full h-2 cursor-pointer"
+              style={{
+                ['--range-pct' as string]: `${((amount - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100}%`,
+              }}
             />
             <div className="flex justify-between text-xs text-brand-darkTeal/50 font-semibold mt-1">
               <span>{SLIDER_MIN.toLocaleString()}</span>
@@ -194,7 +197,7 @@ export function AddCreditsModal({
           <button
             onClick={handleConfirm}
             disabled={insufficientBalance || submitting || balanceLoading || !amount}
-            className="w-full rounded-full bg-brand-coral hover:bg-brand-coralHover text-white font-bold text-sm py-3.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full rounded-full bg-button-coral hover:bg-button-coral/90 text-white font-bold text-sm py-3.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           >
             {submitting ? (
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -209,7 +212,7 @@ export function AddCreditsModal({
           <button
             onClick={onClose}
             disabled={submitting}
-            className="w-full rounded-full bg-[#f5f0ee] hover:bg-brand-peachBg text-brand-coral font-bold text-sm py-3.5 transition-all duration-200 cursor-pointer"
+            className="w-full rounded-full bg-button-cancel-bg hover:bg-button-cancel-bg/80 text-button-coral font-bold text-sm py-3.5 transition-all duration-200 cursor-pointer"
           >
             Cancel
           </button>

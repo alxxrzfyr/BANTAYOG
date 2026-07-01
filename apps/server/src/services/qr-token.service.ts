@@ -8,7 +8,8 @@ import { SignJWT, jwtVerify } from 'jose'
  */
 export class QrTokenService {
   private getSecretKey(): Uint8Array {
-    const secret = process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
+    const secret = process.env.JWT_SIGNING_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
+    const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
     return new TextEncoder().encode(secret);
   }
 

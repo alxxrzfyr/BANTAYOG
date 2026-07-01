@@ -9,7 +9,7 @@
 /* ---- Tailwind v4 Theme Extension ---- */
 @theme {
   /* Brand Colors */
-  --color-brand-darkTeal: #034c52;
+  --color-brand-darkTeal: #004B49;
   --color-brand-activeTeal: #017075;
   --color-brand-coral: #f48d79;
   --color-brand-coralHover: #ffc0b4;
@@ -21,6 +21,23 @@
   --color-brand-canvasPeach: #ffc0b4;
   --color-brand-cardCream: #FDF5F2;
 
+  /* Add Credits Modal Tokens */
+  --color-button-coral: #E07A65;
+  --color-button-cancel-bg: #F5F5F5;
+
+  /* Registration Page Design Tokens */
+  --color-brand-teal: #004B49;
+  --color-bg-canvas: #FAC5B9;
+  --color-bg-navbar: #FDEFEA;
+  --color-bg-card: #FFF9F8;
+  --color-border-input: #F3B3A3;
+  --color-badge-status-bg: #B9CFCF;
+  --color-alert-bg: #FEECE8;
+  --color-alert-border: #FCA390;
+  --color-alert-text: #FF3B30;
+  --color-route-active-bg: #D9C6C1;
+  --color-route-active-text: #E07A65;
+
   /* Font Families */
   --font-title: "Intro Rust", system-ui, sans-serif;
   --font-body: "Poppins", sans-serif;
@@ -29,7 +46,7 @@
 /* ---- CSS Custom Properties (Design Tokens) ---- */
 :root {
   /* Background Canvas */
-  --color-canvas: #fdf2ed;
+  --color-canvas: #FAC5B9;
   --color-canvas-secondary: #fbe9e1;
 
   /* Primary — Deep Dark Teal / Forest Green */
@@ -199,6 +216,61 @@ body {
 
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ---- Range Slider Overrides ---- */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  background: linear-gradient(to right, #004B49 0%, #004B49 var(--range-pct, 0%), #e0e0e0 var(--range-pct, 0%), #e0e0e0 100%);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #004B49;
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 1px 8px rgba(0,75,73,0.4);
+}
+
+input[type=range]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #004B49;
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+input[type=range]::-moz-range-thumb:hover {
+  box-shadow: 0 1px 8px rgba(0,75,73,0.4);
+}
+
+input[type=range]::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #e0e0e0;
+}
+
+input[type=range]::-moz-range-progress {
+  height: 8px;
+  border-radius: 9999px;
+  background: #004B49;
 }
 
 /* ---- Staggered children animation ---- */
