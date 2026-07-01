@@ -48,7 +48,6 @@ async function main() {
 
   console.log("1/4 Deploying PHPC...");
   const phpc = await viem.deployContract("PHPC", [deployerAddress]);
-  await publicClient.waitForTransactionReceipt({ hash: phpc.deploymentTransaction?.hash as `0x${string}` });
   console.log(`    ✅ PHPC deployed at: ${phpc.address}`);
 
   // -------------------------------------------------------------------------
@@ -59,7 +58,6 @@ async function main() {
 
   // Deploy the implementation contract first
   const subsidyImpl = await viem.deployContract("PHPCSubsidy", []);
-  await publicClient.waitForTransactionReceipt({ hash: subsidyImpl.deploymentTransaction?.hash as `0x${string}` });
   console.log(`    Implementation: ${subsidyImpl.address}`);
 
   // Encode the initialize() call
@@ -74,7 +72,6 @@ async function main() {
     subsidyImpl.address,
     initData,
   ]);
-  await publicClient.waitForTransactionReceipt({ hash: proxy.deploymentTransaction?.hash as `0x${string}` });
 
   // Get a typed interface of PHPCSubsidy at the proxy address
   const phpcSubsidy = await viem.getContractAt("PHPCSubsidy", proxy.address);
@@ -86,7 +83,6 @@ async function main() {
 
   console.log("3/4 Deploying BeneficiaryRegistry...");
   const beneficiaryRegistry = await viem.deployContract("BeneficiaryRegistry", [deployerAddress]);
-  await publicClient.waitForTransactionReceipt({ hash: beneficiaryRegistry.deploymentTransaction?.hash as `0x${string}` });
   console.log(`    ✅ BeneficiaryRegistry deployed at: ${beneficiaryRegistry.address}`);
 
   // -------------------------------------------------------------------------
@@ -95,7 +91,6 @@ async function main() {
 
   console.log("4/4 Deploying MerchantRegistry...");
   const merchantRegistry = await viem.deployContract("MerchantRegistry", [deployerAddress]);
-  await publicClient.waitForTransactionReceipt({ hash: merchantRegistry.deploymentTransaction?.hash as `0x${string}` });
   console.log(`    ✅ MerchantRegistry deployed at: ${merchantRegistry.address}`);
 
   // -------------------------------------------------------------------------
