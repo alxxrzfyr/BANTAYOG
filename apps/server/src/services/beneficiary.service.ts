@@ -142,4 +142,77 @@ export class BeneficiaryService {
 
     return updated;
   }
+
+  /**
+   * Looks up a beneficiary and returns it with dynamically computed tier.
+   */
+  async verifyAndReevaluateTier(beneficiaryId: string): Promise<{ beneficiary: any; tier: number }> {
+    const beneficiary = await this.beneficiaryRepo.findById(beneficiaryId)
+    if (!beneficiary) {
+      throw new Error('Beneficiary not found')
+    }
+
+    const tier = computeTier(beneficiary.created_at, beneficiary.child_age_months)
+    return {
+      beneficiary,
+      tier
+    }
+  }
+
+  /**
+   * Returns aggregate metrics for the admin dashboard.
+   */
+  async getMetrics(): Promise<{
+    totalBeneficiaries: number;
+    criticalUnits: number;
+    allocatedPhpc: string;
+    verifiedMerchants: number;
+  }> {
+    // Total beneficiaries
+    const { count: totalBeneficiaries, error: countError } = await (this.db as any)
+      .from('beneficiaries')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) throw new Error(`Metrics count error: ${countError.message}`);
+
+    // Sum of all credit balances
+    const { data: sumData, error: sumError } = await (this.db as any)
+      .from('beneficiaries')
+      .select('credit_balance');
+
+    if (sumError) throw new Error(`Metrics sum error: ${sumError.message}`);
+
+    const totalCredits = (sumData ?? []).reduce(
+      (acc: number, row: any) => acc + Number(row.credit_balance),
+      0,
+    );
+
+    // Count critical units (tier 1) — compute dynamically
+    const { data: allBeneficiaries, error: allError } = await (this.db as any)
+      .from('beneficiaries')
+      .select('created_at, child_age_months');
+
+    if (allError) throw new Error(`Metrics tier error: ${allError.message}`);
+
+    let criticalUnits = 0;
+    for (const b of allBeneficiaries ?? []) {
+      const tier = computeTier(b.created_at, b.child_age_months);
+      if (tier === 1) criticalUnits++;
+    }
+
+    // Verified merchants count
+    const { count: verifiedMerchants, error: merchantError } = await (this.db as any)
+      .from('merchants')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'APPROVED');
+
+    if (merchantError) throw new Error(`Metrics merchant error: ${merchantError.message}`);
+
+    return {
+      totalBeneficiaries: totalBeneficiaries ?? 0,
+      criticalUnits,
+      allocatedPhpc: totalCredits.toLocaleString('en-PH'),
+      verifiedMerchants: verifiedMerchants ?? 0,
+    };
+  }
 }

@@ -110,6 +110,16 @@ export interface PhotoReceiptRow {
   created_at: string
 }
 
+export interface ProductRow {
+  id: string
+  name: string
+  category: string
+  eligibility_status: 'eligible' | 'ineligible'
+  price_range_min: number
+  price_range_max: number
+  created_at: string
+}
+
 // ---------------------------------------------------------------------------
 // Table name union (re-exported by repository.ts)
 // ---------------------------------------------------------------------------
@@ -208,6 +218,11 @@ export interface Database {
         Row: PhotoReceiptRow
         Insert: Omit<PhotoReceiptRow, 'id' | 'created_at'>
         Update: Partial<Omit<PhotoReceiptRow, 'id' | 'created_at'>>
+      }
+      products: {
+        Row: ProductRow
+        Insert: Omit<ProductRow, 'id' | 'created_at'>
+        Update: Partial<Omit<ProductRow, 'id' | 'created_at'>>
       }
     }
     Views: Record<string, never>

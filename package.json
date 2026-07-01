@@ -12,9 +12,12 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:local": "concurrently --names hardhat,server --kill-others-on-fail 'pnpm --filter @bantayog/contracts hardhat node' 'wait-on tcp:127.0.0.1:8545 && pnpm --filter @bantayog/server boot && pnpm --filter @bantayog/server dev'",
+    "deploy:contracts": "pnpm --filter @bantayog/contracts compile && pnpm --filter @bantayog/contracts hardhat run scripts/deploy.ts --network localhost",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
+    "test:web": "pnpm --filter @bantayog/web test",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
