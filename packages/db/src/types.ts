@@ -82,10 +82,10 @@ export interface TransactionRow {
   confirmed_at: string | null
 }
 
-export interface QrTokenRow {
+export interface QrPassRow {
   id: string
   beneficiary_id: string
-  jws_compact: string
+  token_payload: string
   issued_at: string
   expires_at: string
   revoked: boolean
@@ -179,12 +179,12 @@ export interface Database {
         }
         Update: Partial<Omit<TransactionRow, 'id' | 'created_at'>>
       }
-      qr_tokens: {
-        Row: QrTokenRow
-        Insert: Omit<QrTokenRow, 'id' | 'issued_at' | 'revoked'> & {
+      qr_passes: {
+        Row: QrPassRow
+        Insert: Omit<QrPassRow, 'id' | 'issued_at' | 'revoked'> & {
           revoked?: boolean
         }
-        Update: Partial<Omit<QrTokenRow, 'id' | 'issued_at'>>
+        Update: Partial<Omit<QrPassRow, 'id' | 'issued_at'>>
       }
       outbox: {
         Row: OutboxRow

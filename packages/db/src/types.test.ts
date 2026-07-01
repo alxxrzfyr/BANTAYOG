@@ -19,7 +19,7 @@ describe('Database type structure', () => {
       'merchants',
       'beneficiaries',
       'transactions',
-      'qr_tokens',
+      'qr_passes',
       'outbox',
       'photo_receipts',
     ]
