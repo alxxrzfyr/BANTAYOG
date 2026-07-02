@@ -3,7 +3,7 @@ import pRetry from 'p-retry'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { ProductsService } from './products.service.js'
-import { AppResult, ok, err, ValidationError } from '../lib/errors.js'
+import { type AppResult, ok, err, ValidationError } from '../lib/errors.js'
 
 export interface CandidateResult {
   name: string

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TransactionStatus, OutboxStatus } from '@bantayog/db'
 import { TransactionRepository } from '../repositories/transaction.repository.js'
-import { AppResult, ok, err, PersistenceError, ValidationError } from '../lib/errors.js'
+import { type AppResult, ok, err, PersistenceError, ValidationError } from '../lib/errors.js'
 
 export class TransactionService {
   private db: SupabaseClient<Database>

@@ -73,12 +73,20 @@ export default function MerchantLoginPage() {
     setCredentialError(false);
     setNetworkError(false);
 
+    // Format the phone number to E.164 (+639...)
+    let mobileNumberE164 = form.phoneNumber.trim();
+    if (mobileNumberE164.startsWith("0")) {
+      mobileNumberE164 = "+63" + mobileNumberE164.slice(1);
+    } else if (!mobileNumberE164.startsWith("+")) {
+      mobileNumberE164 = "+63" + mobileNumberE164;
+    }
+
     try {
       const res = await fetch("/api/auth/merchant-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phoneNumber: form.phoneNumber.trim(),
+          mobileNumberE164,
           password: form.password,
         }),
       });

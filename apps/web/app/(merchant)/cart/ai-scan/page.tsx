@@ -28,6 +28,8 @@ const MOCK_RESULT: DetectionResult = {
   eligibility: "eligible",
 };
 
+const MOCK_FOOD_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI0UzRjBGMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwMzRDNTIiPlsgQkFOVEFZT0cgRUxJR0lCTEUgTUlMSyBdPC90ZXh0Pjwvc3ZnPg==";
+
 export default function AIScanPage() {
   return (
     <Suspense>
@@ -62,30 +64,49 @@ function AIScanContent() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // ── Start camera on mount ──
+  // ── Start camera ──
   useEffect(() => {
+    if (stage !== 1 || capturedImage) return;
+
     let mounted = true;
+    let localStream: MediaStream | null = null;
 
     async function startCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
         if (!mounted) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         streamRef.current = stream;
+        localStream = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          try {
+            await videoRef.current.play();
+          } catch (e) {
+            console.error("Autoplay failed:", e);
+          }
         }
         setCameraActive(true);
+        setCameraError(null);
       } catch {
         if (mounted) {
           setCameraError(
             "Camera access denied. Please allow camera access and try again.",
           );
+          setCameraActive(false);
         }
       }
     }
@@ -94,13 +115,17 @@ function AIScanContent() {
 
     return () => {
       mounted = false;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      localStream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [stage, capturedImage]);
 
   // ── Capture photo ──
   const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current) {
+      setCapturedImage(MOCK_FOOD_IMAGE);
+      setCameraActive(false);
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -108,7 +133,11 @@ function AIScanContent() {
     canvas.height = video.videoHeight;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      setCapturedImage(MOCK_FOOD_IMAGE);
+      setCameraActive(false);
+      return;
+    }
 
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
@@ -117,6 +146,13 @@ function AIScanContent() {
     // Stop camera after capture
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setCameraActive(false);
+  }, []);
+
+  // ── Bypass camera ──
+  const handleBypassCamera = useCallback(() => {
+    setCapturedImage(MOCK_FOOD_IMAGE);
+    setCameraActive(false);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
   // ── Validate price ──
@@ -142,8 +178,11 @@ function AIScanContent() {
 
       if (res.ok) {
         const data = await res.json();
-        setProductName(data.name || "Unknown Product");
-        setEligibility(data.eligibility || "eligible");
+        const candidate = data.candidates?.[0];
+        const name = candidate?.name || "Unknown Product";
+        const eligibility = candidate?.product?.eligibilityStatus?.toLowerCase() === "eligible" ? "eligible" : "ineligible";
+        setProductName(name);
+        setEligibility(eligibility);
       } else {
         // Fall back to mock response
         setProductName(MOCK_RESULT.name);
@@ -226,7 +265,13 @@ function AIScanContent() {
         <div className="px-5 pb-8">
           {/* Camera Viewfinder */}
           <div className="relative overflow-hidden rounded-2xl border-[3px] border-[#b2dfdb] bg-gray-100">
-            {cameraActive ? (
+            {capturedImage ? (
+              <img
+                src={capturedImage}
+                alt="Captured product"
+                className="aspect-[4/3] w-full object-cover"
+              />
+            ) : cameraActive ? (
               <>
                 <video
                   ref={videoRef}
@@ -257,26 +302,37 @@ function AIScanContent() {
                   />
                 </button>
               </>
-            ) : capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Captured product"
-                className="aspect-[4/3] w-full object-cover"
-              />
             ) : (
-              <div className="flex aspect-[4/3] w-full items-center justify-center" aria-live="polite">
-                <p className="text-sm text-gray-400">
-                  {cameraError || "Starting camera..."}
+              <div className="flex flex-col aspect-[4/3] w-full items-center justify-center gap-3 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
+                <p className="text-xs font-semibold text-[#034C52]/60">
+                  {cameraError || "Camera starting..."}
                 </p>
+                <button
+                  type="button"
+                  onClick={handleBypassCamera}
+                  className="rounded-full bg-[#034C52] px-4 py-2 text-xs font-bold text-white hover:bg-[#034C52]/90"
+                >
+                  Simulate Camera Capture
+                </button>
               </div>
             )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
 
+          {/* Quick Simulation Bypass Button (Always Visible when capturedImage is null) */}
+          {!capturedImage && (
+            <button
+              type="button"
+              onClick={handleBypassCamera}
+              className="mt-3 w-full rounded-xl border-2 border-dashed border-[#034C52]/40 bg-[#034C52]/5 py-3 font-body text-xs font-bold text-[#034C52] hover:bg-[#034C52]/10"
+            >
+              ⚡ Bypassed Camera? Use Mock Food Image
+            </button>
+          )}
+
           {/* Instruction */}
           <p className="mt-3 text-center font-body text-xs italic text-gray-400">
-            Take a picture of a single item in good lighting. The AI will
-            identify and validate the product.
+            Take a picture of a single item in good lighting or click the bypass button above to test.
           </p>
 
           {/* AI Detection Result / Form */}
@@ -555,12 +611,12 @@ function AIScanContent() {
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
       {/* Header */}
-        <header className="flex items-center px-4 pt-5 pb-3">
-          <Link
-            href="/cart"
-            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-            aria-label="Back"
-          >
+      <header className="flex items-center px-4 pt-5 pb-3">
+        <Link
+          href="/cart"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          aria-label="Back"
+        >
           <svg
             width="20"
             height="20"

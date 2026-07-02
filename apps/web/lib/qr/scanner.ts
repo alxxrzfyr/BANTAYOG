@@ -49,9 +49,15 @@ export class QRScanner {
 
     try {
       // Request camera access
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+      } catch {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+      }
 
       // Attach stream to video element
       videoElement.srcObject = this.stream;

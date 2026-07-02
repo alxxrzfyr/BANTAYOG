@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { MerchantRepository } from '../repositories/merchant.repository.js'
-import { AppResult, ok, err, AuthError, PersistenceError } from '../lib/errors.js'
+import { type AppResult, ok, err, AuthError, PersistenceError } from '../lib/errors.js'
 
 /**
  * BE1-2.3 · Merchant CRUD Service

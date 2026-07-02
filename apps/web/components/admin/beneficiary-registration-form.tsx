@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { QrPassData } from "@/components/admin/qr-pass-modal";
+import { authFetch } from "@/lib/api";
 
 /* ─────────────────────────────────────────────────────────
    BeneficiaryRegistrationForm — mock 2.png (left card)
@@ -103,7 +104,7 @@ export function BeneficiaryRegistrationForm({
     };
 
     try {
-      const res = await fetch("/api/beneficiaries/register", {
+      const res = await authFetch("/api/beneficiaries/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -126,8 +127,8 @@ export function BeneficiaryRegistrationForm({
 
       /* Build QrPassData from the API response — tier comes from the API, never computed */
       const qrData: QrPassData = {
-        jwsCompact: body.qrToken?.jwsCompact ?? body.jwsCompact ?? "no-token",
-        cardSerial: body.cardSerial ?? body.qrToken?.cardSerial ?? "LBT-0000-000",
+        jwsCompact: typeof body.qrToken === "string" ? body.qrToken : (body.qrToken?.jwsCompact ?? body.jwsCompact ?? "no-token"),
+        cardSerial: body.cardSerial ?? body.beneficiary?.cardSerial ?? body.qrToken?.cardSerial ?? "LBT-0000-000",
         childName: body.childName ?? values.childName,
         guardianName: body.guardianName ?? values.guardianName,
         birthdate: values.birthdate,

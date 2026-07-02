@@ -1,5 +1,5 @@
 import { hash, verify } from '@node-rs/argon2'
-import { AppResult, ok, err, ValidationError } from '../lib/errors.js'
+import { type AppResult, ok, err, ValidationError } from '../lib/errors.js'
 
 /**
  * BE1-2.3 · PIN Service

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { authFetch } from "@/lib/api";
 
 /* ─────────────────────────────────────────────────────────
    MerchantRegistrationForm — mock 2.png (right card)
@@ -94,7 +95,7 @@ export function MerchantRegistrationForm({
     };
 
     try {
-      const res = await fetch("/api/merchants/register", {
+      const res = await authFetch("/api/merchants/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

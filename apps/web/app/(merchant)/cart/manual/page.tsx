@@ -13,6 +13,8 @@ import { EligibilityToggle } from "@/components/merchant/eligibility-toggle";
 
 type VisualState = "blank" | "eligible" | "ineligible";
 
+const MOCK_FOOD_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI0UzRjBGMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwMzRDNTIiPlsgQkFOVEFZT0cgRUxJR0lCTEUgRk9PRCBdPC90ZXh0Pjwvc3ZnPg==";
+
 export default function ManualInputPage() {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -36,28 +38,47 @@ export default function ManualInputPage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // ── Start camera on mount ──
+  // ── Start camera ──
   useEffect(() => {
+    if (capturedImage) return;
+
     let mounted = true;
+    let localStream: MediaStream | null = null;
 
     async function startCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
         if (!mounted) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         streamRef.current = stream;
+        localStream = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          try {
+            await videoRef.current.play();
+          } catch (e) {
+            console.error("Autoplay failed:", e);
+          }
         }
         setCameraActive(true);
+        setCameraError(null);
       } catch {
         if (mounted) {
           setCameraError("Camera unavailable");
+          setCameraActive(false);
         }
       }
     }
@@ -66,13 +87,17 @@ export default function ManualInputPage() {
 
     return () => {
       mounted = false;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      localStream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [capturedImage]);
 
   // ── Capture photo ──
   const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current) {
+      setCapturedImage(MOCK_FOOD_IMAGE);
+      setCameraActive(false);
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -80,7 +105,11 @@ export default function ManualInputPage() {
     canvas.height = video.videoHeight;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      setCapturedImage(MOCK_FOOD_IMAGE);
+      setCameraActive(false);
+      return;
+    }
 
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
@@ -88,6 +117,13 @@ export default function ManualInputPage() {
 
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setCameraActive(false);
+  }, []);
+
+  // ── Bypass camera ──
+  const handleBypassCamera = useCallback(() => {
+    setCapturedImage(MOCK_FOOD_IMAGE);
+    setCameraActive(false);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
   // ── Handle eligibility selection ──
@@ -193,7 +229,13 @@ export default function ManualInputPage() {
         {/* Image Capture Area */}
         <div className="mt-5 flex justify-center">
           <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border-[3px] border-[#b2dfdb] bg-gray-100">
-            {cameraActive ? (
+            {capturedImage ? (
+              <img
+                src={capturedImage}
+                alt="Captured product"
+                className="aspect-[4/3] w-full object-cover"
+              />
+            ) : cameraActive ? (
               <>
                 <video
                   ref={videoRef}
@@ -224,22 +266,36 @@ export default function ManualInputPage() {
                   />
                 </button>
               </>
-            ) : capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Captured product"
-                className="aspect-[4/3] w-full object-cover"
-              />
             ) : (
-              <div className="flex aspect-[4/3] w-full items-center justify-center" aria-live="polite">
-                <p className="text-sm text-gray-400">
-                  {cameraError || "Starting camera..."}
+              <div className="flex flex-col aspect-[4/3] w-full items-center justify-center gap-3 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
+                <p className="text-xs font-semibold text-[#034C52]/60">
+                  {cameraError || "Camera starting..."}
                 </p>
+                <button
+                  type="button"
+                  onClick={handleBypassCamera}
+                  className="rounded-full bg-[#034C52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#034C52]/90"
+                >
+                  Simulate Camera Capture
+                </button>
               </div>
             )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
+
+        {/* Quick Simulation Bypass Button (Always Visible when capturedImage is null) */}
+        {!capturedImage && (
+          <div className="mt-3 flex justify-center">
+            <button
+              type="button"
+              onClick={handleBypassCamera}
+              className="w-full max-w-sm rounded-xl border-2 border-dashed border-[#034C52]/40 bg-[#034C52]/5 py-3 font-body text-xs font-bold text-[#034C52] hover:bg-[#034C52]/10"
+            >
+              ⚡ Bypassed Camera? Use Mock Food Image
+            </button>
+          </div>
+        )}
 
         {/* Form Card */}
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">

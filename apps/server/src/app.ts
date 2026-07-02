@@ -89,24 +89,30 @@ import transactionRoutes from './routes/transactions.js'
 app.route('/api/auth', authRoutes)
 
 // Admin-only routes
+app.use('/api/beneficiaries', authMiddleware, requireRole('admin'))
 app.use('/api/beneficiaries/*', authMiddleware, requireRole('admin'))
 app.route('/api/beneficiaries', beneficiaryRoutes)
 
+app.use('/api/merchants', authMiddleware, requireRole('admin'))
 app.use('/api/merchants/*', authMiddleware, requireRole('admin'))
 app.route('/api/merchants', merchantRoutes)
 
 // Admin + Merchant routes
+app.use('/api/chain', authMiddleware, requireRole('admin', 'merchant'))
 app.use('/api/chain/*', authMiddleware, requireRole('admin', 'merchant'))
 app.route('/api/chain', chainRoutes)
 
+app.use('/api/products', authMiddleware, requireRole('admin', 'merchant'))
 app.use('/api/products/*', authMiddleware, requireRole('admin', 'merchant'))
 app.route('/api/products', productRoutes)
 
 // Merchant-only routes
+app.use('/api/vision', authMiddleware, requireRole('merchant'))
 app.use('/api/vision/*', authMiddleware, requireRole('merchant'))
 app.route('/api/vision', visionRoutes)
 
 // Admin + Merchant routes
+app.use('/api/transactions', authMiddleware, requireRole('admin', 'merchant'))
 app.use('/api/transactions/*', authMiddleware, requireRole('admin', 'merchant'))
 app.route('/api/transactions', transactionRoutes)
 

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { ProductRepository } from '../repositories/product.repository.js'
-import { AppResult, ok, err, PersistenceError } from '../lib/errors.js'
+import { type AppResult, ok, err, PersistenceError } from '../lib/errors.js'
 
 export interface ValidationSuccessResult {
   matched: true

@@ -1,4 +1,4 @@
-import { computeTier } from '../domain/eligibility.js'
+import { computeTier, computeAgeInDays, DAYS_PER_MONTH } from '../domain/eligibility.js'
 
 export interface BeneficiaryDTO {
   id: string
@@ -15,7 +15,10 @@ export interface BeneficiaryDTO {
   activatedAt: string | null
   deactivatedAt: string | null
   createdAt: string
-  tier: number
+  birthdate: string
+  ageDetails: string
+  tier: 'TIER_1_CRITICAL' | 'TIER_2_STANDARD'
+  jwsCompact?: string
 }
 
 export interface MerchantDTO {
@@ -67,7 +70,20 @@ export interface WalletBalanceDTO {
 }
 
 export function toBeneficiaryDTO(row: any): BeneficiaryDTO {
-  const tier = row.tier ?? computeTier(row.created_at, row.child_age_months)
+  const tierNum: number = row.tier ?? computeTier(row.created_at, row.child_age_months)
+  const tier: 'TIER_1_CRITICAL' | 'TIER_2_STANDARD' = tierNum === 1 ? 'TIER_1_CRITICAL' : 'TIER_2_STANDARD'
+
+  // Compute age in days from stored age-months and created_at
+  const ageInDays = computeAgeInDays(row.created_at, row.child_age_months)
+  const ageInMonths = Math.floor(ageInDays / 30)
+
+  // Derive birthdate ISO string from created_at and child_age_months
+  const createdDate = new Date(row.created_at)
+  const birthdateMs = createdDate.getTime() - (row.child_age_months * DAYS_PER_MONTH * 24 * 60 * 60 * 1000)
+  const birthdate = new Date(birthdateMs).toISOString().split('T')[0]
+
+  const ageDetails = `~${ageInMonths} months\n(${ageInDays} days)`
+
   return {
     id: row.id,
     guardianName: row.guardian_name,
@@ -83,7 +99,10 @@ export function toBeneficiaryDTO(row: any): BeneficiaryDTO {
     activatedAt: row.activated_at || null,
     deactivatedAt: row.deactivated_at || null,
     createdAt: row.created_at,
-    tier
+    birthdate,
+    ageDetails,
+    tier,
+    jwsCompact: row.jwsCompact ?? row.jws_compact ?? undefined
   }
 }
 

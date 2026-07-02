@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { authFetch } from "@/lib/api";
 
 /* ─────────────────────────────────────────────────────────
    AddCreditsModal — mock 7.png
@@ -43,7 +44,7 @@ export function AddCreditsModal({
     setAmount(SLIDER_MIN);
     setBalanceLoading(true);
 
-    fetch("/api/chain/balance")
+    authFetch("/api/chain/balance")
       .then((r) => r.json())
       .then((data) => {
         const bal = parseFloat(data?.formatted ?? data?.balance ?? "0");
@@ -60,15 +61,15 @@ export function AddCreditsModal({
   }, []);
 
   const insufficientBalance =
-    lguBalance !== null && amount > lguBalance;
+    lguBalance !== null && lguBalance > 0 && amount > lguBalance;
 
   const handleConfirm = async () => {
-    if (insufficientBalance || !amount) return;
+    if (!amount) return;
     setSubmitting(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/beneficiaries/${beneficiaryId}/credits`, {
+      const res = await authFetch(`/api/beneficiaries/${beneficiaryId}/credits`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
@@ -195,7 +196,7 @@ export function AddCreditsModal({
           {/* Continue button */}
           <button
             onClick={handleConfirm}
-            disabled={insufficientBalance || submitting || balanceLoading || !amount}
+            disabled={submitting || !amount}
             className="w-full rounded-full bg-button-coral hover:bg-button-coral/90 text-white font-bold text-sm py-3.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           >
             {submitting ? (

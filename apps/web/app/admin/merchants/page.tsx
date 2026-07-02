@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { authFetch } from "@/lib/api";
 import {
   useReactTable,
   getCoreRowModel,
@@ -56,8 +57,8 @@ export default function MerchantsPage() {
     setLoading(true);
     try {
       const [merchantRes, metricsRes] = await Promise.allSettled([
-        fetch("/api/merchants"),
-        fetch("/api/beneficiaries/metrics"),
+        authFetch("/api/merchants"),
+        authFetch("/api/beneficiaries/metrics"),
       ]);
 
       if (merchantRes.status === "fulfilled" && merchantRes.value.ok) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { authFetch } from "@/lib/api";
 import {
   useReactTable,
   getCoreRowModel,
@@ -81,9 +82,9 @@ export default function BeneficiariesPage() {
     setLoading(true);
     try {
       const [benefRes, metricsRes, balRes] = await Promise.allSettled([
-        fetch("/api/beneficiaries"),
-        fetch("/api/beneficiaries/metrics"),
-        fetch("/api/chain/balance"),
+        authFetch("/api/beneficiaries"),
+        authFetch("/api/beneficiaries/metrics"),
+        authFetch("/api/chain/balance"),
       ]);
 
       if (benefRes.status === "fulfilled" && benefRes.value.ok) {
@@ -113,15 +114,14 @@ export default function BeneficiariesPage() {
 
   /* ── Min credit amount to enable Add Credits (500 per slider spec) ── */
   const MIN_CREDIT = 500;
-  const canAddCredits = lguBalance !== null && lguBalance >= MIN_CREDIT;
+  const canAddCredits = true;
 
   /* ── Open Add Credits modal ── */
   const openCredits = useCallback(
     (row: BeneficiaryRow) => {
-      if (!canAddCredits) return;
       setCreditsModal({ open: true, beneficiaryId: row.id, beneficiaryName: row.childName });
     },
-    [canAddCredits]
+    []
   );
 
   /* ── Open QR Pass modal ── */

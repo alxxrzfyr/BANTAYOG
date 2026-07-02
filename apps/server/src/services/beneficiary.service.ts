@@ -4,7 +4,7 @@ import { BeneficiaryRepository } from '../repositories/beneficiary.repository.js
 import { PinService } from './pin.service.js'
 import { QrTokenService } from './qr-token.service.js'
 import { computeTier } from '../domain/eligibility.js'
-import { AppResult, ok, err, PersistenceError, ValidationError } from '../lib/errors.js'
+import { type AppResult, ok, err, PersistenceError, ValidationError } from '../lib/errors.js'
 
 /**
  * BE1-2.3 · Beneficiary CRUD Service
@@ -66,8 +66,7 @@ export class BeneficiaryService {
         eligibility_status: 'ELIGIBLE',
         card_serial: cardSerial,
         credit_balance: 0,
-        activated_at: new Date().toISOString(),
-        intervention_tier: tier
+        activated_at: new Date().toISOString()
       });
 
       // 5. Generate signed QR token JWS compact JWT

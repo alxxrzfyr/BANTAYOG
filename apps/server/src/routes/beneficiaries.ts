@@ -21,7 +21,17 @@ const addCreditsSchema = z.object({
  * POST /api/beneficiaries/register
  * Onboard a new beneficiary and generate QR Voucher/Pass
  */
-beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto), async (c) => {
+beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto, (result, c) => {
+  if (!result.success) {
+    const errorMsg = result.error?.issues
+      ? result.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+      : (result.error?.message ?? 'Invalid request body');
+    return c.json({
+      error: 'validation_failed',
+      message: errorMsg
+    }, 400)
+  }
+}), async (c) => {
   const dto = c.req.valid('json')
   const db = createServiceClient()
   const service = new BeneficiaryService(db)
@@ -38,11 +48,20 @@ beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto), as
   })
 
   return result.match(
-    (res) => c.json({
-      beneficiary: toBeneficiaryDTO({ ...res.beneficiary, tier: res.tier }),
-      qrToken: res.qrToken,
-      cardSerial: res.cardSerial
-    }, 201),
+    (res) => {
+      const tierLabel = res.tier === 1 ? "TIER_1_CRITICAL" : "TIER_2_STANDARD";
+      const alert_banner = res.tier === 1
+        ? "Critical 1,000-Day Window: Beneficiary placed in Tier 1. Core nutritional subsidies allocated."
+        : "Standard Intervention: Beneficiary placed in Tier 2 (Child is over 2 years old). Standard subsidy allocated.";
+
+      return c.json({
+        beneficiary: toBeneficiaryDTO({ ...res.beneficiary, tier: res.tier }),
+        qrToken: res.qrToken,
+        cardSerial: res.cardSerial,
+        tier: tierLabel,
+        alert_banner
+      }, 201);
+    },
     (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
   )
 })
@@ -79,33 +98,11 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
   const db = createServiceClient()
   const service = new BeneficiaryService(db)
 
-  try {
-    // 1. Fetch LGU balance from blockchain
-    const chainClient = new ChainClient()
-    const lguTreasury = c.env.LGU_TREASURY_ADDRESS || process.env.LGU_TREASURY_ADDRESS
-    if (!lguTreasury) {
-      return c.json({ error: 'config', message: 'LGU_TREASURY_ADDRESS not set' }, 500)
-    }
-    const lguBalanceWei = await chainClient.getBalance(lguTreasury)
-    const lguBalance = Number(formatUnits(lguBalanceWei, 18))
-
-    // 2. Validate sufficient LGU balance
-    if (lguBalance < amount) {
-      return c.json({
-        error: 'insufficient_funds',
-        message: `Insufficient LGU treasury balance. Required: ${amount} PHPC, Available: ${lguBalance} PHPC`
-      }, 422)
-    }
-
-    // 3. Add credits
-    const result = await service.addCredits(id, amount)
-    return result.match(
-      (updated) => c.json(toBeneficiaryDTO(updated)),
-      (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
-    )
-  } catch (err: any) {
-    return c.json({ error: 'topup_failed', message: err.message }, 500)
-  }
+  const result = await service.addCredits(id, amount)
+  return result.match(
+    (updated) => c.json(toBeneficiaryDTO(updated)),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 /**

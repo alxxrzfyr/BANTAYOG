@@ -140,11 +140,35 @@ export default function CheckoutPage() {
 
   // ── PIN Verification ──
   const handlePinComplete = useCallback(
-    (pin: string) => {
+    async (pin: string) => {
       setPinError(false);
+      if (!beneficiaryData) return;
+
+      try {
+        const res = await fetch("/api/auth/verify-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            beneficiaryId: beneficiaryData.id,
+            pin,
+          }),
+        });
+
+        if (res.ok) {
+          const params = new URLSearchParams({
+            amount: total.toFixed(2),
+            beneficiary: beneficiaryData.guardianName,
+            remaining: (beneficiaryData.balance - total).toFixed(0),
+          });
+          router.push(`/checkout/complete?${params.toString()}`);
+          return;
+        }
+      } catch {
+        // Fallback to local check
+      }
 
       // Mock verification: accept '123456' as correct
-      if (pin === "123456" && beneficiaryData) {
+      if (pin === "123456") {
         // Navigate to complete page with transaction data
         const params = new URLSearchParams({
           amount: total.toFixed(2),
@@ -208,133 +232,133 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
       <div aria-hidden={isModalOpen || undefined}>
-      {/* ── Header ── */}
-      <header className="flex items-center px-4 pt-5 pb-3">
-        <Link
-          href={backHref}
-          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-          aria-label="Back"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#034C52"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {/* ── Header ── */}
+        <header className="flex items-center px-4 pt-5 pb-3">
+          <Link
+            href={backHref}
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            aria-label="Back"
           >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </Link>
-        <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
-          Checkout
-        </h1>
-        <div className="w-11" />
-      </header>
-
-      <div className="h-px bg-gray-400" />
-
-      {/* ── Content ── */}
-      <div className="px-5 pb-8">
-        {/* Store Info */}
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#034C52]">
-            <img
-              src="/merchantLogos/profile.png"
-              alt="Store profile"
-              className="h-8 w-8 rounded-full"
-            />
-          </div>
-          <div>
-            <p className="font-body text-base font-bold text-gray-900">
-              Store Name
-            </p>
-            <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
-              <img
-                src="/merchantLogos/verifiedBadge.png"
-                alt="LGU Verified"
-                className="h-3 w-3"
-              />
-              <span className="font-body text-[10px] font-semibold text-[#034C52]">
-                LGU Verified Store
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Cart Items */}
-        <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-4 py-4">
-          <h3 className="mb-3 font-body text-base font-bold text-[#034C52]">
-            Cart Items ({eligibleItems.length})
-          </h3>
-          <ul className="space-y-3 list-none p-0 m-0">
-            {eligibleItems.map((item) => (
-              <li key={item.id}>
-                <ItemCard
-                  name={item.name}
-                  price={item.price}
-                  quantity={item.quantity}
-                  eligibility={item.eligibility}
-                  imageDataUrl={item.imageDataUrl}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Cart Summary */}
-        <div className="mt-5">
-          <CartSummary />
-        </div>
-
-        {/* Payment Method */}
-        <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-4 py-4">
-          <h3 className="mb-3 font-body text-base font-bold text-[#034C52]">
-            Payment Method
-          </h3>
-          <button
-            type="button"
-            onClick={() => setModalState("qr-scan")}
-            className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
-          >
-            <img
-              src="/merchantLogos/qrSample.png"
-              alt="QR Code"
-              className="h-8 w-8 flex-shrink-0"
-            />
-            <span className="flex-1 text-left font-body text-sm font-medium text-gray-700">
-              Bantayog Credit
-            </span>
-            <span className="font-body text-sm font-semibold text-gray-600">
-              {total.toFixed(2)} PHPC
-            </span>
             <svg
-              width="16"
-              height="16"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#9e8e82"
+              stroke="#034C52"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <polyline points="9 18 15 12 9 6" />
+              <polyline points="15 18 9 12 15 6" />
             </svg>
+          </Link>
+          <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
+            Checkout
+          </h1>
+          <div className="w-11" />
+        </header>
+
+        <div className="h-px bg-gray-400" />
+
+        {/* ── Content ── */}
+        <div className="px-5 pb-8">
+          {/* Store Info */}
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#034C52]">
+              <img
+                src="/merchantLogos/profile.png"
+                alt="Store profile"
+                className="h-8 w-8 rounded-full"
+              />
+            </div>
+            <div>
+              <p className="font-body text-base font-bold text-gray-900">
+                Store Name
+              </p>
+              <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
+                <img
+                  src="/merchantLogos/verifiedBadge.png"
+                  alt="LGU Verified"
+                  className="h-3 w-3"
+                />
+                <span className="font-body text-[10px] font-semibold text-[#034C52]">
+                  LGU Verified Store
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cart Items */}
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+            <h3 className="mb-3 font-body text-base font-bold text-[#034C52]">
+              Cart Items ({eligibleItems.length})
+            </h3>
+            <ul className="space-y-3 list-none p-0 m-0">
+              {eligibleItems.map((item) => (
+                <li key={item.id}>
+                  <ItemCard
+                    name={item.name}
+                    price={item.price}
+                    quantity={item.quantity}
+                    eligibility={item.eligibility}
+                    imageDataUrl={item.imageDataUrl}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Cart Summary */}
+          <div className="mt-5">
+            <CartSummary />
+          </div>
+
+          {/* Payment Method */}
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+            <h3 className="mb-3 font-body text-base font-bold text-[#034C52]">
+              Payment Method
+            </h3>
+            <button
+              type="button"
+              onClick={() => setModalState("qr-scan")}
+              className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
+            >
+              <img
+                src="/merchantLogos/qrSample.png"
+                alt="QR Code"
+                className="h-8 w-8 flex-shrink-0"
+              />
+              <span className="flex-1 text-left font-body text-sm font-medium text-gray-700">
+                Bantayog Credit
+              </span>
+              <span className="font-body text-sm font-semibold text-gray-600">
+                {total.toFixed(2)} PHPC
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9e8e82"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Checkout Button */}
+          <button
+            type="button"
+            ref={checkoutButtonRef}
+            onClick={() => setModalState("qr-scan")}
+            className="mt-6 w-full rounded-2xl bg-[#034C52] py-4 font-body text-base font-bold text-white transition-colors hover:bg-[#017075] active:brightness-95"
+          >
+            Confirm & Checkout
           </button>
         </div>
-
-        {/* Checkout Button */}
-        <button
-          type="button"
-          ref={checkoutButtonRef}
-          onClick={() => setModalState("qr-scan")}
-          className="mt-6 w-full rounded-2xl bg-[#034C52] py-4 font-body text-base font-bold text-white transition-colors hover:bg-[#017075] active:brightness-95"
-        >
-          Confirm & Checkout
-        </button>
-      </div>
       </div>
 
       {/* ── QR Scanner Modal (FE2-3.6) ── */}
@@ -589,11 +613,10 @@ function PINModal({
           {Array.from({ length: maxDigits }).map((_, i) => (
             <div
               key={i}
-              className={`h-4 w-4 rounded-full border-2 transition-all ${
-                i < pin.length
+              className={`h-4 w-4 rounded-full border-2 transition-all ${i < pin.length
                   ? "border-white bg-white"
                   : "border-white/40 bg-transparent"
-              }`}
+                }`}
               aria-hidden="true"
             />
           ))}

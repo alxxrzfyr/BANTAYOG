@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { AppResult, ok, err, JwtError } from '../lib/errors.js'
+import { type AppResult, ok, err, JwtError } from '../lib/errors.js'
 
 /**
  * BE1-2.3 · QR Token Service
