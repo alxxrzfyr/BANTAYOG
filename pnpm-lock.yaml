@@ -110,10 +110,10 @@ importers:
         version: 2.0.2
       '@supabase/ssr':
         specifier: ^0.5.2
-        version: 0.5.2(@supabase/supabase-js@2.110.0)
+        version: 0.5.2(@supabase/supabase-js@2.108.2)
       '@supabase/supabase-js':
         specifier: ^2.45.4
-        version: 2.110.0
+        version: 2.108.2
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.101.2(react@19.2.7)
@@ -4887,7 +4887,7 @@ snapshots:
   browserslist@4.28.2:
     dependencies:
       baseline-browser-mapping: 2.10.40
-      caniuse-lite: 1.0.30001800
+      caniuse-lite: 1.0.30001799
       electron-to-chromium: 1.5.384
       node-releases: 2.0.50
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
