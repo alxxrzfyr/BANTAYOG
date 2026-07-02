@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // ---------------------------------------------------------------------------
 // Transfer Modal — matches merchantPages/14.png
@@ -26,6 +26,24 @@ export function TransferModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focus first interactive element on open
+  useEffect(() => {
+    if (open) {
+      closeButtonRef.current?.focus();
+    }
+  }, [open]);
+
+  // Escape key closes modal
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -76,6 +94,7 @@ export function TransferModal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        aria-hidden="true"
         onClick={onClose}
       />
 
@@ -84,9 +103,10 @@ export function TransferModal({
         {/* Close button */}
         <button
           type="button"
+          ref={closeButtonRef}
           onClick={onClose}
           disabled={loading}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
           aria-label="Close"
         >
           <svg
@@ -109,7 +129,7 @@ export function TransferModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/wallet2.png"
-            alt=""
+            alt="Digital wallet"
             className="h-14 w-14 rounded-xl"
           />
           <svg
@@ -128,7 +148,7 @@ export function TransferModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/ronin.png"
-            alt=""
+            alt="Ronin Wallet"
             className="h-14 w-14 rounded-xl"
           />
         </div>
@@ -167,19 +187,19 @@ export function TransferModal({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors hover:bg-gray-50"
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors hover:bg-gray-50"
               aria-label="Copy wallet address"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/copy_paste.png"
-                alt=""
+                alt="Copy to clipboard"
                 className="h-5 w-5 opacity-50"
               />
             </button>
           </div>
           {copied && (
-            <p className="mt-1.5 font-body text-xs text-green-600">Copied!</p>
+            <p className="mt-1.5 font-body text-xs text-green-600" aria-live="polite">Copied!</p>
           )}
         </div>
 
@@ -208,7 +228,7 @@ export function TransferModal({
 
         {/* Error */}
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-center">
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-center" role="alert">
             <p className="font-body text-sm text-red-600">{error}</p>
           </div>
         )}

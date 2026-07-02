@@ -101,7 +101,8 @@ export default function ManualInputPage() {
   const isPriceValid = !isNaN(priceValue) && priceValue > 0;
   const isQuantityValid = quantity >= 1;
   const isNameValid = productName.trim().length > 0;
-  const isFormComplete = isNameValid && isPriceValid && isQuantityValid && eligibility !== null;
+  const hasImage = capturedImage !== null;
+  const isFormComplete = hasImage && isNameValid && isPriceValid && isQuantityValid && eligibility !== null;
 
   // ── Add Another Item ──
   const handleAddAnother = () => {
@@ -156,7 +157,8 @@ export default function ManualInputPage() {
   };
 
   const hasEligibleInCart = items.some((i) => i.eligibility === "eligible");
-  const canProceed = hasEligibleInCart || (isFormComplete && eligibility === "eligible");
+  const hasAnyItemInCart = items.length > 0;
+  const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null));
 
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
@@ -164,7 +166,7 @@ export default function ManualInputPage() {
       <header className="flex items-center px-4 pt-5 pb-3">
         <Link
           href="/cart"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
           aria-label="Back"
         >
           <svg
@@ -200,6 +202,7 @@ export default function ManualInputPage() {
                   playsInline
                   muted
                   className="aspect-[4/3] w-full object-cover"
+                  aria-label="Camera viewfinder for capturing product image"
                 />
                 {/* Corner brackets */}
                 <div className="pointer-events-none absolute inset-0">
@@ -212,7 +215,7 @@ export default function ManualInputPage() {
                 <button
                   type="button"
                   onClick={capturePhoto}
-                  className="absolute bottom-3 right-3 z-10"
+                  className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
                   aria-label="Capture photo"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -231,7 +234,7 @@ export default function ManualInputPage() {
                 className="aspect-[4/3] w-full object-cover"
               />
             ) : (
-              <div className="flex aspect-[4/3] w-full items-center justify-center">
+              <div className="flex aspect-[4/3] w-full items-center justify-center" aria-live="polite">
                 <p className="text-sm text-gray-400">
                   {cameraError || "Starting camera..."}
                 </p>
@@ -245,37 +248,41 @@ export default function ManualInputPage() {
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">
           {/* Product Name */}
           <div className="mb-4">
-            <label className="mb-1.5 block font-body text-sm font-bold text-gray-800">
+            <label htmlFor="product-name" className="mb-1.5 block font-body text-sm font-bold text-gray-800">
               Product Name
             </label>
             <input
+              id="product-name"
               type="text"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Enter product name"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-body text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981]"
+              className="w-full font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300"
             />
           </div>
 
           {/* Price & Quantity */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block font-body text-xs font-medium text-gray-600">
+              <label htmlFor="price-manual" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
                 Price (PHP)
               </label>
-              <div className="flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors focus-within:border-[#017075]">
-                <span className="flex-shrink-0 pl-3 font-body text-sm text-gray-500">
+              <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
+                <span className="flex-shrink-0 font-body text-sm text-gray-500">
                   ₱
                 </span>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-transparent px-2 py-2.5 font-body text-sm text-gray-800 outline-none placeholder:text-gray-300"
-                />
+                <div className="min-w-0 flex-1">
+                  <input
+                    id="price-manual"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
+                  />
+                </div>
               </div>
             </div>
             <QuantitySelector
@@ -296,14 +303,14 @@ export default function ManualInputPage() {
 
         {/* Status Message */}
         {visualState === "eligible" && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center" aria-live="polite">
             <span className="rounded-full border border-[#10b981] bg-[#ecfdf5] px-4 py-1.5 font-body text-xs font-semibold text-[#065f46]">
               Item will be added to cart
             </span>
           </div>
         )}
         {visualState === "ineligible" && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center" aria-live="polite">
             <span className="rounded-full border border-[#ef4444] bg-[#fef2f2] px-4 py-1.5 font-body text-xs font-semibold text-[#991b1b]">
               Item will NOT be added to cart
             </span>
@@ -316,18 +323,28 @@ export default function ManualInputPage() {
             type="button"
             onClick={handleAddAnother}
             disabled={!isFormComplete}
+            aria-disabled={!isFormComplete}
+            aria-describedby="add-another-hint"
             className="w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             + Add Another Item
           </button>
+          <span id="add-another-hint" className="sr-only">
+            {!hasImage ? "Please capture a product image" : !isNameValid ? "Enter a product name" : !isPriceValid ? "Enter a valid price greater than 0" : !eligibility ? "Select an eligibility classification" : ""}
+          </span>
           <button
             type="button"
             onClick={handleProceedToCheckout}
             disabled={!canProceed}
+            aria-disabled={!canProceed}
+            aria-describedby="proceed-hint"
             className="w-full rounded-2xl bg-[#034C52] py-4 font-body text-base font-bold text-white transition-colors hover:bg-[#017075] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Proceed to Checkout
           </button>
+          <span id="proceed-hint" className="sr-only">
+            {!canProceed ? (!hasImage ? "Please capture a product image" : "Add at least one eligible item to proceed") : ""}
+          </span>
         </div>
       </div>
     </div>

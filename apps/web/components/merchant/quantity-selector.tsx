@@ -38,7 +38,11 @@ export function QuantitySelector({
         >
           -
         </button>
-        <span className="flex-1 text-center font-body text-base font-semibold text-gray-800">
+        <span
+          className="flex-1 text-center font-body text-base font-semibold text-gray-800"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {value}
         </span>
         <button

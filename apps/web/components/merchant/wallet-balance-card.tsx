@@ -94,7 +94,7 @@ export function WalletBalanceCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/wallet.png"
-            alt=""
+            alt="Digital wallet icon"
             className="h-10 w-10 flex-shrink-0"
           />
         </div>
@@ -186,7 +186,7 @@ export function WalletBalanceCard({
 
         {/* Wallet error */}
         {walletStatus === "error" && walletError && (
-          <p className="mb-3 font-body text-[11px] text-red-300">
+          <p className="mb-3 font-body text-[11px] text-red-300" role="alert" aria-live="assertive">
             {walletError}
           </p>
         )}
@@ -199,7 +199,7 @@ export function WalletBalanceCard({
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95"
+            className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95"
           >
             Transfer to Ronin Wallet
           </button>

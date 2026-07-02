@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
@@ -10,6 +10,14 @@ import { useCartStore } from "@/stores/cart-store";
 // ---------------------------------------------------------------------------
 
 export default function TransactionCompletePage() {
+  return (
+    <Suspense>
+      <TransactionCompleteContent />
+    </Suspense>
+  );
+}
+
+function TransactionCompleteContent() {
   const searchParams = useSearchParams();
   const clearCart = useCartStore((s) => s.clearCart);
 
@@ -27,11 +35,11 @@ export default function TransactionCompletePage() {
       {/* Content */}
       <div className="flex flex-col items-center px-6 pt-16 pb-8">
         {/* Success Illustration */}
-        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#d1fae5]">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#d1fae5]" role="img" aria-label="Transaction successful">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/green_correct.png"
-            alt=""
+            alt="Success checkmark"
             className="h-14 w-14"
           />
         </div>

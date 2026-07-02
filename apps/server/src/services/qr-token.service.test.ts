@@ -13,11 +13,15 @@ describe('QrTokenService', () => {
       pin_hash_ref: 'somehashref12345'
     }
 
-    const token = await qrTokenService.generateToken(payload, '1h')
+    const tokenResult = await qrTokenService.generateToken(payload, '1h')
+    expect(tokenResult.isOk()).toBe(true)
+    const token = tokenResult._unsafeUnwrap()
     expect(token).toBeDefined()
     expect(typeof token).toBe('string')
 
-    const decoded = await qrTokenService.verifyToken(token)
+    const decodedResult = await qrTokenService.verifyToken(token)
+    expect(decodedResult.isOk()).toBe(true)
+    const decoded = decodedResult._unsafeUnwrap()
     expect(decoded.beneficiaryId).toBe(payload.beneficiaryId)
     expect(decoded.childName).toBe(payload.childName)
     expect(decoded.guardianName).toBe(payload.guardianName)
@@ -35,8 +39,12 @@ describe('QrTokenService', () => {
     }
 
     // Generate token with 0s expiry (instant expiration)
-    const token = await qrTokenService.generateToken(payload, -1) // negative time is expired
+    const tokenResult = await qrTokenService.generateToken(payload, -1) // negative time is expired
+    expect(tokenResult.isOk()).toBe(true)
+    const token = tokenResult._unsafeUnwrap()
 
-    await expect(qrTokenService.verifyToken(token)).rejects.toThrow()
+    const decodedResult = await qrTokenService.verifyToken(token)
+    expect(decodedResult.isErr()).toBe(true)
   })
 })
+

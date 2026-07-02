@@ -3,6 +3,7 @@ import pRetry from 'p-retry'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { ProductsService } from './products.service.js'
+import { AppResult, ok, err, ValidationError } from '../lib/errors.js'
 
 export interface CandidateResult {
   name: string
@@ -45,9 +46,9 @@ export class VisionService {
    * Identifies a product in an image using Gemini vision,
    * then matches each candidate against the local products catalog.
    */
-  async classifyProduct(imageBase64: string): Promise<VisionClassificationResult> {
+  async classifyProduct(imageBase64: string): Promise<AppResult<VisionClassificationResult>> {
     if (!imageBase64 || imageBase64.trim() === '') {
-      return { identified: false, reason: 'Empty image data provided' }
+      return ok({ identified: false, reason: 'Empty image data provided' })
     }
 
     // Strip base64 metadata prefix if present
@@ -120,7 +121,7 @@ export class VisionService {
 
       const text = apiResponse.text
       if (!text) {
-        return { identified: false, reason: 'Gemini returned empty response text' }
+        return ok({ identified: false, reason: 'Gemini returned empty response text' })
       }
 
       const responseObj = JSON.parse(text)
@@ -132,7 +133,7 @@ export class VisionService {
       )
 
       if (filteredCandidates.length === 0) {
-        return { identified: false, reason: 'unrecognizable' }
+        return ok({ identified: false, reason: 'unrecognizable' })
       }
 
       // 3. For each candidate, match against catalog
@@ -140,21 +141,31 @@ export class VisionService {
 
       for (const candidate of filteredCandidates) {
         const matchResult = await this.productsService.validateProduct(candidate.name)
-        candidatesWithProducts.push({
-          name: candidate.name,
-          confidence: candidate.confidence,
-          product: matchResult.matched ? matchResult.product : null
-        })
+        if (matchResult.isOk()) {
+          const matchResultValue = matchResult.value
+          candidatesWithProducts.push({
+            name: candidate.name,
+            confidence: candidate.confidence,
+            product: matchResultValue.matched ? matchResultValue.product : null
+          })
+        } else {
+          candidatesWithProducts.push({
+            name: candidate.name,
+            confidence: candidate.confidence,
+            product: null
+          })
+        }
       }
 
-      return {
+      return ok({
         identified: true,
         candidates: candidatesWithProducts
-      }
+      })
 
     } catch (error: any) {
       console.error('Vision classification failed:', error)
-      return { identified: false, reason: `Vision classification failed: ${error.message}` }
+      return err(new ValidationError(`Vision classification failed: ${error.message}`))
     }
   }
 }
+

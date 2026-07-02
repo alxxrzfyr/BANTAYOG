@@ -11,7 +11,7 @@ export default function ScanCartItemsPage() {
       <header className="flex items-center px-4 pt-5 pb-3">
         <Link
           href="/dashboard"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
           aria-label="Back to dashboard"
         >
           <svg
@@ -54,11 +54,12 @@ export default function ScanCartItemsPage() {
           <Link
             href="/cart/ai-scan"
             className="flex items-center gap-4 rounded-2xl bg-[#fde8e6] px-4 py-4 transition-colors hover:bg-[#f9d8d4] active:brightness-95"
+            aria-label="AI Image Scan - Take a photo of the item and let AI identify and validate it"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/aiCam.png"
-              alt=""
+              alt="AI Camera"
               className="h-[4.5rem] w-[4.5rem] flex-shrink-0"
             />
             <div className="flex-1">
@@ -90,11 +91,12 @@ export default function ScanCartItemsPage() {
           <Link
             href="/cart/manual"
             className="flex items-center gap-4 rounded-2xl bg-[#e8f5e9] px-4 py-4 transition-colors hover:bg-[#dceee0] active:brightness-95"
+            aria-label="Manual Input - Enter the item details manually including name, quantity, price, and validation"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/manualInput.png"
-              alt=""
+              alt="Manual input form"
               className="h-[4.5rem] w-[4.5rem] flex-shrink-0"
             />
             <div className="flex-1">
@@ -130,7 +132,7 @@ export default function ScanCartItemsPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/lightBulb.png"
-            alt=""
+            alt="Tip"
             className="h-6 w-6 flex-shrink-0"
           />
           <p className="font-body text-sm leading-snug text-[#034C52]">

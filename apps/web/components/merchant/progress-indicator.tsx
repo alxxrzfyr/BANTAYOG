@@ -20,7 +20,7 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ currentStep }: ProgressIndicatorProps) {
   return (
-    <div className="flex items-start justify-between px-6 pt-5 pb-2">
+    <div className="flex items-start justify-between px-6 pt-5 pb-2" role="group" aria-label={`Step ${currentStep} of ${STEPS.length}: ${STEPS[currentStep - 1].label}`}>
       {STEPS.map((step, idx) => {
         const stepNum = idx + 1;
         const isActive = stepNum <= currentStep;

@@ -56,6 +56,7 @@ export function ItemCard({
                 ? "border border-[#10b981] bg-[#ecfdf5] text-[#065f46]"
                 : "border border-[#ef4444] bg-[#fef2f2] text-[#991b1b]"
             }`}
+            role="status"
           >
             {isEligible ? "Good for Children" : "Not Good for Children"}
           </span>
