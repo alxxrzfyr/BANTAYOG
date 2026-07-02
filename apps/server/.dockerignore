@@ -1,0 +1,10 @@
+node_modules
+dist
+.turbo
+.env
+.env.local
+*.log
+.git
+.gitignore
+apps/web
+packages/contracts
