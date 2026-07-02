@@ -2,7 +2,7 @@
   "extends": "@bantayog/config/tsconfig/nextjs-web.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@/components/*": ["./components/*"],
       "@/stores/*": ["./stores/*"],
