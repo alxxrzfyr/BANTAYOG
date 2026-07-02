@@ -7,6 +7,7 @@ import { BeneficiaryService } from '../services/beneficiary.service.js'
 import { ChainClient } from '../services/chain.client.js'
 import { toBeneficiaryDTO } from '../dto/mappers.js'
 import { formatUnits } from 'viem'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const beneficiaryRoutes = new Hono<{ Bindings: Env }>()
@@ -25,26 +26,25 @@ beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto), as
   const db = createServiceClient()
   const service = new BeneficiaryService(db)
 
-  try {
-    const result = await service.register({
-      guardianName: dto.guardianName,
-      guardianMobileHash: dto.guardianMobileHash,
-      childName: dto.childName,
-      childAgeMonths: dto.childAgeMonths,
-      monthlyIncomePhp: dto.monthlyIncomePhp,
-      gpsLat: dto.gpsLat,
-      gpsLng: dto.gpsLng,
-      pin: dto.pin
-    })
+  const result = await service.register({
+    guardianName: dto.guardianName,
+    guardianMobileHash: dto.guardianMobileHash,
+    childName: dto.childName,
+    childAgeMonths: dto.childAgeMonths,
+    monthlyIncomePhp: dto.monthlyIncomePhp,
+    gpsLat: dto.gpsLat,
+    gpsLng: dto.gpsLng,
+    pin: dto.pin
+  })
 
-    return c.json({
-      beneficiary: toBeneficiaryDTO({ ...result.beneficiary, tier: result.tier }),
-      qrToken: result.qrToken,
-      cardSerial: result.cardSerial
-    }, 201)
-  } catch (err: any) {
-    return c.json({ error: 'registration_failed', message: err.message }, 500)
-  }
+  return result.match(
+    (res) => c.json({
+      beneficiary: toBeneficiaryDTO({ ...res.beneficiary, tier: res.tier }),
+      qrToken: res.qrToken,
+      cardSerial: res.cardSerial
+    }, 201),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 /**
@@ -58,15 +58,15 @@ beneficiaryRoutes.get('/', async (c) => {
   const page = Number(c.req.query('page') || '1')
   const limit = Number(c.req.query('limit') || '20')
 
-  try {
-    const result = await service.list(page, limit)
-    return c.json({
-      data: result.data.map(toBeneficiaryDTO),
-      count: result.count
-    })
-  } catch (err: any) {
-    return c.json({ error: 'list_failed', message: err.message }, 500)
-  }
+  const result = await service.list(page, limit)
+
+  return result.match(
+    (res) => c.json({
+      data: res.data.map(toBeneficiaryDTO),
+      count: res.count
+    }),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 /**
@@ -99,7 +99,10 @@ beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), as
 
     // 3. Add credits
     const result = await service.addCredits(id, amount)
-    return c.json(toBeneficiaryDTO(result))
+    return result.match(
+      (updated) => c.json(toBeneficiaryDTO(updated)),
+      (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+    )
   } catch (err: any) {
     return c.json({ error: 'topup_failed', message: err.message }, 500)
   }
@@ -113,12 +116,13 @@ beneficiaryRoutes.get('/metrics', async (c) => {
   const db = createServiceClient()
   const service = new BeneficiaryService(db)
 
-  try {
-    const metrics = await service.getMetrics()
-    return c.json(metrics)
-  } catch (err: any) {
-    return c.json({ error: 'metrics_failed', message: err.message }, 500)
-  }
+  const result = await service.getMetrics()
+
+  return result.match(
+    (metrics) => c.json(metrics),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 export default beneficiaryRoutes
+

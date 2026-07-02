@@ -106,6 +106,14 @@ export class ChainClient {
     }
   }
 
+  getPublicClient() {
+    return this.publicClient
+  }
+
+  getSubsidyAddress() {
+    return this.subsidyAddress
+  }
+
   /**
    * Hashes a UUID string to bytes32 index for Solidity
    */
