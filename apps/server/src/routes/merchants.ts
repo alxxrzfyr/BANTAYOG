@@ -5,6 +5,7 @@ import { CreateMerchantDto } from '@bantayog/schema'
 import { createServiceClient } from '../lib/supabase.js'
 import { MerchantService } from '../services/merchant.service.js'
 import { toMerchantDTO } from '../dto/mappers.js'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const merchantRoutes = new Hono<{ Bindings: Env }>()
@@ -23,19 +24,18 @@ merchantRoutes.post('/register', zValidator('json', registerMerchantSchema), asy
   const db = createServiceClient()
   const service = new MerchantService(db)
 
-  try {
-    const result = await service.register({
-      storeName: dto.storeName,
-      ownerName: dto.ownerName,
-      mobileNumberE164: dto.mobileNumberE164,
-      walletAddress: dto.walletAddress,
-      password: dto.password
-    })
+  const result = await service.register({
+    storeName: dto.storeName,
+    ownerName: dto.ownerName,
+    mobileNumberE164: dto.mobileNumberE164,
+    walletAddress: dto.walletAddress,
+    password: dto.password
+  })
 
-    return c.json(toMerchantDTO(result), 201)
-  } catch (err: any) {
-    return c.json({ error: 'registration_failed', message: err.message }, 500)
-  }
+  return result.match(
+    (record) => c.json(toMerchantDTO(record), 201),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 /**
@@ -49,15 +49,15 @@ merchantRoutes.get('/', async (c) => {
   const page = Number(c.req.query('page') || '1')
   const limit = Number(c.req.query('limit') || '20')
 
-  try {
-    const result = await service.list(page, limit)
-    return c.json({
-      data: result.data.map(toMerchantDTO),
-      count: result.count
-    })
-  } catch (err: any) {
-    return c.json({ error: 'list_failed', message: err.message }, 500)
-  }
+  const result = await service.list(page, limit)
+
+  return result.match(
+    (res) => c.json({
+      data: res.data.map(toMerchantDTO),
+      count: res.count
+    }),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 /**
@@ -69,12 +69,13 @@ merchantRoutes.patch('/:id/approve', async (c) => {
   const db = createServiceClient()
   const service = new MerchantService(db)
 
-  try {
-    const result = await service.approve(id)
-    return c.json(toMerchantDTO(result))
-  } catch (err: any) {
-    return c.json({ error: 'approve_failed', message: err.message }, 500)
-  }
+  const result = await service.approve(id)
+
+  return result.match(
+    (record) => c.json(toMerchantDTO(record)),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 export default merchantRoutes
+

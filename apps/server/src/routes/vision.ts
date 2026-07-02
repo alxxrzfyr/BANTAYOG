@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import { createServiceClient } from '../lib/supabase.js'
 import { VisionService } from '../services/vision.service.js'
 import { toClassificationDTO } from '../dto/mappers.js'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const visionRoutes = new Hono<{ Bindings: Env }>()
@@ -26,7 +27,11 @@ visionRoutes.post('/classify', zValidator('json', classifySchema), async (c) => 
 
   const result = await visionService.classifyProduct(imageBase64)
 
-  return c.json(toClassificationDTO(result))
+  return result.match(
+    (res) => c.json(toClassificationDTO(res)),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 export default visionRoutes
+
