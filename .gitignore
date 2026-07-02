@@ -72,3 +72,5 @@ plan.md
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+apps/web/public/adminAssets/nul

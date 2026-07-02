@@ -29,9 +29,8 @@
     "react-qr-code": "^2.2.0",
     "tailwindcss": "^4.3.2",
     "zod": "^4.0.0",
-    "zustand": "^5.0.14"
-    "viem": "^2.54.1",
-    "zod": "^4.0.0"
+    "zustand": "^5.0.14",
+    "viem": "^2.54.1"
   },
   "devDependencies": {
     "@bantayog/config": "workspace:*",
