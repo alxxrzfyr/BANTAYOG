@@ -156,7 +156,6 @@ export default function ManualInputPage() {
     // If no eligible items, do nothing (button should be disabled anyway)
   };
 
-  const hasEligibleInCart = items.some((i) => i.eligibility === "eligible");
   const hasAnyItemInCart = items.length > 0;
   const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null));
 
@@ -218,7 +217,6 @@ export default function ManualInputPage() {
                   className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
                   aria-label="Capture photo"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/merchantLogos/camera2.png"
                     alt=""
@@ -227,7 +225,6 @@ export default function ManualInputPage() {
                 </button>
               </>
             ) : capturedImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={capturedImage}
                 alt="Captured product"

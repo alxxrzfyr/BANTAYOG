@@ -126,7 +126,6 @@ export function TransferModal({
 
         {/* Illustration: wallet → ronin */}
         <div className="mb-5 flex items-center justify-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/wallet2.png"
             alt="Digital wallet"
@@ -145,7 +144,6 @@ export function TransferModal({
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
           </svg>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/ronin.png"
             alt="Ronin Wallet"
@@ -190,7 +188,6 @@ export function TransferModal({
               className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white transition-colors hover:bg-gray-50"
               aria-label="Copy wallet address"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/copy_paste.png"
                 alt="Copy to clipboard"

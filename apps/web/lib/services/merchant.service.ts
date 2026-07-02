@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unused-vars */
 // @ts-nocheck
 // ponytail: dead code kept for tests — server owns canonical impl
 /**
@@ -108,7 +109,6 @@ export async function registerMerchant(
     });
   } catch (chainErr) {
     // On-chain registration failure is non-fatal for Phase 2
-    // eslint-disable-next-line no-console
     console.warn("[merchant.service] On-chain registration failed (non-fatal):", chainErr);
   }
 
@@ -208,7 +208,6 @@ export async function approveMerchant(
       chain: getHardhatChain(),
     });
   } catch (chainErr) {
-    // eslint-disable-next-line no-console
     console.warn("[merchant.service] On-chain verify failed (non-fatal):", chainErr);
   }
 

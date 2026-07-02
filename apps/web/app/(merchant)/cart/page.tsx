@@ -56,7 +56,6 @@ export default function ScanCartItemsPage() {
             className="flex items-center gap-4 rounded-2xl bg-[#fde8e6] px-4 py-4 transition-colors hover:bg-[#f9d8d4] active:brightness-95"
             aria-label="AI Image Scan - Take a photo of the item and let AI identify and validate it"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/aiCam.png"
               alt="AI Camera"
@@ -93,7 +92,6 @@ export default function ScanCartItemsPage() {
             className="flex items-center gap-4 rounded-2xl bg-[#e8f5e9] px-4 py-4 transition-colors hover:bg-[#dceee0] active:brightness-95"
             aria-label="Manual Input - Enter the item details manually including name, quantity, price, and validation"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/manualInput.png"
               alt="Manual input form"
@@ -129,7 +127,6 @@ export default function ScanCartItemsPage() {
 
         {/* Tip */}
         <div className="mt-8 flex items-center gap-3 rounded-xl border border-[#a8d5ba] bg-[#f0faf3] px-4 py-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/lightBulb.png"
             alt="Tip"

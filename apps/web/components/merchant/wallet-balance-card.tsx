@@ -91,7 +91,6 @@ export function WalletBalanceCard({
           <p className="font-body text-xs font-semibold uppercase tracking-wider text-[#f48d79]">
             Digital Wallet Balance
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/wallet.png"
             alt="Digital wallet icon"

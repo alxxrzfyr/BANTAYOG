@@ -31,7 +31,6 @@ export default function MerchantDashboard() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-[#fdf2ed] px-5 py-4">
         {/* Left: profile icon + store info */}
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/profile.png"
             alt="Store profile"
@@ -42,7 +41,6 @@ export default function MerchantDashboard() {
               {MOCK_MERCHANT.storeName}
             </h1>
             <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/verifiedBadge.png"
                 alt="LGU Verified"
@@ -56,7 +54,6 @@ export default function MerchantDashboard() {
         </div>
 
         {/* Right: BANTAYOG logo */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/merchantLogos/darkTitle.png"
           alt="BANTAYOG"
@@ -83,7 +80,6 @@ export default function MerchantDashboard() {
             className="flex items-center gap-4 rounded-2xl bg-[#f48d79] px-5 py-5 transition-colors hover:bg-[#f9a899] active:brightness-95"
             aria-label="Scan Cart Items - Verify and process cart items"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/camera.png"
               alt="Camera"

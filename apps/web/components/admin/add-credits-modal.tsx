@@ -119,7 +119,6 @@ export function AddCreditsModal({
             </p>
           </div>
           {/* PHPC token icon */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/adminAssets/crypto.svg"
             alt="PHPC token"

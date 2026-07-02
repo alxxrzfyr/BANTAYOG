@@ -250,7 +250,6 @@ function AIScanContent() {
                   className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
                   aria-label="Capture photo"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/merchantLogos/camera2.png"
                     alt=""
@@ -259,7 +258,6 @@ function AIScanContent() {
                 </button>
               </>
             ) : capturedImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={capturedImage}
                 alt="Captured product"
@@ -432,7 +430,6 @@ function AIScanContent() {
           {capturedImage && (
             <div className="mt-5 flex justify-center">
               <div className="h-28 w-28 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={capturedImage}
                   alt={productName}
@@ -592,7 +589,6 @@ function AIScanContent() {
         {/* Success/Error Banner */}
         {isLastItemEligible ? (
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#10b981] bg-[#ecfdf5] px-4 py-3" role="status">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/green_correct.png"
               alt="Success"
@@ -604,7 +600,6 @@ function AIScanContent() {
           </div>
         ) : (
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#ef4444] bg-[#fef2f2] px-4 py-3" role="status">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/red_wrong.png"
               alt="Not added"

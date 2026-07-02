@@ -34,7 +34,6 @@ export function EligibilityToggle({
               : "border-gray-200 bg-gray-50"
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={
               isEligible
@@ -74,7 +73,6 @@ export function EligibilityToggle({
               : "border-gray-200 bg-gray-50"
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={
               isIneligible

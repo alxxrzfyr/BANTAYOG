@@ -36,7 +36,6 @@ function TransactionCompleteContent() {
       <div className="flex flex-col items-center px-6 pt-16 pb-8">
         {/* Success Illustration */}
         <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#d1fae5]" role="img" aria-label="Transaction successful">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/green_correct.png"
             alt="Success checkmark"

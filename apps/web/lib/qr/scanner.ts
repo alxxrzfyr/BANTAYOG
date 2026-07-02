@@ -90,7 +90,6 @@ export class QRScanner {
 
     // Stop the code reader
     if (this.codeReader) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reader = this.codeReader as any;
       if (typeof reader.reset === "function") {
         reader.reset();

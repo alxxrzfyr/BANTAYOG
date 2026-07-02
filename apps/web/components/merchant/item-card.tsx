@@ -25,7 +25,6 @@ export function ItemCard({
       {/* Product image */}
       <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
         {imageDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageDataUrl}
             alt={name}

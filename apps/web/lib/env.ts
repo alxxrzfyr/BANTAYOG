@@ -9,6 +9,8 @@
  * exactly what to add to .env.local.
  */
 
+import crypto from "crypto";
+
 function getEnv(name: string, fallback?: string): string | undefined {
   return process.env[name] ?? fallback;
 }
@@ -116,10 +118,8 @@ export function getJwtSecret(): string {
     return val;
   }
   // ponytail: generate a throwaway secret for local dev so the backend runs
-  const crypto = require("crypto");
   const jwtSecret = crypto.randomBytes(64).toString("hex") as string;
   _jwtSecret = jwtSecret;
-  // eslint-disable-next-line no-console
   console.warn(
     "[env] JWT_SECRET not set — using a temporary random secret. " +
       "Add JWT_SECRET to .env.local for persistent sessions.",
@@ -136,10 +136,8 @@ export function getQrTokenSecret(): string {
     _qrTokenSecret = val;
     return val;
   }
-  const crypto = require("crypto");
   const qrSecret = crypto.randomBytes(64).toString("hex") as string;
   _qrTokenSecret = qrSecret;
-  // eslint-disable-next-line no-console
   console.warn(
     "[env] QR_TOKEN_SECRET not set — using a temporary random secret. " +
       "Add QR_TOKEN_SECRET to .env.local for persistent QR tokens.",

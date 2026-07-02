@@ -106,7 +106,6 @@ export default function MerchantLoginPage() {
     <div className="flex min-h-dvh flex-col items-center justify-start bg-[#034C52] px-6 pt-16 pb-12">
       {/* ── Logo ── */}
       <div className="mb-6 w-full max-w-[280px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/merchantLogos/whiteTitle.png"
           alt="BANTAYOG"
@@ -133,7 +132,6 @@ export default function MerchantLoginPage() {
             Phone Number
           </label>
           <div className="flex items-center gap-3 px-4 py-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/profile.png"
               alt=""
@@ -165,7 +163,6 @@ export default function MerchantLoginPage() {
             Password
           </label>
           <div className="flex items-center gap-3 px-4 py-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/lock.png"
               alt=""

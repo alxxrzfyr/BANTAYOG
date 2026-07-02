@@ -241,7 +241,6 @@ export default function CheckoutPage() {
         {/* Store Info */}
         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-4">
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#034C52]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/profile.png"
               alt="Store profile"
@@ -253,7 +252,6 @@ export default function CheckoutPage() {
               Store Name
             </p>
             <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/verifiedBadge.png"
                 alt="LGU Verified"
@@ -301,7 +299,6 @@ export default function CheckoutPage() {
             onClick={() => setModalState("qr-scan")}
             className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/qrSample.png"
               alt="QR Code"
@@ -562,7 +559,6 @@ function PINModal({
       <div className="flex flex-1 flex-col items-center px-6 pt-6">
         {/* Lock Icon */}
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#f48d79]/30">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/lock2.png"
             alt="Security lock icon"
