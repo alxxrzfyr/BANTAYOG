@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
+import { AppResult, ok, err, JwtError } from '../lib/errors.js'
 
 /**
  * BE1-2.3 · QR Token Service
@@ -8,48 +9,62 @@ import { SignJWT, jwtVerify } from 'jose'
  */
 export class QrTokenService {
   private getSecretKey(): Uint8Array {
-    const secret = process.env.JWT_SIGNING_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
-    const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
+    const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SIGNING_SECRET || process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
     return new TextEncoder().encode(secret);
   }
 
   /**
    * Generates a signed JWT containing beneficiary metadata.
    */
-  async generateToken(payload: {
-    beneficiaryId: string;
-    childName: string;
-    guardianName: string;
-    tier: number;
-    pin_hash_ref: string;
-  }, expiresAt: string | number | Date = '30d'): Promise<string> {
+  async generateToken(
+    payload: {
+      beneficiaryId: string;
+      childName: string;
+      guardianName: string;
+      tier: number;
+      pin_hash_ref: string;
+    },
+    expiresAt: string | number | Date = '30d'
+  ): Promise<AppResult<string>> {
     const secret = this.getSecretKey();
 
-    return new SignJWT({
-      beneficiaryId: payload.beneficiaryId,
-      childName: payload.childName,
-      guardianName: payload.guardianName,
-      tier: payload.tier,
-      pin_hash_ref: payload.pin_hash_ref,
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime(expiresAt)
-      .sign(secret);
+    try {
+      const token = await new SignJWT({
+        beneficiaryId: payload.beneficiaryId,
+        childName: payload.childName,
+        guardianName: payload.guardianName,
+        tier: payload.tier,
+        pin_hash_ref: payload.pin_hash_ref,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime(expiresAt)
+        .sign(secret);
+      
+      return ok(token);
+    } catch (error: any) {
+      return err(new JwtError(`Token generation failed: ${error.message}`, 'invalid'));
+    }
   }
 
   /**
    * Verifies and decodes a QR token.
    */
-  async verifyToken(token: string): Promise<{
+  async verifyToken(token: string): Promise<AppResult<{
     beneficiaryId: string;
     childName: string;
     guardianName: string;
     tier: number;
     pin_hash_ref: string;
-  }> {
+  }>> {
     const secret = this.getSecretKey();
-    const { payload } = await jwtVerify(token, secret);
-    return payload as any;
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      return ok(payload as any);
+    } catch (error: any) {
+      const reason = error.code === 'ERR_JWT_EXPIRED' ? 'expired' : 'invalid';
+      return err(new JwtError(`Token verification failed: ${error.message}`, reason));
+    }
   }
 }
+

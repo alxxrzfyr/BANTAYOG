@@ -8,6 +8,7 @@ import { PinService } from '../services/pin.service.js'
 import { authMiddleware, type AuthContext } from '../middleware/auth.js'
 import { requireRole } from '../middleware/rbac.js'
 import { toTransactionDTO } from '../dto/mappers.js'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const transactionRoutes = new Hono<{ Bindings: Env; Variables: AuthContext }>()
@@ -80,12 +81,11 @@ transactionRoutes.post(
 
     // 2. Decode and verify the QR token
     const qrTokenService = new QrTokenService()
-    let decodedToken
-    try {
-      decodedToken = await qrTokenService.verifyToken(qrToken)
-    } catch (err: any) {
-      return c.json({ error: 'bad_request', message: `Invalid or expired QR code: ${err.message}` }, 400)
+    const verifyTokenResult = await qrTokenService.verifyToken(qrToken)
+    if (verifyTokenResult.isErr()) {
+      return c.json(errorToResponseBody(verifyTokenResult.error), errorToHttpStatus(verifyTokenResult.error))
     }
+    const decodedToken = verifyTokenResult.value
 
     const { beneficiaryId } = decodedToken
 
@@ -101,7 +101,11 @@ transactionRoutes.post(
     }
 
     const pinService = new PinService()
-    const isPinValid = await pinService.verifyPin(pin, beneficiary.pin_hash_argon2id || '')
+    const verifyResult = await pinService.verifyPin(pin, beneficiary.pin_hash_argon2id || '')
+    if (verifyResult.isErr()) {
+      return c.json(errorToResponseBody(verifyResult.error), errorToHttpStatus(verifyResult.error))
+    }
+    const isPinValid = verifyResult.value
     if (!isPinValid) {
       return c.json({ error: 'unauthorized', message: 'Incorrect guardian PIN' }, 401)
     }
@@ -113,34 +117,34 @@ transactionRoutes.post(
       return c.json({ error: 'bad_request', message: 'Insufficient beneficiary credit balance' }, 400)
     }
 
-    try {
-      const transactionService = new TransactionService(db)
+    const transactionService = new TransactionService(db)
 
-      // 5. Create transaction and outbox entry
-      const tx = await transactionService.createTransaction({
-        beneficiaryId,
-        merchantId: merchant.id,
-        items,
-        idempotencyKey
-      })
+    // 5. Create transaction and outbox entry
+    const txResult = await transactionService.createTransaction({
+      beneficiaryId,
+      merchantId: merchant.id,
+      items,
+      idempotencyKey
+    })
 
-      // 6. Deduct credit balance from beneficiary
-      const { error: updateErr } = await (db as any)
-        .from('beneficiaries')
-        .update({ credit_balance: currentBalance - totalCreditDeducted })
-        .eq('id', beneficiaryId)
-
-      if (updateErr) {
-        console.error('Failed to deduct credit balance:', updateErr)
-        await transactionService.updateStatus(tx.id, 'FAILED')
-        return c.json({ error: 'internal_error', message: 'Failed to complete transaction' }, 500)
-      }
-
-      return c.json(toTransactionDTO(tx), 201)
-
-    } catch (err: any) {
-      return c.json({ error: 'internal_error', message: err.message }, 500)
+    if (txResult.isErr()) {
+      return c.json(errorToResponseBody(txResult.error), errorToHttpStatus(txResult.error))
     }
+    const tx = txResult.value
+
+    // 6. Deduct credit balance from beneficiary
+    const { error: updateErr } = await (db as any)
+      .from('beneficiaries')
+      .update({ credit_balance: currentBalance - totalCreditDeducted })
+      .eq('id', beneficiaryId)
+
+    if (updateErr) {
+      console.error('Failed to deduct credit balance:', updateErr)
+      await transactionService.updateStatus(tx.id, 'FAILED')
+      return c.json({ error: 'internal_error', message: 'Failed to complete transaction' }, 500)
+    }
+
+    return c.json(toTransactionDTO(tx), 201)
   }
 )
 
@@ -179,21 +183,21 @@ transactionRoutes.get(
       merchantId = merchant.id
     }
 
-    try {
-      const result = await transactionService.listTransactions({
-        merchantId,
-        beneficiaryId,
-        status,
-        page,
-        limit
-      })
-      return c.json({
-        data: result.data.map(toTransactionDTO),
-        count: result.count
-      })
-    } catch (err: any) {
-      return c.json({ error: 'internal_error', message: err.message }, 500)
-    }
+    const result = await transactionService.listTransactions({
+      merchantId,
+      beneficiaryId,
+      status,
+      page,
+      limit
+    })
+
+    return result.match(
+      (res) => c.json({
+        data: res.data.map(toTransactionDTO),
+        count: res.count
+      }),
+      (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+    )
   }
 )
 
@@ -212,30 +216,29 @@ transactionRoutes.get(
     const db = createServiceClient()
     const transactionService = new TransactionService(db)
 
-    try {
-      const tx = await transactionService.getTransaction(id)
-      if (!tx) {
-        return c.json({ error: 'not_found', message: 'Transaction not found' }, 404)
-      }
+    const txResult = await transactionService.getTransaction(id)
 
-      // If merchant role, check that they own the transaction
-      if (user.role === 'merchant') {
-        const { data: merchant, error: mErr } = await (db as any)
-          .from('merchants')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .single()
+    return txResult.match(
+      async (tx) => {
+        // If merchant role, check that they own the transaction
+        if (user.role === 'merchant') {
+          const { data: merchant, error: mErr } = await (db as any)
+            .from('merchants')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .single()
 
-        if (mErr || !merchant || tx.merchant_id !== merchant.id) {
-          return c.json({ error: 'forbidden', message: 'You do not have access to this transaction' }, 403)
+          if (mErr || !merchant || tx.merchant_id !== merchant.id) {
+            return c.json({ error: 'forbidden', message: 'You do not have access to this transaction' }, 403)
+          }
         }
-      }
 
-      return c.json(toTransactionDTO(tx))
-    } catch (err: any) {
-      return c.json({ error: 'internal_error', message: err.message }, 500)
-    }
+        return c.json(toTransactionDTO(tx))
+      },
+      (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+    )
   }
 )
 
 export default transactionRoutes
+

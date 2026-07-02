@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { createServiceClient } from '../lib/supabase.js'
 import { ProductsService } from '../services/products.service.js'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const productRoutes = new Hono<{ Bindings: Env }>()
@@ -22,14 +23,19 @@ productRoutes.post('/validate', zValidator('json', validateSchema), async (c) =>
 
   const result = await productsService.validateProduct(name)
 
-  if (!result.matched) {
-    return c.json({
-      matched: false,
-      reason: result.reason
-    }, 200) // Keep as 200 or 404 depending on preference. A successful check that fails to match is still a valid response.
-  }
-
-  return c.json(result)
+  return result.match(
+    (val) => {
+      if (!val.matched) {
+        return c.json({
+          matched: false,
+          reason: val.reason
+        }, 200)
+      }
+      return c.json(val)
+    },
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
 })
 
 export default productRoutes
+

@@ -212,7 +212,7 @@ describe('End-to-End Transaction Flow Integration', () => {
 
     // ── 1. Register a beneficiary ──
     const beneficiaryService = new BeneficiaryService(db)
-    const registration = await beneficiaryService.register({
+    const registrationResult = await beneficiaryService.register({
       guardianName: 'Maria Dela Cruz',
       guardianMobileHash: 'sha256-mobile-hash-1',
       childName: 'Juan Dela Cruz',
@@ -222,6 +222,9 @@ describe('End-to-End Transaction Flow Integration', () => {
       gpsLng: 120.9842,
       pin: '123456'
     })
+
+    expect(registrationResult.isOk()).toBe(true)
+    const registration = registrationResult._unsafeUnwrap()
 
     expect(registration.beneficiary).toBeDefined()
     expect(registration.beneficiary.child_name).toBe('Juan Dela Cruz')
@@ -233,7 +236,7 @@ describe('End-to-End Transaction Flow Integration', () => {
 
     // ── 2. Register a merchant ──
     const merchantService = new MerchantService(db)
-    const merchant = await merchantService.register({
+    const merchantResult = await merchantService.register({
       storeName: 'Aling Nena Sari-Sari',
       ownerName: 'Aling Nena',
       mobileNumberE164: '+639171234567',
@@ -241,13 +244,19 @@ describe('End-to-End Transaction Flow Integration', () => {
       password: 'securePassword123'
     })
 
+    expect(merchantResult.isOk()).toBe(true)
+    const merchant = merchantResult._unsafeUnwrap()
+
     expect(merchant.store_name).toBe('Aling Nena Sari-Sari')
     expect(merchant.status).toBe('APPROVED')
     expect(mockDbState.merchants.length).toBe(1)
 
     // ── 3. Classify a product via Vision service ──
     const visionService = new VisionService(db)
-    const classification = await visionService.classifyProduct('data:image/jpeg;base64,mockimagedata')
+    const classificationResult = await visionService.classifyProduct('data:image/jpeg;base64,mockimagedata')
+
+    expect(classificationResult.isOk()).toBe(true)
+    const classification = classificationResult._unsafeUnwrap()
 
     expect(classification.identified).toBe(true)
     if (classification.identified) {
@@ -259,15 +268,21 @@ describe('End-to-End Transaction Flow Integration', () => {
 
     // ── 4. Verify QR token and tier re-evaluation ──
     const qrTokenService = new QrTokenService()
-    const verifiedPayload = await qrTokenService.verifyToken(registration.qrToken)
+    const verifiedPayloadResult = await qrTokenService.verifyToken(registration.qrToken)
+    expect(verifiedPayloadResult.isOk()).toBe(true)
+    const verifiedPayload = verifiedPayloadResult._unsafeUnwrap()
     expect(verifiedPayload.beneficiaryId).toBe(registration.beneficiary.id)
 
-    const reeval = await beneficiaryService.verifyAndReevaluateTier(registration.beneficiary.id)
+    const reevalResult = await beneficiaryService.verifyAndReevaluateTier(registration.beneficiary.id)
+    expect(reevalResult.isOk()).toBe(true)
+    const reeval = reevalResult._unsafeUnwrap()
     expect(reeval.tier).toBe(1)
     expect(reeval.beneficiary.child_name).toBe('Juan Dela Cruz')
 
     // ── 5. Add credits to beneficiary ──
-    const credited = await beneficiaryService.addCredits(registration.beneficiary.id, 500)
+    const creditedResult = await beneficiaryService.addCredits(registration.beneficiary.id, 500)
+    expect(creditedResult.isOk()).toBe(true)
+    const credited = creditedResult._unsafeUnwrap()
     expect(Number(credited.credit_balance)).toBe(500)
 
     // ── 6. Create transaction ──
@@ -282,12 +297,15 @@ describe('End-to-End Transaction Flow Integration', () => {
       }
     ]
 
-    const tx = await transactionService.createTransaction({
+    const txResult = await transactionService.createTransaction({
       beneficiaryId: registration.beneficiary.id,
       merchantId: merchant.id,
       items,
       idempotencyKey: 'a75f7823-3dbd-426c-8ab5-3e284b39e6a0'
     })
+
+    expect(txResult.isOk()).toBe(true)
+    const tx = txResult._unsafeUnwrap()
 
     expect(tx.status).toBe('PENDING_CHAIN')
     expect(Number(tx.total_credit_deducted)).toBe(120)
@@ -319,10 +337,12 @@ describe('End-to-End Transaction Flow Integration', () => {
     expect(receipt.status).toBe('success')
 
     // ── 9. Update transaction to CONFIRMED ──
-    const confirmed = await transactionService.updateStatus(tx.id, 'CONFIRMED', {
+    const confirmedResult = await transactionService.updateStatus(tx.id, 'CONFIRMED', {
       onchainTxHash: txHash,
       confirmedAt: new Date().toISOString()
     })
+    expect(confirmedResult.isOk()).toBe(true)
+    const confirmed = confirmedResult._unsafeUnwrap()
     expect(confirmed.status).toBe('CONFIRMED')
     expect(confirmed.onchain_tx_hash).toBe(txHash)
 
@@ -351,7 +371,9 @@ describe('End-to-End Transaction Flow Integration', () => {
     const db = mockSupabaseClient
     const productsService = new ProductsService(db)
 
-    const result = await productsService.validateProduct('Coca-Cola 1.5L')
+    const resultResult = await productsService.validateProduct('Coca-Cola 1.5L')
+    expect(resultResult.isOk()).toBe(true)
+    const result = resultResult._unsafeUnwrap()
 
     expect(result.matched).toBe(true)
     if (result.matched) {
@@ -361,7 +383,9 @@ describe('End-to-End Transaction Flow Integration', () => {
     // Vision service should surface ineligibility for matched candidates
     geminiMockResponse = { candidates: [{ name: 'Coca-Cola 1.5L', confidence: 0.92 }] }
     const visionService = new VisionService(db)
-    const classification = await visionService.classifyProduct('data:image/jpeg;base64,mockcola')
+    const classificationResult = await visionService.classifyProduct('data:image/jpeg;base64,mockcola')
+    expect(classificationResult.isOk()).toBe(true)
+    const classification = classificationResult._unsafeUnwrap()
 
     expect(classification.identified).toBe(true)
     if (classification.identified) {
@@ -378,7 +402,7 @@ describe('End-to-End Transaction Flow Integration', () => {
     const db = mockSupabaseClient
 
     const beneficiaryService = new BeneficiaryService(db)
-    const { beneficiary } = await beneficiaryService.register({
+    const registrationResult = await beneficiaryService.register({
       guardianName: 'Ana Santos',
       guardianMobileHash: 'sha256-mobile-hash-2',
       childName: 'Pedro Santos',
@@ -388,17 +412,21 @@ describe('End-to-End Transaction Flow Integration', () => {
       gpsLng: 121.0200,
       pin: '654321'
     })
+    expect(registrationResult.isOk()).toBe(true)
+    const { beneficiary } = registrationResult._unsafeUnwrap()
 
     expect(Number(beneficiary.credit_balance)).toBe(0)
 
     const merchantService = new MerchantService(db)
-    const merchant = await merchantService.register({
+    const merchantResult = await merchantService.register({
       storeName: 'Tindahan ni Juan',
       ownerName: 'Juan Cruz',
       mobileNumberE164: '+639181234567',
       walletAddress: '0x1234567890123456789012345678901234567890',
       password: 'merchantPass123'
     })
+    expect(merchantResult.isOk()).toBe(true)
+    const merchant = merchantResult._unsafeUnwrap()
 
     const transactionService = new TransactionService(db)
     const items = [
@@ -411,12 +439,14 @@ describe('End-to-End Transaction Flow Integration', () => {
       }
     ]
 
-    const tx = await transactionService.createTransaction({
+    const txResult = await transactionService.createTransaction({
       beneficiaryId: beneficiary.id,
       merchantId: merchant.id,
       items,
       idempotencyKey: 'b75f7823-3dbd-426c-8ab5-3e284b39e6b1'
     })
+    expect(txResult.isOk()).toBe(true)
+    const tx = txResult._unsafeUnwrap()
 
     expect(tx.status).toBe('PENDING_CHAIN')
     expect(Number(tx.total_credit_deducted)).toBe(250)
@@ -430,7 +460,7 @@ describe('End-to-End Transaction Flow Integration', () => {
 
     // 25 months ≈ 761 days from birth + 270 gestational = 1031 days from conception
     // This exceeds the 1,000-day threshold → Tier 2
-    const { beneficiary, qrToken } = await beneficiaryService.register({
+    const registrationResult = await beneficiaryService.register({
       guardianName: 'Lola Maggie',
       guardianMobileHash: 'sha256-mobile-hash-3',
       childName: 'Baby Maggie',
@@ -440,15 +470,23 @@ describe('End-to-End Transaction Flow Integration', () => {
       gpsLng: 121.0000,
       pin: '111111'
     })
+    expect(registrationResult.isOk()).toBe(true)
+    const { beneficiary, qrToken } = registrationResult._unsafeUnwrap()
 
-    const initialTier = await beneficiaryService.verifyAndReevaluateTier(beneficiary.id)
+    const initialTierResult = await beneficiaryService.verifyAndReevaluateTier(beneficiary.id)
+    expect(initialTierResult.isOk()).toBe(true)
+    const initialTier = initialTierResult._unsafeUnwrap()
     expect(initialTier.tier).toBe(2)
 
     const qrTokenService = new QrTokenService()
-    const payload = await qrTokenService.verifyToken(qrToken)
+    const payloadResult = await qrTokenService.verifyToken(qrToken)
+    expect(payloadResult.isOk()).toBe(true)
+    const payload = payloadResult._unsafeUnwrap()
     expect(payload.beneficiaryId).toBe(beneficiary.id)
 
-    const reeval = await beneficiaryService.verifyAndReevaluateTier(payload.beneficiaryId)
+    const reevalResult = await beneficiaryService.verifyAndReevaluateTier(payload.beneficiaryId)
+    expect(reevalResult.isOk()).toBe(true)
+    const reeval = reevalResult._unsafeUnwrap()
     expect(reeval.tier).toBe(2)
     expect(reeval.beneficiary.child_name).toBe('Baby Maggie')
   })
@@ -518,7 +556,9 @@ describe('End-to-End Transaction Flow Integration', () => {
     geminiMockResponse = { candidates: [{ name: 'Unknown Mystery Item', confidence: 0.35 }] }
 
     const visionService = new VisionService(db)
-    const classification = await visionService.classifyProduct('data:image/jpeg;base64,blurryimage')
+    const classificationResult = await visionService.classifyProduct('data:image/jpeg;base64,blurryimage')
+    expect(classificationResult.isOk()).toBe(true)
+    const classification = classificationResult._unsafeUnwrap()
 
     // Low confidence should result in no identified products
     expect(classification.identified).toBe(false)
@@ -531,7 +571,7 @@ describe('End-to-End Transaction Flow Integration', () => {
     const db = mockSupabaseClient
 
     const beneficiaryService = new BeneficiaryService(db)
-    const { beneficiary } = await beneficiaryService.register({
+    const registrationResult = await beneficiaryService.register({
       guardianName: 'Ida Demo',
       guardianMobileHash: 'sha256-mobile-hash-4',
       childName: 'Demo Child',
@@ -541,15 +581,19 @@ describe('End-to-End Transaction Flow Integration', () => {
       gpsLng: 121.0100,
       pin: '222222'
     })
+    expect(registrationResult.isOk()).toBe(true)
+    const { beneficiary } = registrationResult._unsafeUnwrap()
 
     const merchantService = new MerchantService(db)
-    const merchant = await merchantService.register({
+    const merchantResult = await merchantService.register({
       storeName: 'Demo Store',
       ownerName: 'Demo Owner',
       mobileNumberE164: '+639191234567',
       walletAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
       password: 'demoPass123'
     })
+    expect(merchantResult.isOk()).toBe(true)
+    const merchant = merchantResult._unsafeUnwrap()
 
     const transactionService = new TransactionService(db)
     const idempotencyKey = 'c75f7823-3dbd-426c-8ab5-3e284b39e6c2'
@@ -561,20 +605,24 @@ describe('End-to-End Transaction Flow Integration', () => {
       creditCost: 90.0
     }]
 
-    const tx1 = await transactionService.createTransaction({
+    const tx1Result = await transactionService.createTransaction({
       beneficiaryId: beneficiary.id,
       merchantId: merchant.id,
       items,
       idempotencyKey
     })
+    expect(tx1Result.isOk()).toBe(true)
+    const tx1 = tx1Result._unsafeUnwrap()
     expect(tx1.status).toBe('PENDING_CHAIN')
 
-    const tx2 = await transactionService.createTransaction({
+    const tx2Result = await transactionService.createTransaction({
       beneficiaryId: beneficiary.id,
       merchantId: merchant.id,
       items,
       idempotencyKey
     })
+    expect(tx2Result.isOk()).toBe(true)
+    const tx2 = tx2Result._unsafeUnwrap()
 
     expect(tx2.id).toBe(tx1.id)
     expect(tx2.status).toBe('PENDING_CHAIN')
