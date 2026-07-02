@@ -34,7 +34,7 @@ export default function MerchantDashboard() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/profile.png"
-            alt=""
+            alt="Store profile"
             className="h-11 w-11 rounded-full border-2 border-[#034C52]/20 bg-[#034C52]"
           />
           <div>
@@ -45,7 +45,7 @@ export default function MerchantDashboard() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/verifiedBadge.png"
-                alt=""
+                alt="LGU Verified"
                 className="h-3.5 w-3.5"
               />
               <span className="font-body text-[10px] font-semibold text-[#034C52]">
@@ -81,11 +81,12 @@ export default function MerchantDashboard() {
           <Link
             href="/cart"
             className="flex items-center gap-4 rounded-2xl bg-[#f48d79] px-5 py-5 transition-colors hover:bg-[#f9a899] active:brightness-95"
+            aria-label="Scan Cart Items - Verify and process cart items"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/camera.png"
-              alt=""
+              alt="Camera"
               className="h-14 w-14 flex-shrink-0 rounded-xl"
             />
             <div className="flex-1">

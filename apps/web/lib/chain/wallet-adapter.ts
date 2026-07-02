@@ -40,11 +40,11 @@ function getInjectedProvider(): WalletProvider | null {
   if (typeof window === "undefined") return null;
 
   // Check for Ronin Wallet
-  const ronin = (window as Record<string, unknown>).ethereum as WalletProvider | undefined;
+  const ronin = (window as unknown as Record<string, unknown>).ethereum as WalletProvider | undefined;
   if (ronin?.isRonin) return ronin;
 
   // Check for MetaMask or any EIP-1193 provider
-  const ethereum = (window as Record<string, unknown>).ethereum as WalletProvider | undefined;
+  const ethereum = (window as unknown as Record<string, unknown>).ethereum as WalletProvider | undefined;
   if (ethereum) return ethereum;
 
   return null;
@@ -60,7 +60,7 @@ function getInjectedProvider(): WalletProvider | null {
  */
 async function connectInjected(): Promise<WalletConnection> {
   const provider = getInjectedProvider();
-  if (!provider) {
+  if (!provider?.request) {
     throw new Error("No injected wallet provider found");
   }
 
@@ -139,8 +139,8 @@ export interface BackendVerificationResult {
  * @returns       - { verified: true } on success, { verified: false, error: "..." } on failure
  */
 export async function verifyWalletWithBackend(
-  address: string,
-  proof: string,
+  _address: string,
+  _proof: string,
 ): Promise<BackendVerificationResult> {
   // TODO(BE2-3.7): replace with real endpoint once BE2-3.7 is implemented
   // const res = await fetch("/api/auth/verify-wallet", {
@@ -220,7 +220,7 @@ export function getAvailableMethods(): WalletMethod[] {
  * Sends the address and proof to BE2-3.7's wallet adapter gateway.
  */
 export async function verifyWalletConnection(
-  connection: WalletConnection,
+  _connection: WalletConnection,
 ): Promise<{ verified: boolean; merchantId?: string }> {
   // TODO: Replace with real API call to backend wallet adapter gateway
   // const res = await fetch("/api/auth/verify-wallet", {

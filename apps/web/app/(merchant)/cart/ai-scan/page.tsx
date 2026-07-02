@@ -1,8 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
 import { ProgressIndicator } from "@/components/merchant/progress-indicator";
 import { QuantitySelector } from "@/components/merchant/quantity-selector";
@@ -28,7 +29,14 @@ const MOCK_RESULT: DetectionResult = {
 };
 
 export default function AIScanPage() {
-  const router = useRouter();
+  return (
+    <Suspense>
+      <AIScanContent />
+    </Suspense>
+  );
+}
+
+function AIScanContent() {
   const searchParams = useSearchParams();
   const addItem = useCartStore((s) => s.addItem);
   const setInputSource = useCartStore((s) => s.setInputSource);
@@ -188,7 +196,7 @@ export default function AIScanPage() {
         <header className="flex items-center px-4 pt-5 pb-3">
           <Link
             href="/cart"
-            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
             aria-label="Back"
           >
             <svg
@@ -226,6 +234,7 @@ export default function AIScanPage() {
                   playsInline
                   muted
                   className="aspect-[4/3] w-full object-cover"
+                  aria-label="Camera viewfinder for capturing product image"
                 />
                 {/* Corner brackets */}
                 <div className="pointer-events-none absolute inset-0">
@@ -238,7 +247,7 @@ export default function AIScanPage() {
                 <button
                   type="button"
                   onClick={capturePhoto}
-                  className="absolute bottom-3 right-3 z-10"
+                  className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
                   aria-label="Capture photo"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -257,7 +266,7 @@ export default function AIScanPage() {
                 className="aspect-[4/3] w-full object-cover"
               />
             ) : (
-              <div className="flex aspect-[4/3] w-full items-center justify-center">
+              <div className="flex aspect-[4/3] w-full items-center justify-center" aria-live="polite">
                 <p className="text-sm text-gray-400">
                   {cameraError || "Starting camera..."}
                 </p>
@@ -283,6 +292,7 @@ export default function AIScanPage() {
 
               {/* Product Name (readonly at this stage) */}
               <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <label className="mb-1 block font-body text-xs font-medium text-gray-500">Product Name</label>
                 <p className="font-body text-base font-bold text-gray-800">
                   {isProcessing ? "Analyzing..." : productName || "—"}
                 </p>
@@ -291,22 +301,25 @@ export default function AIScanPage() {
               {/* Price & Quantity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block font-body text-xs font-medium text-gray-600">
+                  <label htmlFor="price-capture" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
                     Price (PHP)
                   </label>
-                  <div className="flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors focus-within:border-[#017075]">
-                    <span className="flex-shrink-0 pl-3 font-body text-sm text-gray-500">
+                  <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
+                    <span className="flex-shrink-0 font-body text-sm text-gray-500">
                       ₱
                     </span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full bg-transparent px-2 py-2.5 font-body text-sm text-gray-800 outline-none placeholder:text-gray-300"
-                    />
+                    <div className="min-w-0 flex-1">
+                      <input
+                        id="price-capture"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
+                      />
+                    </div>
                   </div>
                 </div>
                 <QuantitySelector
@@ -318,7 +331,7 @@ export default function AIScanPage() {
 
               {/* Error */}
               {error && (
-                <div className="mt-3 rounded-lg bg-red-50 px-3 py-2">
+                <div className="mt-3 rounded-lg bg-red-50 px-3 py-2" role="alert">
                   <p className="font-body text-xs text-red-600">{error}</p>
                 </div>
               )}
@@ -328,6 +341,8 @@ export default function AIScanPage() {
                 type="button"
                 onClick={handleContinue}
                 disabled={!isFormValid || isProcessing}
+                aria-disabled={!isFormValid || isProcessing}
+                aria-describedby="continue-hint"
                 className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isProcessing ? (
@@ -357,6 +372,9 @@ export default function AIScanPage() {
                   "Continue"
                 )}
               </button>
+              <span id="continue-hint" className="sr-only">
+                {!isFormValid ? "Please enter a valid price and quantity" : isProcessing ? "AI is analyzing the image" : ""}
+              </span>
             </div>
           )}
         </div>
@@ -372,7 +390,7 @@ export default function AIScanPage() {
         <header className="flex items-center px-4 pt-5 pb-3">
           <Link
             href="/cart"
-            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
             aria-label="Back"
           >
             <svg
@@ -428,16 +446,18 @@ export default function AIScanPage() {
           <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">
             {/* Product Name */}
             <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
+              <label htmlFor="product-name" className="sr-only">Product Name</label>
               <input
+                id="product-name"
                 type="text"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                className="flex-1 font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300"
+                className="min-w-0 flex-1 font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300"
                 placeholder="Product name"
               />
               <button
                 type="button"
-                className="ml-2 flex h-9 w-9 flex-shrink-0 items-center justify-center"
+                className="ml-2 flex h-11 w-11 flex-shrink-0 items-center justify-center"
                 aria-label="Edit product name"
               >
                 <svg
@@ -459,24 +479,27 @@ export default function AIScanPage() {
             {/* Price & Quantity */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block font-body text-xs font-medium text-gray-600">
+                <label htmlFor="price-ai" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
                   Price (PHP)
                 </label>
-                <div className="flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors focus-within:border-[#017075]">
-                  <span className="flex-shrink-0 pl-3 font-body text-sm text-gray-500">
+                <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
+                  <span className="flex-shrink-0 font-body text-sm text-gray-500">
                     ₱
                   </span>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full bg-transparent px-2 py-2.5 font-body text-sm text-gray-800 outline-none"
-                  />
+                  <div className="min-w-0 flex-1">
+                    <input
+                      id="price-ai"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
+                    />
+                  </div>
                   <button
                     type="button"
-                    className="mr-2 flex h-7 w-7 flex-shrink-0 items-center justify-center"
+                    className="mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center"
                     aria-label="Edit price"
                   >
                     <svg
@@ -514,10 +537,15 @@ export default function AIScanPage() {
             type="button"
             onClick={handleAddToCart}
             disabled={!productName || !isPriceValid || !eligibility}
+            aria-disabled={!productName || !isPriceValid || !eligibility}
+            aria-describedby="add-to-cart-hint"
             className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Add to Cart
           </button>
+          <span id="add-to-cart-hint" className="sr-only">
+            {!productName ? "Enter a product name" : !isPriceValid ? "Enter a valid price greater than 0" : "Select an eligibility classification"}
+          </span>
         </div>
       </div>
     );
@@ -530,12 +558,12 @@ export default function AIScanPage() {
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
       {/* Header */}
-      <header className="flex items-center px-4 pt-5 pb-3">
-        <Link
-          href="/cart"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-          aria-label="Back"
-        >
+        <header className="flex items-center px-4 pt-5 pb-3">
+          <Link
+            href="/cart"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            aria-label="Back"
+          >
           <svg
             width="20"
             height="20"
@@ -563,11 +591,11 @@ export default function AIScanPage() {
       <div className="px-5 pb-8">
         {/* Success/Error Banner */}
         {isLastItemEligible ? (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#10b981] bg-[#ecfdf5] px-4 py-3">
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#10b981] bg-[#ecfdf5] px-4 py-3" role="status">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/green_correct.png"
-              alt=""
+              alt="Success"
               className="h-5 w-5 flex-shrink-0"
             />
             <span className="font-body text-sm font-semibold text-[#065f46]">
@@ -575,11 +603,11 @@ export default function AIScanPage() {
             </span>
           </div>
         ) : (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#ef4444] bg-[#fef2f2] px-4 py-3">
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#ef4444] bg-[#fef2f2] px-4 py-3" role="status">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/red_wrong.png"
-              alt=""
+              alt="Not added"
               className="h-5 w-5 flex-shrink-0"
             />
             <span className="font-body text-sm font-semibold text-[#991b1b]">

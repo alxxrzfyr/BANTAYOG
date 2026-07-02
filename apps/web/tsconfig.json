@@ -2,14 +2,13 @@
   "extends": "@bantayog/config/tsconfig/nextjs-web.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/components/*": ["./components/*"],
       "@/stores/*": ["./stores/*"],
       "@/providers/*": ["./providers/*"],
       "@/lib/*": ["./lib/*"],
-      "@/app/*": ["./app/*"]
       "@/app/*": ["./app/*"],
-      "@/lib/*": ["./lib/*"],
       "@bantayog/db": ["../../packages/db/src/index.ts"],
       "@bantayog/schema": ["../../packages/schema/src/index.ts"]
     }
