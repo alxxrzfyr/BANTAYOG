@@ -167,7 +167,7 @@ transactionRoutes.get(
     const status = c.req.query('status') as any
 
     let merchantId = c.req.query('merchantId')
-    let beneficiaryId = c.req.query('beneficiaryId')
+    const beneficiaryId = c.req.query('beneficiaryId')
 
     // If merchant role, restrict results to their own transactions
     if (user.role === 'merchant') {
