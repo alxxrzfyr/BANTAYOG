@@ -16,9 +16,6 @@ tsconfig.tsbuildinfo
 .env.*.local
 .env.supabase
 
-# Docs (local only, not pushed)
-docs/
-
 # Keep the .example files tracked
 !.env.example
 

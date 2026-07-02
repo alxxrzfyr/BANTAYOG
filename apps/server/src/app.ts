@@ -11,10 +11,11 @@
  * BE1 owns this file.
  */
 import { Hono } from 'hono'
-import { logger } from 'hono/logger'
 import { cors } from 'hono/cors'
+import { requestLogger } from './middleware/request-logger.js'
 import { authMiddleware } from './middleware/auth.js'
 import { requireRole } from './middleware/rbac.js'
+import { rateLimit } from './middleware/rate-limit.js'
 import type { Env } from './types/env.js'
 
 // ---------------------------------------------------------------------------
@@ -36,8 +37,17 @@ app.use(
   }),
 )
 
-// Logger: Hono built-in request logger (pino structured logging added in P5)
-app.use('*', logger())
+// Logger: structured pino request logging
+app.use('*', requestLogger)
+
+// Global rate limit: 100 requests per minute per IP
+app.use('*', rateLimit('global', 100, 60))
+
+// Specific rate limits on sensitive endpoints
+app.use('/api/auth/login', rateLimit('login', 5, 60))
+app.use('/api/auth/merchant-login', rateLimit('merchant-login', 5, 60))
+app.use('/api/auth/verify-pin', rateLimit('pin', 3, 60))
+app.use('/api/vision/classify', rateLimit('gemini', 10, 60))
 
 // --- Health check (public, no auth required) ---
 /**
@@ -99,6 +109,11 @@ app.route('/api/vision', visionRoutes)
 // Admin + Merchant routes
 app.use('/api/transactions/*', authMiddleware, requireRole('admin', 'merchant'))
 app.route('/api/transactions', transactionRoutes)
+
+// Cron routes (auth-bypass; uses custom Bearer CRON_SECRET auth internally)
+import cronRoutes from './routes/cron/index.js'
+app.route('/api/cron', cronRoutes)
+
 
 // --- 404 fallback ---
 app.notFound((c) => {

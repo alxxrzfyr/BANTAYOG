@@ -19,6 +19,7 @@ export interface WalletConnection {
   method: WalletMethod;
   address: string;
   proof: string;
+  message?: string;
 }
 
 export interface WalletProvider {
@@ -82,7 +83,7 @@ async function connectInjected(): Promise<WalletConnection> {
     params: [message, address],
   })) as string;
 
-  return { method: "injected", address, proof };
+  return { method: "injected", address, proof, message };
 }
 
 /**
@@ -217,19 +218,42 @@ export function getAvailableMethods(): WalletMethod[] {
 
 /**
  * Verify wallet connection with the backend.
- * Sends the address and proof to BE2-3.7's wallet adapter gateway.
+ * Sends the address and proof to BE2-3.7's wallet adapter gateway (/api/auth/wallet-login).
  */
 export async function verifyWalletConnection(
   connection: WalletConnection,
-): Promise<{ verified: boolean; merchantId?: string }> {
-  // TODO: Replace with real API call to backend wallet adapter gateway
-  // const res = await fetch("/api/auth/verify-wallet", {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(connection),
-  // });
-  // return res.json();
+): Promise<{ verified: boolean; session?: { accessToken: string; expiresAt: string }; user?: any; error?: string }> {
+  // Try to use window location origin or relative path, or fall back to configured backend url
+  const apiBaseUrl = typeof window !== "undefined"
+    ? (window.location.origin.includes("localhost") ? "http://localhost:3001" : "")
+    : (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001")
 
-  // Mock verification for now
-  return { verified: true, merchantId: "MERCH-001" };
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/auth/wallet-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        method: connection.method,
+        proof: {
+          address: connection.address,
+          message: connection.message,
+          signature: connection.method !== "waypoint" ? connection.proof : undefined,
+          token: connection.method === "waypoint" ? connection.proof : undefined,
+        }
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { verified: false, error: data.message || "Wallet authentication failed" };
+    }
+
+    return {
+      verified: true,
+      session: data.session,
+      user: data.user
+    };
+  } catch (err: any) {
+    return { verified: false, error: err.message };
+  }
 }
