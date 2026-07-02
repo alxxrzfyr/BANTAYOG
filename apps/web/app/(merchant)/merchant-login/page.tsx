@@ -8,19 +8,22 @@ import { useRouter } from "next/navigation";
 // ---------------------------------------------------------------------------
 
 interface LoginForm {
-  ownerName: string;
+  phoneNumber: string;
   password: string;
 }
 
 interface FormErrors {
-  ownerName?: string;
+  phoneNumber?: string;
   password?: string;
 }
 
 function validate(form: LoginForm): FormErrors {
   const errors: FormErrors = {};
-  if (!form.ownerName.trim()) {
-    errors.ownerName = "Owner name is required";
+  const phoneRegex = /^(?:\+63\d{10}|09\d{9})$/;
+  if (!form.phoneNumber.trim()) {
+    errors.phoneNumber = "Phone number is required";
+  } else if (!phoneRegex.test(form.phoneNumber.trim())) {
+    errors.phoneNumber = "Enter a valid Philippine mobile number";
   }
   if (!form.password) {
     errors.password = "Password is required";
@@ -37,7 +40,7 @@ function validate(form: LoginForm): FormErrors {
 export default function MerchantLoginPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState<LoginForm>({ ownerName: "", password: "" });
+  const [form, setForm] = useState<LoginForm>({ phoneNumber: "", password: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +78,7 @@ export default function MerchantLoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ownerName: form.ownerName.trim(),
+          phoneNumber: form.phoneNumber.trim(),
           password: form.password,
         }),
       });
@@ -124,10 +127,10 @@ export default function MerchantLoginPage() {
         {/* Owner Name Field */}
         <div className="relative rounded-xl border border-[#5ba89d] bg-transparent">
           <label
-            htmlFor="ownerName"
+            htmlFor="phone-number"
             className="absolute -top-2.5 left-3 bg-[#034C52] px-1 font-body text-xs text-[#a8e6cf]"
           >
-            Name of Owner
+            Phone Number
           </label>
           <div className="flex items-center gap-3 px-4 py-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -135,21 +138,22 @@ export default function MerchantLoginPage() {
               src="/merchantLogos/profile.png"
               alt=""
               className="h-7 w-7 flex-shrink-0 opacity-70"
+              aria-hidden="true"
             />
             <input
-              id="ownerName"
-              type="text"
-              placeholder="Enter the name of the owner"
-              value={form.ownerName}
-              onChange={(e) => updateField("ownerName", e.target.value)}
+              id="phone-number"
+              type="tel"
+              placeholder="+63XXXXXXXXXX"
+              value={form.phoneNumber}
+              onChange={(e) => updateField("phoneNumber", e.target.value)}
               className="w-full bg-transparent font-body text-sm text-white placeholder-[#7cc9a8]/60 outline-none"
-              autoComplete="username"
+              autoComplete="tel"
               disabled={loading}
             />
           </div>
         </div>
-        {errors.ownerName && (
-          <p className="font-body text-xs text-red-400">{errors.ownerName}</p>
+        {errors.phoneNumber && (
+          <p className="font-body text-xs text-red-400" role="alert">{errors.phoneNumber}</p>
         )}
 
         {/* Password Field */}
@@ -166,6 +170,7 @@ export default function MerchantLoginPage() {
               src="/merchantLogos/lock.png"
               alt=""
               className="h-7 w-7 flex-shrink-0 opacity-70"
+              aria-hidden="true"
             />
             <input
               id="password"
@@ -180,20 +185,20 @@ export default function MerchantLoginPage() {
           </div>
         </div>
         {errors.password && (
-          <p className="font-body text-xs text-red-400">{errors.password}</p>
+          <p className="font-body text-xs text-red-400" role="alert">{errors.password}</p>
         )}
 
         {/* ── Error Messages ── */}
         {credentialError && (
-          <div className="rounded-lg bg-red-500/10 px-4 py-3 text-center">
+          <div className="rounded-lg bg-red-500/10 px-4 py-3 text-center" role="alert">
             <p className="font-body text-sm text-red-300">
-              Invalid owner name or password. Please try again.
+              Invalid phone number or password. Please try again.
             </p>
           </div>
         )}
 
         {networkError && (
-          <div className="rounded-lg bg-orange-500/10 px-4 py-3 text-center">
+          <div className="rounded-lg bg-orange-500/10 px-4 py-3 text-center" role="alert">
             <p className="font-body text-sm text-orange-300">
               Unable to connect. Please check your network and try again.
             </p>

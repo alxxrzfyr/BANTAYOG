@@ -68,7 +68,7 @@ export function RecentTransactions() {
   // Loading state
   if (isLoading) {
     return (
-      <section>
+      <section aria-live="polite" aria-busy="true">
         <h2 className="mb-3 font-body text-xs font-semibold uppercase tracking-widest text-gray-400">
           Recent Transactions
         </h2>
@@ -97,7 +97,7 @@ export function RecentTransactions() {
         <h2 className="mb-3 font-body text-xs font-semibold uppercase tracking-widest text-gray-400">
           Recent Transactions
         </h2>
-        <div className="rounded-2xl border border-gray-200 bg-white px-5 py-8 text-center">
+        <div className="rounded-2xl border border-gray-200 bg-white px-5 py-8 text-center" role="alert">
           <p className="font-body text-sm text-gray-500">
             Unable to load transactions
           </p>

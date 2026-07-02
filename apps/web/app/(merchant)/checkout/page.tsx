@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
 import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
+import { QRScanner } from "@/lib/qr/scanner";
 
 // ---------------------------------------------------------------------------
 // Checkout Page + QR Scanner Modal + PIN Validation Modal (ref: 25-27.png)
@@ -26,6 +27,13 @@ export default function CheckoutPage() {
     balance: number;
   } | null>(null);
   const [pinError, setPinError] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const checkoutButtonRef = useRef<HTMLButtonElement>(null);
+  const qrCloseButtonRef = useRef<HTMLButtonElement>(null);
+
+  // QR Scanner ref
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QRScanner | null>(null);
 
   // Filter to eligible items only
   const eligibleItems = items.filter((i) => i.eligibility === "eligible");
@@ -38,17 +46,97 @@ export default function CheckoutPage() {
   const backHref =
     inputSource === "ai" ? "/cart/ai-scan?resume=result" : "/cart/manual";
 
-  // ── QR Scan Simulation ──
-  const handleSimulateScan = useCallback(() => {
-    // Simulate a successful QR scan with mock beneficiary data
-    setBeneficiaryData({
-      id: "BEN-001",
-      name: "Maria Dela Cruz",
-      guardianName: "Juan Dela Cruz",
-      balance: 740,
-    });
-    setModalState("pin");
+  // ── Handle QR Scanner Close ──
+  const handleCloseQRScanner = useCallback(() => {
+    scannerRef.current?.stop();
+    setCameraError(null);
+    setModalState("none");
+    // Return focus to the trigger element
+    setTimeout(() => checkoutButtonRef.current?.focus(), 0);
   }, []);
+
+  // ── Start QR Scanner when modal opens ──
+  useEffect(() => {
+    if (modalState !== "qr-scan" || !videoRef.current) return;
+
+    const scanner = new QRScanner();
+    scannerRef.current = scanner;
+
+    scanner
+      .start(videoRef.current, (result) => {
+        // On successful scan, decode the JWT and extract beneficiary data
+        handleQRScanResult(result.text);
+      })
+      .catch((err) => {
+        setCameraError(
+          err.message || "Camera access denied. Please allow camera access.",
+        );
+      });
+
+    return () => {
+      scanner.stop();
+      scannerRef.current = null;
+    };
+  }, [modalState]);
+
+  // ── Escape key closes QR scanner modal ──
+  useEffect(() => {
+    if (modalState !== "qr-scan") return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCloseQRScanner();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [modalState, handleCloseQRScanner]);
+
+  // ── Focus QR scanner close button on open ──
+  useEffect(() => {
+    if (modalState === "qr-scan") {
+      qrCloseButtonRef.current?.focus();
+    }
+  }, [modalState]);
+
+  // ── Handle QR Scan Result ──
+  const handleQRScanResult = useCallback(
+    (qrText: string) => {
+      // Stop scanner after successful scan
+      scannerRef.current?.stop();
+
+      try {
+        // Try to decode as JWT (base64url decode the payload)
+        const parts = qrText.split(".");
+        if (parts.length === 3) {
+          // It's a JWT — decode the payload
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+          setBeneficiaryData({
+            id: payload.beneficiaryId || payload.sub || "BEN-001",
+            name: payload.childName || payload.name || "Beneficiary",
+            guardianName: payload.guardianName || "Guardian",
+            balance: payload.balance || 740,
+          });
+        } else {
+          // Not a JWT — use mock data for demo
+          setBeneficiaryData({
+            id: "BEN-001",
+            name: "Maria Dela Cruz",
+            guardianName: "Juan Dela Cruz",
+            balance: 740,
+          });
+        }
+        setModalState("pin");
+      } catch {
+        // Failed to decode — use mock data for demo
+        setBeneficiaryData({
+          id: "BEN-001",
+          name: "Maria Dela Cruz",
+          guardianName: "Juan Dela Cruz",
+          balance: 740,
+        });
+        setModalState("pin");
+      }
+    },
+    [],
+  );
 
   // ── PIN Verification ──
   const handlePinComplete = useCallback(
@@ -78,7 +166,7 @@ export default function CheckoutPage() {
         <header className="flex items-center px-4 pt-5 pb-3">
           <Link
             href={backHref}
-            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
             aria-label="Back"
           >
             <svg
@@ -97,7 +185,7 @@ export default function CheckoutPage() {
           <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
             Checkout
           </h1>
-          <div className="w-9" />
+          <div className="w-11" />
         </header>
         <div className="h-px bg-gray-400" />
         <div className="flex flex-col items-center justify-center px-5 py-16">
@@ -106,7 +194,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/cart"
-            className="mt-4 rounded-full bg-[#034C52] px-6 py-2.5 font-body text-sm font-bold text-white"
+            className="mt-4 rounded-full bg-[#034C52] px-6 py-3 font-body text-sm font-bold text-white"
           >
             Add Items
           </Link>
@@ -115,13 +203,16 @@ export default function CheckoutPage() {
     );
   }
 
+  const isModalOpen = modalState !== "none";
+
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
+      <div aria-hidden={isModalOpen || undefined}>
       {/* ── Header ── */}
       <header className="flex items-center px-4 pt-5 pb-3">
         <Link
           href={backHref}
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-black/5"
           aria-label="Back"
         >
           <svg
@@ -140,7 +231,7 @@ export default function CheckoutPage() {
         <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
           Checkout
         </h1>
-        <div className="w-9" />
+        <div className="w-11" />
       </header>
 
       <div className="h-px bg-gray-400" />
@@ -153,7 +244,7 @@ export default function CheckoutPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/profile.png"
-              alt=""
+              alt="Store profile"
               className="h-8 w-8 rounded-full"
             />
           </div>
@@ -165,7 +256,7 @@ export default function CheckoutPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/merchantLogos/verifiedBadge.png"
-                alt=""
+                alt="LGU Verified"
                 className="h-3 w-3"
               />
               <span className="font-body text-[10px] font-semibold text-[#034C52]">
@@ -180,18 +271,19 @@ export default function CheckoutPage() {
           <h3 className="mb-3 font-body text-base font-bold text-[#034C52]">
             Cart Items ({eligibleItems.length})
           </h3>
-          <div className="space-y-3">
+          <ul className="space-y-3 list-none p-0 m-0">
             {eligibleItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                name={item.name}
-                price={item.price}
-                quantity={item.quantity}
-                eligibility={item.eligibility}
-                imageDataUrl={item.imageDataUrl}
-              />
+              <li key={item.id}>
+                <ItemCard
+                  name={item.name}
+                  price={item.price}
+                  quantity={item.quantity}
+                  eligibility={item.eligibility}
+                  imageDataUrl={item.imageDataUrl}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         {/* Cart Summary */}
@@ -212,7 +304,7 @@ export default function CheckoutPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/merchantLogos/qrSample.png"
-              alt=""
+              alt="QR Code"
               className="h-8 w-8 flex-shrink-0"
             />
             <span className="flex-1 text-left font-body text-sm font-medium text-gray-700">
@@ -239,11 +331,13 @@ export default function CheckoutPage() {
         {/* Checkout Button */}
         <button
           type="button"
+          ref={checkoutButtonRef}
           onClick={() => setModalState("qr-scan")}
           className="mt-6 w-full rounded-2xl bg-[#034C52] py-4 font-body text-base font-bold text-white transition-colors hover:bg-[#017075] active:brightness-95"
         >
           Confirm & Checkout
         </button>
+      </div>
       </div>
 
       {/* ── QR Scanner Modal (FE2-3.6) ── */}
@@ -252,10 +346,10 @@ export default function CheckoutPage() {
           className="fixed inset-0 z-50 flex flex-col"
           role="dialog"
           aria-modal="true"
-          aria-label="QR Scanner"
+          aria-labelledby="qr-scanner-title"
         >
           {/* Dark overlay */}
-          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
 
           {/* Content */}
           <div className="relative flex flex-1 flex-col">
@@ -263,8 +357,9 @@ export default function CheckoutPage() {
             <div className="flex items-center px-4 pt-5 pb-3">
               <button
                 type="button"
-                onClick={() => setModalState("none")}
-                className="flex h-9 w-9 items-center justify-center"
+                ref={qrCloseButtonRef}
+                onClick={handleCloseQRScanner}
+                className="flex h-11 w-11 items-center justify-center"
                 aria-label="Close QR scanner"
               >
                 <svg
@@ -282,11 +377,14 @@ export default function CheckoutPage() {
                 </svg>
               </button>
               <div className="flex-1 text-center">
-                <span className="inline-block rounded-full bg-[#f48d79] px-6 py-2 font-title text-sm font-black text-[#034C52]">
+                <span
+                  id="qr-scanner-title"
+                  className="inline-block rounded-full bg-[#f48d79] px-6 py-2 font-title text-sm font-black text-[#034C52]"
+                >
                   QR Scanner
                 </span>
               </div>
-              <div className="w-9" />
+              <div className="w-11" />
             </div>
 
             {/* Scanner Area */}
@@ -296,8 +394,18 @@ export default function CheckoutPage() {
                 {/* Black background */}
                 <div className="absolute inset-0 rounded-3xl bg-black" />
 
+                {/* Video element for camera */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute inset-0 h-full w-full rounded-3xl object-cover"
+                  aria-label="Camera viewfinder for scanning QR codes"
+                />
+
                 {/* Scanner frame border */}
-                <div className="absolute inset-2 rounded-2xl border-2 border-dashed border-[#f48d79]" />
+                <div className="pointer-events-none absolute inset-2 rounded-2xl border-2 border-dashed border-[#f48d79]" />
 
                 {/* Corner brackets */}
                 <div className="pointer-events-none absolute inset-0">
@@ -306,20 +414,20 @@ export default function CheckoutPage() {
                   <div className="absolute bottom-4 left-4 h-12 w-12 border-b-[4px] border-l-[4px] border-[#f48d79] rounded-bl-lg" />
                   <div className="absolute bottom-4 right-4 h-12 w-12 border-b-[4px] border-r-[4px] border-[#f48d79] rounded-br-lg" />
                 </div>
-
-                {/* Simulate button */}
-                <button
-                  type="button"
-                  onClick={handleSimulateScan}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <div className="rounded-xl bg-white/10 px-6 py-3 backdrop-blur-sm">
-                    <span className="font-body text-sm font-bold text-white">
-                      Tap to Simulate Scan
-                    </span>
-                  </div>
-                </button>
               </div>
+
+              {/* Camera Error Message */}
+              {cameraError && (
+                <div
+                  className="mt-4 rounded-xl bg-red-500/10 px-4 py-3 text-center"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  <p className="font-body text-sm text-red-300">
+                    {cameraError}
+                  </p>
+                </div>
+              )}
 
               {/* Instruction */}
               <p className="mt-5 text-center font-body text-sm font-semibold text-white">
@@ -340,6 +448,10 @@ export default function CheckoutPage() {
             setPinError(false);
           }}
           onComplete={handlePinComplete}
+          onEscapeToNone={() => {
+            handleCloseQRScanner();
+            setPinError(false);
+          }}
         />
       )}
     </div>
@@ -355,14 +467,22 @@ function PINModal({
   error,
   onBack,
   onComplete,
+  onEscapeToNone,
 }: {
   guardianName: string;
   error: boolean;
   onBack: () => void;
   onComplete: (pin: string) => void;
+  onEscapeToNone: () => void;
 }) {
   const [pin, setPin] = useState("");
   const maxDigits = 6;
+  const firstDigitRef = useRef<HTMLButtonElement>(null);
+
+  // Focus first digit button on mount
+  useEffect(() => {
+    firstDigitRef.current?.focus();
+  }, []);
 
   const handleDigit = (digit: string) => {
     if (pin.length < maxDigits) {
@@ -384,19 +504,37 @@ function PINModal({
     setPin((prev) => prev.slice(0, -1));
   };
 
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") {
+        handleDigit(e.key);
+      } else if (e.key === "Backspace") {
+        handleBackspace();
+      } else if (e.key === "Escape") {
+        onEscapeToNone();
+      } else if (e.key === "Delete") {
+        handleClear();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pin, onEscapeToNone]);
+
   return (
     <div
       className="fixed inset-0 z-[60] flex flex-col bg-[#034C52]"
       role="dialog"
       aria-modal="true"
-      aria-label="PIN Validation"
+      aria-labelledby="pin-modal-title"
     >
       {/* Header */}
       <header className="flex items-center px-4 pt-5 pb-3">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-9 w-9 items-center justify-center"
+          className="flex h-11 w-11 items-center justify-center"
           aria-label="Back to QR scanner"
         >
           <svg
@@ -417,7 +555,7 @@ function PINModal({
             Pin Validation
           </span>
         </div>
-        <div className="w-9" />
+        <div className="w-11" />
       </header>
 
       {/* Content */}
@@ -427,13 +565,16 @@ function PINModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merchantLogos/lock2.png"
-            alt=""
+            alt="Security lock icon"
             className="h-8 w-8"
           />
         </div>
 
         {/* Title */}
-        <h2 className="text-center font-body text-lg font-bold text-white">
+        <h2
+          id="pin-modal-title"
+          className="text-center font-body text-lg font-bold text-white"
+        >
           Enter Beneficiary Guardian Security PIN
         </h2>
         <p className="mt-2 text-center font-body text-sm text-white/70">
@@ -444,34 +585,49 @@ function PINModal({
         </p>
 
         {/* PIN Progress Circles */}
-        <div className="mt-6 flex items-center gap-3">
+        <div
+          className="mt-6 flex items-center gap-3"
+          role="status"
+          aria-label={`${pin.length} of ${maxDigits} digits entered`}
+        >
           {Array.from({ length: maxDigits }).map((_, i) => (
             <div
               key={i}
-              className={`h-3.5 w-3.5 rounded-full border-2 transition-all ${
+              className={`h-4 w-4 rounded-full border-2 transition-all ${
                 i < pin.length
                   ? "border-white bg-white"
                   : "border-white/40 bg-transparent"
               }`}
+              aria-hidden="true"
             />
           ))}
         </div>
 
         {/* Error Message */}
         {error && (
-          <p className="mt-4 font-body text-sm font-semibold text-red-400">
+          <p
+            className="mt-4 font-body text-sm font-semibold text-red-400"
+            role="alert"
+            aria-live="assertive"
+          >
             Incorrect PIN. Please try again.
           </p>
         )}
 
         {/* Numeric Keypad */}
-        <div className="mt-8 grid w-full max-w-xs grid-cols-3 gap-3">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+        <div
+          className="mt-8 grid w-full max-w-xs grid-cols-3 gap-3"
+          role="group"
+          aria-label="PIN keypad"
+        >
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit, idx) => (
             <button
               key={digit}
+              ref={idx === 0 ? firstDigitRef : undefined}
               type="button"
               onClick={() => handleDigit(digit)}
-              className="flex h-14 items-center justify-center rounded-xl bg-[#017075] font-body text-xl font-bold text-white transition-colors hover:bg-[#015f63] active:brightness-90"
+              aria-label={`Enter digit ${digit}`}
+              className="flex h-14 min-h-[56px] min-w-[56px] items-center justify-center rounded-xl bg-[#017075] font-body text-xl font-bold text-white transition-colors hover:bg-[#015f63] active:brightness-90 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#034C52]"
             >
               {digit}
             </button>
@@ -479,21 +635,24 @@ function PINModal({
           <button
             type="button"
             onClick={handleClear}
-            className="flex h-14 items-center justify-center rounded-xl font-body text-sm font-bold text-[#f48d79] transition-colors hover:bg-white/5"
+            aria-label="Clear all digits"
+            className="flex h-14 min-h-[56px] min-w-[56px] items-center justify-center rounded-xl font-body text-sm font-bold text-[#f48d79] transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#f48d79] focus:ring-offset-2 focus:ring-offset-[#034C52]"
           >
             Clear
           </button>
           <button
             type="button"
             onClick={() => handleDigit("0")}
-            className="flex h-14 items-center justify-center rounded-xl bg-[#017075] font-body text-xl font-bold text-white transition-colors hover:bg-[#015f63] active:brightness-90"
+            aria-label="Enter digit 0"
+            className="flex h-14 min-h-[56px] min-w-[56px] items-center justify-center rounded-xl bg-[#017075] font-body text-xl font-bold text-white transition-colors hover:bg-[#015f63] active:brightness-90 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#034C52]"
           >
             0
           </button>
           <button
             type="button"
             onClick={handleBackspace}
-            className="flex h-14 items-center justify-center rounded-xl font-body text-sm font-bold text-white transition-colors hover:bg-white/5"
+            aria-label="Delete last digit"
+            className="flex h-14 min-h-[56px] min-w-[56px] items-center justify-center rounded-xl font-body text-sm font-bold text-white transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#034C52]"
           >
             Back
           </button>

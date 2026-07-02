@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/reconcile",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/tier-reeval",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

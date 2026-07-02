@@ -21,10 +21,12 @@ export function EligibilityToggle({
       <label className="mb-2 block font-body text-xs font-medium text-gray-600">
         Category/Validation
       </label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Item classification">
         {/* Eligible option */}
         <button
           type="button"
+          role="radio"
+          aria-checked={isEligible}
           onClick={() => onChange("eligible")}
           className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all ${
             isEligible
@@ -39,7 +41,7 @@ export function EligibilityToggle({
                 ? "/merchantLogos/green_correct.png"
                 : "/merchantLogos/gray_correct.png"
             }
-            alt=""
+            alt={isEligible ? "Eligible" : "Not selected"}
             className="h-5 w-5 flex-shrink-0"
           />
           <div className="text-left">
@@ -63,6 +65,8 @@ export function EligibilityToggle({
         {/* Ineligible option */}
         <button
           type="button"
+          role="radio"
+          aria-checked={isIneligible}
           onClick={() => onChange("ineligible")}
           className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all ${
             isIneligible
@@ -77,7 +81,7 @@ export function EligibilityToggle({
                 ? "/merchantLogos/red_wrong.png"
                 : "/merchantLogos/gray_wrong.png"
             }
-            alt=""
+            alt={isIneligible ? "Ineligible" : "Not selected"}
             className="h-5 w-5 flex-shrink-0"
           />
           <div className="text-left">
