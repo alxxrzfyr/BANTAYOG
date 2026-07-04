@@ -17,7 +17,7 @@ interface WalletBalanceCardProps {
   balance: string;
   /** PHP equivalent (1:1 peg, displayed as "P0.00") */
   phpEquivalent: string;
-  /** Merchant's Ronin wallet address (truncated display) */
+  /** Merchant's EVM wallet address (truncated display) */
   walletAddress: string;
   /** Called after a successful transfer so parent can refresh data */
   onTransferSuccess?: () => void;
@@ -200,7 +200,7 @@ export function WalletBalanceCard({
             onClick={() => setModalOpen(true)}
             className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95"
           >
-            Transfer to Ronin Wallet
+            Transfer to Wallet
           </button>
         </div>
       </div>

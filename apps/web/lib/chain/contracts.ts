@@ -16,7 +16,7 @@ function getContractAddress(name: string): `0x${string}` {
   if (!val) {
     throw new Error(
       `Missing contract address env var: ${name}. ` +
-        `Run 'npx hardhat run scripts/deploy.ts --network localhost' and copy addresses to .env.local.`,
+        `Run 'npx hardhat run scripts/deploy.ts --network amoy' and copy addresses to .env.local.`,
     );
   }
   return getAddress(val) as `0x${string}`;

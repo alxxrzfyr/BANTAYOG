@@ -49,7 +49,7 @@ export function rateLimit(limiterName: string, limit: number, windowSeconds: num
       if (limiterName === 'pin') {
         try {
           const cloned = c.req.raw.clone()
-          const body = await cloned.json()
+          const body = (await cloned.json()) as { beneficiaryId?: string }
           identifier = body?.beneficiaryId || ''
         } catch {
           // ignore parsing error
@@ -79,6 +79,6 @@ export function rateLimit(limiterName: string, limit: number, windowSeconds: num
       console.warn('Upstash rate limiting error, passing through:', err)
     }
 
-    await next()
+    return await next()
   })
 }

@@ -2,8 +2,10 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { formatUnits, parseUnits } from 'viem'
-import { ChainClient } from '../services/chain.client.js'
+import { BlockchainClient } from '../services/chain.client.js'
+import { loadChainConfig } from '../lib/chain/config.js'
 import { createServiceClient } from '../lib/supabase.js'
+import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const chainRoutes = new Hono<{ Bindings: Env; Variables: { user?: { id: string; email: string; role: string } | null } }>()
@@ -15,32 +17,40 @@ const transferSchema = z.object({
 
 /**
  * GET /api/chain/balance
- * Queries the Ronin blockchain (via viem) for any address's (or LGU Treasury's) PHPC balance.
+ * Queries Polygon Amoy (via viem) for any address's (or LGU admin wallet's) PHPC balance.
  *
  * Query params:
- *   - address?: Optional wallet address. Defaults to LGU_TREASURY_ADDRESS.
+ *   - address?: Optional wallet address. Defaults to LGU_ADMIN_WALLET_ADDRESS.
  */
 chainRoutes.get('/balance', async (c) => {
+  const configResult = loadChainConfig(process.env)
+  if (configResult.isErr()) {
+    return c.json(errorToResponseBody(configResult.error), errorToHttpStatus(configResult.error))
+  }
+
   const queryAddress = c.req.query('address')
-  const targetAddress = queryAddress || c.env.LGU_TREASURY_ADDRESS || process.env.LGU_TREASURY_ADDRESS
+  const targetAddress = queryAddress || configResult.value.lguAdminWallet
 
   if (!targetAddress) {
-    return c.json({ error: 'bad_request', message: 'No target address provided and LGU_TREASURY_ADDRESS is not set' }, 400)
+    return c.json({ error: 'bad_request', message: 'No target address provided and LGU_ADMIN_WALLET_ADDRESS is not set' }, 400)
   }
 
-  try {
-    const chainClient = new ChainClient()
-    const balanceWei = await chainClient.getBalance(targetAddress)
-    const formatted = formatUnits(balanceWei, 18)
-
-    return c.json({
-      address: targetAddress,
-      balance: balanceWei.toString(),
-      formatted
-    })
-  } catch (err: any) {
-    return c.json({ error: 'blockchain_query_failed', message: err.message }, 502)
+  const clientResult = await BlockchainClient.create(configResult.value)
+  if (clientResult.isErr()) {
+    return c.json(errorToResponseBody(clientResult.error), errorToHttpStatus(clientResult.error))
   }
+
+  const balanceResult = await clientResult.value.getBalance(targetAddress)
+
+  return balanceResult.match(
+    (balanceWei) =>
+      c.json({
+        address: targetAddress,
+        balance: balanceWei.toString(),
+        formatted: formatUnits(balanceWei, 18),
+      }),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error)),
+  )
 })
 
 /**
@@ -70,22 +80,38 @@ chainRoutes.post('/transfer', zValidator('json', transferSchema), async (c) => {
     }
   }
 
-  try {
-    const chainClient = new ChainClient()
-    const amountWei = parseUnits(String(amount), 18)
-    const txHash = await chainClient.transferPHPC(to, amountWei)
-    const receipt = await chainClient.waitForTransactionReceipt(txHash)
-
-    return c.json({
-      success: true,
-      txHash,
-      blockNumber: Number(receipt.blockNumber),
-      to,
-      amount,
-    })
-  } catch (err: any) {
-    return c.json({ error: 'transfer_failed', message: err.message }, 500)
+  const configResult = loadChainConfig(process.env)
+  if (configResult.isErr()) {
+    return c.json(errorToResponseBody(configResult.error), errorToHttpStatus(configResult.error))
   }
+
+  const clientResult = await BlockchainClient.create(configResult.value)
+  if (clientResult.isErr()) {
+    return c.json(errorToResponseBody(clientResult.error), errorToHttpStatus(clientResult.error))
+  }
+
+  const chainClient = clientResult.value
+  const amountWei = parseUnits(String(amount), 18)
+
+  const transferResult = await chainClient.transferPHPC(to, amountWei)
+  if (transferResult.isErr()) {
+    return c.json(errorToResponseBody(transferResult.error), errorToHttpStatus(transferResult.error))
+  }
+
+  const txHash = transferResult.value
+  const receiptResult = await chainClient.waitForConfirmation(txHash)
+
+  return receiptResult.match(
+    (receipt) =>
+      c.json({
+        success: true,
+        txHash,
+        blockNumber: Number(receipt.blockNumber),
+        to,
+        amount,
+      }),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error)),
+  )
 })
 
 export default chainRoutes

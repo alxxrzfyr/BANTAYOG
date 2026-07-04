@@ -84,9 +84,15 @@ import chainRoutes from './routes/chain.js'
 import productRoutes from './routes/products.js'
 import visionRoutes from './routes/vision.js'
 import transactionRoutes from './routes/transactions.js'
+import balanceRoutes from './routes/balance.js'
 
 // Auth routes: mostly public (login, merchant-login); logout protected inside authRoutes
 app.route('/api/auth', authRoutes)
+
+// Balance view: intentionally PUBLIC (like /health) — access is authorized
+// solely by the signed QR token itself (Requirement 8.3), not by a session,
+// so it deliberately carries no authMiddleware/requireRole.
+app.route('/api/balance', balanceRoutes)
 
 // Admin-only routes
 app.use('/api/beneficiaries', authMiddleware, requireRole('admin'))

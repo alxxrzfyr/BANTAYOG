@@ -19,7 +19,7 @@ export async function runTierReevaluation(): Promise<TierReevalResult> {
   const cronLogger = logger.child({ requestId: 'cron-tier-reeval' })
 
   // 1. Query all beneficiaries still marked ELIGIBLE (= potentially Tier 1)
-  const { data: beneficiaries, error } = await db
+  const { data: beneficiaries, error } = await (db as any)
     .from('beneficiaries')
     .select('id, created_at, child_age_months, guardian_name, child_name, eligibility_status')
     .eq('eligibility_status', 'ELIGIBLE')
@@ -50,7 +50,7 @@ export async function runTierReevaluation(): Promise<TierReevalResult> {
       })
 
       // No tier column — mark as INELIGIBLE to indicate they have left the critical window
-      const { error: updateError } = await db
+      const { error: updateError } = await (db as any)
         .from('beneficiaries')
         .update({ eligibility_status: 'INELIGIBLE' })
         .eq('id', beneficiary.id)

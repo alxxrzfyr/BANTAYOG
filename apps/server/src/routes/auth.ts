@@ -25,12 +25,10 @@ const merchantLoginSchema = z.object({
 })
 
 const walletLoginSchema = z.object({
-  method: z.enum(['waypoint', 'tanto', 'injected']),
   proof: z.object({
     address: z.string(),
     message: z.string().optional(),
-    signature: z.string().optional(),
-    token: z.string().optional()
+    signature: z.string().optional()
   })
 })
 
@@ -44,16 +42,20 @@ const walletGateway = new WalletAdapterGateway()
 
 /**
  * POST /api/auth/wallet-login
- * Authenticates merchant via Ronin Wallet signature or Waypoint token
+ * Authenticates merchant via injected EVM wallet (EIP-1193) signature
  */
 authRoutes.post('/wallet-login', zValidator('json', walletLoginSchema), async (c) => {
-  const { method, proof } = c.req.valid('json')
+  const { proof } = c.req.valid('json')
   const db = createServiceClient()
 
-  try {
-    // 1. Verify the wallet connection
-    const verifiedAddress = await walletGateway.verifyWalletConnection(method, proof)
+  // 1. Verify the wallet connection
+  const verifiedResult = await walletGateway.verifyWalletConnection(proof)
+  if (verifiedResult.isErr()) {
+    return c.json(errorToResponseBody(verifiedResult.error), errorToHttpStatus(verifiedResult.error))
+  }
+  const verifiedAddress = verifiedResult.value
 
+  try {
     // 2. Query merchant profile matching this wallet address
     // Wallet addresses are stored case-insensitively/normally, let's query case-insensitively if needed
     const { data: merchant, error: dbError } = await (db as any)

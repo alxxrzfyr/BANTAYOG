@@ -48,7 +48,7 @@ function TransactionCompleteContent() {
           Transaction Completed
         </h1>
         <p className="mt-2 text-center font-body text-sm text-gray-500">
-          Batanyog Credits successfully transferred
+          Bantayog Credits successfully transferred
           <br />
           to your Digital Wallet
         </p>

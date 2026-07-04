@@ -1,27 +1,22 @@
 import { verifyMessage } from 'viem'
+import { type AppResult, ok, err, AuthError } from '../lib/errors.js'
 
 export class WalletAdapterGateway {
   /**
-   * Verifies the wallet connection and returns the verified wallet address.
-   * Supports:
-   *  - 'injected': standard EIP-1193 signature verification
-   *  - 'tanto': signature verification (Tanto uses signed messages)
-   *  - 'waypoint': OAuth token-based verification (stubbed for test environments)
+   * Verifies an injected-wallet (EIP-1193) signature and returns the
+   * verified wallet address, or an AuthError on a missing proof,
+   * tampered signature, or mismatched address.
    */
-  async verifyWalletConnection(
-    method: 'waypoint' | 'tanto' | 'injected',
-    proof: {
-      address: string
-      message?: string
-      signature?: string
-      token?: string
+  async verifyWalletConnection(proof: {
+    address: string
+    message?: string
+    signature?: string
+  }): Promise<AppResult<string>> {
+    if (!proof.signature || !proof.message) {
+      return err(new AuthError('Signature and message are required for wallet verification', 'invalid_credentials'))
     }
-  ): Promise<string> {
-    if (method === 'injected' || method === 'tanto') {
-      if (!proof.signature || !proof.message) {
-        throw new Error('Signature and message are required for signature-based verification')
-      }
 
+    try {
       const isValid = await verifyMessage({
         address: proof.address as `0x${string}`,
         message: proof.message,
@@ -29,20 +24,12 @@ export class WalletAdapterGateway {
       })
 
       if (!isValid) {
-        throw new Error('Invalid wallet signature verification failed')
+        return err(new AuthError('Invalid wallet signature', 'invalid_credentials'))
       }
 
-      return proof.address
-    } else if (method === 'waypoint') {
-      // Waypoint OAuth token-based verification stub
-      if (!proof.token) {
-        throw new Error('OAuth token is required for Waypoint verification')
-      }
-      
-      // In development/test mode, we assume the provided address is verified if a token exists
-      return proof.address
-    } else {
-      throw new Error(`Unsupported wallet connection method: ${method}`)
+      return ok(proof.address)
+    } catch {
+      return err(new AuthError('Wallet signature verification failed', 'invalid_credentials'))
     }
   }
 }

@@ -4,7 +4,7 @@
   "private": true,
   "description": "BANTAYOG Next.js 16 PWA — frontend only, no business logic (FE1+FE2 ownership)",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --config ../../packages/config/eslint.config.js --max-warnings 0",
@@ -32,8 +32,7 @@
     "tailwindcss": "^4.3.2",
     "viem": "^2.54.1",
     "zod": "^4.0.0",
-    "zustand": "^5.0.14",
-    "viem": "^2.54.1"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@bantayog/config": "workspace:*",

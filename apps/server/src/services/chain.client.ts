@@ -1,25 +1,35 @@
-import { createPublicClient, createWalletClient, http, defineChain, keccak256, toBytes } from 'viem'
+/**
+ * BlockchainClient — Polygon Amoy (chain ID 80002) read/write client.
+ *
+ * Per the polygon-amoy-phpc-migration design (Components and Interfaces §2)
+ * and Migration Strategy step 2: this replaces the old Ronin Saigon /
+ * local-Hardhat `ChainClient`. Every failure path returns a typed
+ * `Err(OnchainError)` — there is NO "return mock on failure" fallback. A 30
+ * second bound is enforced on connection/read/write via viem's `http`
+ * transport `timeout` option, and on `waitForTransactionReceipt` via its own
+ * `timeout` parameter.
+ *
+ * Requirements: 1.2, 1.3, 1.5, 1.6, 1.7, 1.8
+ */
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  defineChain,
+  keccak256,
+  toBytes,
+  type Account,
+  type Hex,
+  type TransactionReceipt,
+} from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
+import { type ChainConfig, POLYGON_AMOY_CHAIN_ID } from '../lib/chain/config.js'
+import { type AppResult, OnchainError, ok, err } from '../lib/errors.js'
 
-// Define Ronin Saigon chain
-const saigon = defineChain({
-  id: 202601,
-  name: 'Ronin Saigon Testnet',
-  nativeCurrency: { name: 'RON', symbol: 'RON', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://saigon-testnet.roninchain.com/rpc'] },
-  },
-})
+/** Bound (ms) enforced on connection setup, reads, writes, and confirmation waits. */
+const OPERATION_TIMEOUT_MS = 30_000
 
-// Define local localhost chain for development
-const localChain = defineChain({
-  id: 31337,
-  name: 'Hardhat Localhost',
-  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['http://127.0.0.1:8545'] },
-  },
-})
+const NETWORK_NAME = 'Polygon Amoy'
 
 export const PHPC_ABI = [
   {
@@ -73,146 +83,248 @@ export const PHPC_SUBSIDY_ABI = [
   }
 ] as const
 
-export class ChainClient {
-  private publicClient: any
-  private walletClient: any
-  private account: any
-  private phpcAddress: `0x${string}`
-  private subsidyAddress: `0x${string}`
+/** A generic transaction request accepted by {@link BlockchainClient.signAndSend}. */
+export interface TxRequest {
+  to: `0x${string}`
+  data?: Hex
+  value?: bigint
+}
 
-  constructor() {
-    const rpcUrl = process.env.RONIN_SAIGON_RPC_URL || 'http://127.0.0.1:8545'
-    const isLocal = rpcUrl.includes('127.0.0.1') || rpcUrl.includes('localhost')
-    const chain = isLocal ? localChain : saigon
+type AmoyPublicClient = ReturnType<typeof createPublicClient>
+type AmoyWalletClient = ReturnType<typeof createWalletClient>
+type AmoyChain = ReturnType<typeof defineChain>
 
-    this.phpcAddress = (process.env.PHPC_TOKEN_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3') as `0x${string}`
-    this.subsidyAddress = (process.env.PHPC_SUBSIDY_ADDRESS || '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512') as `0x${string}`
+/** Extracts a numeric error code from an unknown thrown value, defaulting to 0. */
+function toErrorCode(e: unknown): number {
+  const code = (e as { code?: unknown } | null | undefined)?.code
+  return typeof code === 'number' ? code : 0
+}
 
-    this.publicClient = createPublicClient({
-      chain,
-      transport: http(rpcUrl),
-    })
-
-    const privateKey = process.env.DEPLOYER_PRIVATE_KEY
-    if (privateKey) {
-      // Hex private key validation
-      const formattedKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`
-      this.account = privateKeyToAccount(formattedKey as `0x${string}`)
-      this.walletClient = createWalletClient({
-        account: this.account,
-        chain,
-        transport: http(rpcUrl),
-      })
-    }
-  }
-
-  getPublicClient() {
-    return this.publicClient
-  }
-
-  getSubsidyAddress() {
-    return this.subsidyAddress
-  }
+export class BlockchainClient {
+  private constructor(
+    private readonly config: ChainConfig,
+    private readonly chain: AmoyChain,
+    private readonly publicClient: AmoyPublicClient,
+    private readonly walletClient: AmoyWalletClient | undefined,
+  ) {}
 
   /**
-   * Hashes a UUID string to bytes32 index for Solidity
+   * Builds a Polygon Amoy `viem` chain from `config.rpcUrl` and verifies the
+   * connected network actually reports chain ID 80002 before constructing a
+   * usable client. On a mismatch, or on any transport failure during the
+   * check, no client is constructed — this method returns an error instead.
+   *
+   * Requirements: 1.2, 1.3, 1.5, 1.7, 1.8
    */
-  hashUuid(uuid: string): `0x${string}` {
+  static async create(config: ChainConfig): Promise<AppResult<BlockchainClient>> {
+    const chain = defineChain({
+      id: POLYGON_AMOY_CHAIN_ID,
+      name: NETWORK_NAME,
+      nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+      rpcUrls: { default: { http: [config.rpcUrl] } },
+    })
+
+    const publicClient = createPublicClient({
+      chain,
+      transport: http(config.rpcUrl, { timeout: OPERATION_TIMEOUT_MS }),
+    })
+
+    let reportedChainId: number
+    try {
+      reportedChainId = await publicClient.getChainId()
+    } catch {
+      return err(new OnchainError(`Failed to connect to ${NETWORK_NAME}`, 0))
+    }
+
+    if (reportedChainId !== POLYGON_AMOY_CHAIN_ID) {
+      return err(
+        new OnchainError(
+          `Chain ID mismatch: expected ${POLYGON_AMOY_CHAIN_ID}, got ${reportedChainId}`,
+          reportedChainId,
+        ),
+      )
+    }
+
+    let walletClient: AmoyWalletClient | undefined
+    if (config.deployerKey) {
+      const account = privateKeyToAccount(config.deployerKey)
+      walletClient = createWalletClient({
+        account,
+        chain,
+        transport: http(config.rpcUrl, { timeout: OPERATION_TIMEOUT_MS }),
+      })
+    }
+
+    return ok(new BlockchainClient(config, chain, publicClient, walletClient))
+  }
+
+  /** Hashes a UUID string to a bytes32 identifier for Solidity contract calls. */
+  private hashUuid(uuid: string): Hex {
     return keccak256(toBytes(uuid))
   }
 
   /**
-   * Gets the token balance of an address on chain
+   * Public accessor for the internal `viem` public client, for callers that
+   * need direct read access (e.g. `getBlockNumber`/`getLogs` polling in the
+   * on-chain event listener) beyond this class's own typed methods.
+   *
+   * Requirements: 1.6, 2.4, 2.5
    */
-  async getBalance(address: string): Promise<bigint> {
-    return await this.publicClient.readContract({
-      address: this.phpcAddress,
-      abi: PHPC_ABI,
-      functionName: 'balanceOf',
-      args: [address as `0x${string}`],
-    })
+  getPublicClientRef(): AmoyPublicClient {
+    return this.publicClient
+  }
+
+  /** Returns the configured `PHPCSubsidy` contract address. */
+  getSubsidyContractAddress(): `0x${string}` {
+    return this.config.phpcSubsidyAddress
   }
 
   /**
-   * Gets the beneficiary credit balance from the subsidy contract
+   * Public rename of {@link hashUuid}: hashes a beneficiary id string to the
+   * bytes32 identifier used to correlate on-chain events with database rows.
    */
-  async getBeneficiaryBalance(beneficiaryUuid: string): Promise<bigint> {
-    const idHash = this.hashUuid(beneficiaryUuid)
-    return await this.publicClient.readContract({
-      address: this.subsidyAddress,
-      abi: PHPC_SUBSIDY_ABI,
-      functionName: 'getBalance',
-      args: [idHash],
-    })
+  hashBeneficiaryId(id: string): Hex {
+    return this.hashUuid(id)
   }
 
   /**
-   * Submits credit allocation transaction on chain (requires deployer/owner private key)
+   * Reads `PHPC.balanceOf(lguAdminWallet)`. No mock fallback on failure.
+   *
+   * Requirements: 1.6
    */
-  async allocateCredits(beneficiaryUuid: string, amountWei: bigint): Promise<`0x${string}`> {
-    if (!this.walletClient) {
-      throw new Error('Wallet client not initialized (missing DEPLOYER_PRIVATE_KEY)')
+  async getTreasuryBalance(): Promise<AppResult<bigint>> {
+    try {
+      const balance = await this.publicClient.readContract({
+        address: this.config.phpcTokenAddress,
+        abi: PHPC_ABI,
+        functionName: 'balanceOf',
+        args: [this.config.lguAdminWallet],
+      })
+      return ok(balance)
+    } catch (e) {
+      return err(new OnchainError(`getTreasuryBalance failed on ${NETWORK_NAME}`, toErrorCode(e)))
     }
-
-    const idHash = this.hashUuid(beneficiaryUuid)
-    const hash = await this.walletClient.writeContract({
-      address: this.subsidyAddress,
-      abi: PHPC_SUBSIDY_ABI,
-      functionName: 'allocateCredits',
-      args: [idHash, amountWei],
-    })
-
-    return hash
   }
 
   /**
-   * Processes a transaction on-chain by deducting from beneficiary and transferring to merchant
+   * Reads `PHPC.balanceOf(address)`. No mock fallback on failure.
+   *
+   * Requirements: 1.6
    */
-  async processTransaction(
-    beneficiaryUuid: string,
-    merchantAddress: string,
-    amountWei: bigint,
-    transactionUuid: string
-  ): Promise<`0x${string}`> {
-    if (!this.walletClient) {
-      throw new Error('Wallet client not initialized (missing DEPLOYER_PRIVATE_KEY)')
+  async getBalance(address: string): Promise<AppResult<bigint>> {
+    try {
+      const balance = await this.publicClient.readContract({
+        address: this.config.phpcTokenAddress,
+        abi: PHPC_ABI,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+      })
+      return ok(balance)
+    } catch (e) {
+      return err(new OnchainError(`getBalance failed on ${NETWORK_NAME}`, toErrorCode(e)))
     }
-
-    const benHash = this.hashUuid(beneficiaryUuid)
-    const txHash = this.hashUuid(transactionUuid)
-
-    const hash = await this.walletClient.writeContract({
-      address: this.subsidyAddress,
-      abi: PHPC_SUBSIDY_ABI,
-      functionName: 'processTransaction',
-      args: [benHash, merchantAddress as `0x${string}`, amountWei, txHash],
-    })
-
-    return hash
   }
 
   /**
-   * Transfers PHPC tokens from the server account to a recipient.
+   * Calls `PHPCSubsidy.allocateCredits(keccak256(beneficiaryId), amountWei)`.
+   * Requires a wallet client (deployer key configured). No mock fallback on
+   * failure.
+   *
+   * Requirements: 1.3, 1.6
    */
-  async transferPHPC(to: string, amountWei: bigint): Promise<`0x${string}`> {
-    if (!this.walletClient) {
-      throw new Error('Wallet client not initialized (missing DEPLOYER_PRIVATE_KEY)')
+  async allocateCredits(beneficiaryId: string, amountWei: bigint): Promise<AppResult<Hex>> {
+    if (!this.walletClient || !this.walletClient.account) {
+      return err(new OnchainError('Wallet client not initialized: missing deployer key', 0))
     }
-
-    const hash = await this.walletClient.writeContract({
-      address: this.phpcAddress,
-      abi: PHPC_ABI,
-      functionName: 'transfer',
-      args: [to as `0x${string}`, amountWei],
-    })
-
-    return hash
+    try {
+      const idHash = this.hashUuid(beneficiaryId)
+      const hash = await this.walletClient.writeContract({
+        address: this.config.phpcSubsidyAddress,
+        abi: PHPC_SUBSIDY_ABI,
+        functionName: 'allocateCredits',
+        args: [idHash, amountWei],
+        account: this.walletClient.account,
+        chain: this.chain,
+      })
+      return ok(hash)
+    } catch (e) {
+      return err(new OnchainError(`allocateCredits failed on ${NETWORK_NAME}`, toErrorCode(e)))
+    }
   }
 
   /**
-   * Waits for a transaction receipt
+   * Calls `PHPC.transfer(to, amountWei)`. Requires a wallet client (deployer
+   * key configured). No mock fallback on failure.
+   *
+   * Requirements: 1.3, 1.6
    */
-  async waitForTransactionReceipt(hash: `0x${string}`) {
-    return await this.publicClient.waitForTransactionReceipt({ hash })
+  async transferPHPC(to: string, amountWei: bigint): Promise<AppResult<Hex>> {
+    if (!this.walletClient || !this.walletClient.account) {
+      return err(new OnchainError('Wallet client not initialized: missing deployer key', 0))
+    }
+    try {
+      const hash = await this.walletClient.writeContract({
+        address: this.config.phpcTokenAddress,
+        abi: PHPC_ABI,
+        functionName: 'transfer',
+        args: [to as `0x${string}`, amountWei],
+        account: this.walletClient.account,
+        chain: this.chain,
+      })
+      return ok(hash)
+    } catch (e) {
+      return err(new OnchainError(`transferPHPC failed on ${NETWORK_NAME}`, toErrorCode(e)))
+    }
+  }
+
+  /**
+   * Generic passthrough for custodial signing: sends `tx` using a wallet
+   * client constructed for the given `account`, bound to this instance's
+   * chain/transport (30s timeout). No mock fallback on failure.
+   *
+   * Requirements: 1.6
+   */
+  async signAndSend(account: Account, tx: TxRequest): Promise<AppResult<Hex>> {
+    try {
+      const client = createWalletClient({
+        account,
+        chain: this.chain,
+        transport: http(this.config.rpcUrl, { timeout: OPERATION_TIMEOUT_MS }),
+      })
+      const hash = await client.sendTransaction({
+        account,
+        chain: this.chain,
+        to: tx.to,
+        data: tx.data,
+        value: tx.value,
+      })
+      return ok(hash)
+    } catch (e) {
+      return err(new OnchainError(`signAndSend failed on ${NETWORK_NAME}`, toErrorCode(e)))
+    }
+  }
+
+  /**
+   * Waits for a transaction receipt, bounded by `timeoutMs` (default 30s).
+   * No fake receipt fallback on timeout/failure.
+   *
+   * Requirements: 1.6
+   */
+  async waitForConfirmation(
+    hash: Hex,
+    timeoutMs: number = OPERATION_TIMEOUT_MS,
+  ): Promise<AppResult<TransactionReceipt>> {
+    try {
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: timeoutMs })
+      return ok(receipt)
+    } catch (e) {
+      return err(
+        new OnchainError(
+          `Transaction confirmation failed or timed out on ${NETWORK_NAME}`,
+          toErrorCode(e),
+          hash,
+        ),
+      )
+    }
   }
 }

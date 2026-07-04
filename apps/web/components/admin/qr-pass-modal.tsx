@@ -228,7 +228,11 @@ function QrPassCard({
         <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
           <div className="bg-white p-2.5 rounded-xl">
             <QRCode
-              value={data.jwsCompact}
+              value={
+                typeof window !== "undefined"
+                  ? `${window.location.origin}/balance?token=${encodeURIComponent(data.jwsCompact)}`
+                  : `/balance?token=${encodeURIComponent(data.jwsCompact)}`
+              }
               size={120}
               fgColor="#034c52"
               bgColor="#ffffff"

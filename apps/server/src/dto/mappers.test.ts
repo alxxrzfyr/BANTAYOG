@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   toBeneficiaryDTO,
   toMerchantDTO,
@@ -8,6 +8,15 @@ import {
 } from './mappers.js'
 
 describe('DTO Mappers Snapshot Tests', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-02T12:00:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('should correctly map a beneficiary record', () => {
     const rawBeneficiary = {
       id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',

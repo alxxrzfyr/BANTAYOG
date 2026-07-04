@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TransactionStatus, OutboxStatus } from '@bantayog/db'
 import { TransactionRepository } from '../repositories/transaction.repository.js'
 import { type AppResult, ok, err, PersistenceError, ValidationError } from '../lib/errors.js'
+import { logger } from '../lib/logger.js'
 
 export class TransactionService {
   private db: SupabaseClient<Database>
@@ -62,7 +63,12 @@ export class TransactionService {
             transactionId: newTx.id,
             beneficiaryId: newTx.beneficiary_id,
             merchantId: newTx.merchant_id,
-            stablecoinAmountWei: newTx.stablecoin_amount_wei
+            stablecoinAmountWei: newTx.stablecoin_amount_wei,
+            // Whole-PHPC-credit amount (not wei) so any failure-handling code
+            // (e.g. reconcile.ts's restoreBeneficiaryBalance safety net, Req
+            // 7.10 / Task 11.3) can restore the exact deducted amount
+            // without reconstructing it from wei.
+            totalCreditDeducted
           },
           status: 'PENDING' as OutboxStatus
         })
@@ -162,6 +168,95 @@ export class TransactionService {
       return ok(updated)
     } catch (error: any) {
       return err(new PersistenceError(`Update transaction status failed: ${error.message}`, 'transactions'))
+    }
+  }
+
+  /**
+   * Compensating action (Requirement 7.10): restores a beneficiary's
+   * recorded `credit_balance` by `amount` and records the discrepancy for
+   * manual reconciliation.
+   *
+   * This is a defensive safety net. Today's live purchase route
+   * (`src/routes/transactions.ts`, Task 11.2) deducts the beneficiary's
+   * balance only *after* the on-chain PHPC transfer has already been
+   * confirmed, so the "transfer fails after balance was deducted" scenario
+   * described by Requirement 7.10 cannot currently occur on that path — the
+   * system prevents the inconsistency by construction rather than needing to
+   * repair it after the fact. This method exists so that any future or
+   * legacy code path which creates an outbox entry with the balance
+   * already deducted (the old deduct-then-settle ordering) still has a
+   * correct, reusable way to restore the balance and surface the
+   * discrepancy for manual review.
+   */
+  async restoreBeneficiaryBalance(
+    beneficiaryId: string,
+    amount: number,
+    reason: string
+  ): Promise<AppResult<void>> {
+    try {
+      const { data: beneficiary, error: readError } = await (this.db as any)
+        .from('beneficiaries')
+        .select('credit_balance')
+        .eq('id', beneficiaryId)
+        .single()
+
+      if (readError || !beneficiary) {
+        return err(
+          new PersistenceError(
+            `Failed to read beneficiary balance for restoration: ${readError?.message ?? 'not found'}`,
+            'beneficiaries'
+          )
+        )
+      }
+
+      const restoredBalance = Number(beneficiary.credit_balance) + amount
+
+      const { error: updateError } = await (this.db as any)
+        .from('beneficiaries')
+        .update({ credit_balance: restoredBalance })
+        .eq('id', beneficiaryId)
+
+      if (updateError) {
+        return err(
+          new PersistenceError(`Failed to restore beneficiary balance: ${updateError.message}`, 'beneficiaries')
+        )
+      }
+
+      const restoredAt = new Date().toISOString()
+
+      // Record the discrepancy for manual reconciliation as a queryable
+      // audit row in the outbox table, in addition to the structured log
+      // below (immediate visibility for ops).
+      const { error: auditError } = await (this.db as any)
+        .from('outbox')
+        .insert({
+          kind: 'BALANCE_RESTORATION_AUDIT',
+          payload_jsonb: {
+            beneficiaryId,
+            amount,
+            reason,
+            restoredAt
+          },
+          status: 'DONE' as OutboxStatus
+        })
+
+      if (auditError) {
+        return err(
+          new PersistenceError(`Failed to record balance restoration audit: ${auditError.message}`, 'outbox')
+        )
+      }
+
+      logger.error({
+        beneficiaryId,
+        amount,
+        reason,
+        restoredAt,
+        msg: 'Beneficiary balance restored after failed on-chain transfer (manual reconciliation required)'
+      })
+
+      return ok(undefined)
+    } catch (error: any) {
+      return err(new PersistenceError(`Balance restoration failed: ${error.message}`, 'beneficiaries'))
     }
   }
 }

@@ -68,6 +68,25 @@ export interface BeneficiaryRow {
   created_at: string
 }
 
+export interface BeneficiaryWalletRow {
+  beneficiary_id: string
+  address: string
+  enc_ciphertext: string
+  enc_iv: string
+  enc_auth_tag: string
+  created_at: string
+}
+
+export interface AllocationRow {
+  id: string
+  beneficiary_id: string
+  tier: 1 | 2
+  amount_phpc: number
+  onchain_tx_hash: string | null
+  reconciled: boolean
+  allocated_at: string
+}
+
 export interface TransactionRow {
   id: string
   beneficiary_id: string
@@ -168,6 +187,23 @@ export interface Database {
           deactivated_at?: string | null
         }
         Update: Partial<Omit<BeneficiaryRow, 'id' | 'created_at'>>
+      }
+      beneficiary_wallets: {
+        Row: BeneficiaryWalletRow
+        Insert: Omit<BeneficiaryWalletRow, 'created_at'>
+        Update: Partial<
+          Omit<BeneficiaryWalletRow, 'beneficiary_id' | 'created_at'>
+        >
+      }
+      allocations: {
+        Row: AllocationRow
+        Insert: Omit<
+          AllocationRow,
+          'id' | 'reconciled' | 'allocated_at'
+        > & {
+          reconciled?: boolean
+        }
+        Update: Partial<Omit<AllocationRow, 'id' | 'allocated_at'>>
       }
       transactions: {
         Row: TransactionRow

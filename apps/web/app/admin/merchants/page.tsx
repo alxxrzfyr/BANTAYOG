@@ -203,7 +203,7 @@ export default function MerchantsPage() {
         <MetricCard
           label="VERIFIED MERCHANTS"
           value={metrics ? `${metrics.verifiedMerchants} Stores` : "—"}
-          subtext="Secured via Ronin Contract"
+          subtext="Secured via Polygon Amoy"
           subtextColor="text-brand-darkTeal/40"
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/40">

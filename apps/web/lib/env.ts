@@ -52,28 +52,12 @@ export function getSupabaseAnonKey(): string {
 // Blockchain
 // ---------------------------------------------------------------------------
 
-export function getRoninRpcUrl(): string {
-  return (
-    getEnv("RONIN_RPC_URL") ??
-    getEnv("NEXT_PUBLIC_RONIN_SAIGON_RPC_URL") ??
-    "http://127.0.0.1:8545"
-  );
-}
-
 export function getDeployerPrivateKey(): `0x${string}` {
   const key =
     getEnv("DEPLOYER_PRIVATE_KEY") ??
     // Hardhat default account #0 — safe for local dev only
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
   return key as `0x${string}`;
-}
-
-export function getLguTreasuryAddress(): `0x${string}` {
-  return (
-    getEnv("LGU_TREASURY_ADDRESS") ??
-    // Hardhat default account #1
-    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
-  ) as `0x${string}`;
 }
 
 export function getPhpcTokenAddress(): `0x${string}` {

@@ -2,18 +2,29 @@ import { defineConfig } from "hardhat/config";
 import hardhatToolboxViem from "@nomicfoundation/hardhat-toolbox-viem";
 
 // ---------------------------------------------------------------------------
+// Load packages/contracts/.env into process.env for local/manual deploys.
+// CI/Vercel environments inject env vars directly, so a missing .env file
+// here is not an error — only real parsing/syntax errors are surfaced.
+// Uses Node's built-in loadEnvFile (Node 20.12+/22+) instead of adding a
+// dotenv dependency.
+// ---------------------------------------------------------------------------
+try {
+  process.loadEnvFile(new URL("./.env", import.meta.url));
+} catch (err: any) {
+  if (err?.code !== "ENOENT") {
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Env-var helpers — all chain vars are optional at compile time;
 // only required when actually deploying to a live network.
-// Hardhat 3 is ESM-first; load env vars via process.env (populated by
-// shell / CI / Vercel env injection rather than a dotenv import).
 // ---------------------------------------------------------------------------
-const RONIN_SAIGON_RPC_URL =
-  process.env["RONIN_SAIGON_RPC_URL"] ?? "https://saigon-testnet.roninchain.com/rpc";
+// Polygon Amoy testnet RPC endpoint — chain ID 80002.
+const POLYGON_AMOY_RPC_URL =
+  process.env["POLYGON_AMOY_RPC_URL"] ?? "https://rpc-amoy.polygon.technology";
 
-const RONIN_MAINNET_RPC_URL =
-  process.env["RONIN_MAINNET_RPC_URL"] ?? "https://api.roninchain.com/rpc";
-
-// Testnet-only deployer key — zero monetary value on Saigon.
+// Testnet-only deployer key — zero monetary value on Polygon Amoy.
 // NEVER load a mainnet key without a dedicated key-rotation runbook (ADR-0001 Decision 1).
 // Falls back to Hardhat's well-known default account #0 for local testing.
 const DEPLOYER_PRIVATE_KEY: `0x${string}` =
@@ -49,37 +60,22 @@ export default defineConfig({
   //   type: "edr-simulated" — local in-process Hardhat network (EDR backend)
   //   type: "http"          — any external network reached via JSON-RPC
   //
-  // `saigon` is the only live network in v1 scope (ADR-0001 Cross-Decision).
-  // `ronin` mainnet entry exists for future migration; NEVER used in v1.
+  // `amoy` (Polygon Amoy, chain ID 80002) is the only live network in v1 scope
+  // per this migration (polygon-amoy-phpc-migration). The former Ronin
+  // Saigon/mainnet entries have been removed as part of that migration.
   // ---------------------------------------------------------------------------
   networks: {
-    // Local Hardhat node — EDR-simulated, used for unit tests
+    // Local Hardhat node — EDR-simulated, used for unit tests only.
     hardhat: {
       type: "edr-simulated",
       chainId: 31337,
     },
 
-    localhost: {
+    // Polygon Amoy testnet — chain ID 80002, the v1 target network.
+    amoy: {
       type: "http",
-      url: "http://127.0.0.1:8545",
-      chainId: 31337,
-    },
-
-    // Ronin Saigon testnet — chain ID 202601 (verified from Ronin Docs)
-    saigon: {
-      type: "http",
-      url: RONIN_SAIGON_RPC_URL,
-      chainId: 202601,
-      accounts: [DEPLOYER_PRIVATE_KEY],
-    },
-
-    // Ronin mainnet — chainId 2020.
-    // ⚠️  OUT OF SCOPE FOR V1. Do not deploy here before P6 gate review.
-    // ⚠️  Requires a separate mainnet deployer key per ADR-0001 Decision 1.
-    ronin: {
-      type: "http",
-      url: RONIN_MAINNET_RPC_URL,
-      chainId: 2020,
+      url: POLYGON_AMOY_RPC_URL,
+      chainId: 80002,
       accounts: [DEPLOYER_PRIVATE_KEY],
     },
   },

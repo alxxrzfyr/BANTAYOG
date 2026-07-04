@@ -1,10 +1,10 @@
 /**
  * Wallet Adapter — Frontend Decision Tree
  *
- * Supports three connection methods:
- * 1. Injected EIP-1193 (Ronin Wallet, MetaMask)
- * 2. Tanto Connect (mobile deep-link via @sky-mavis/tanto-connect)
- * 3. Sky Mavis Waypoint (OAuth redirect via @sky-mavis/waypoint)
+ * Supports a single connection method:
+ * 1. Injected EIP-1193 (MetaMask or any standard EVM injected provider)
+ *
+ * Targets Polygon Amoy with standard injected EVM wallets only.
  *
  * FE2-3.11 — @bantayog/web
  */
@@ -13,7 +13,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type WalletMethod = "injected" | "tanto" | "waypoint";
+export type WalletMethod = "injected";
 
 export interface WalletConnection {
   method: WalletMethod;
@@ -24,7 +24,6 @@ export interface WalletConnection {
 
 export interface WalletProvider {
   isMetaMask?: boolean;
-  isRonin?: boolean;
   request?: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 }
 
@@ -32,19 +31,9 @@ export interface WalletProvider {
 // Environment Detection
 // ---------------------------------------------------------------------------
 
-function isMobile(): boolean {
-  if (typeof window === "undefined") return false;
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 function getInjectedProvider(): WalletProvider | null {
   if (typeof window === "undefined") return null;
 
-  // Check for Ronin Wallet
-  const ronin = (window as unknown as Record<string, unknown>).ethereum as WalletProvider | undefined;
-  if (ronin?.isRonin) return ronin;
-
-  // Check for MetaMask or any EIP-1193 provider
   const ethereum = (window as unknown as Record<string, unknown>).ethereum as WalletProvider | undefined;
   if (ethereum) return ethereum;
 
@@ -52,11 +41,11 @@ function getInjectedProvider(): WalletProvider | null {
 }
 
 // ---------------------------------------------------------------------------
-// Connection Methods (Placeholder implementations)
+// Connection Method
 // ---------------------------------------------------------------------------
 
 /**
- * Connect via injected EIP-1193 provider (Ronin Wallet, MetaMask).
+ * Connect via injected EIP-1193 provider (MetaMask or any standard EVM wallet).
  * Requests account access and signs a message for proof of ownership.
  */
 async function connectInjected(): Promise<WalletConnection> {
@@ -86,38 +75,6 @@ async function connectInjected(): Promise<WalletConnection> {
   return { method: "injected", address, proof, message };
 }
 
-/**
- * Connect via Sky Mavis Tanto Connect (mobile deep-link).
- * TODO: Implement with @sky-mavis/tanto-connect when package is installed.
- */
-async function connectTanto(): Promise<WalletConnection> {
-  // TODO: Replace with actual Tanto Connect implementation
-  // import { TantoConnect } from "@sky-mavis/tanto-connect";
-  // const connector = new TantoConnect();
-  // const result = await connector.connect();
-  // return { method: "tanto", address: result.address, proof: result.signature };
-
-  throw new Error(
-    "Tanto Connect not yet implemented — install @sky-mavis/tanto-connect",
-  );
-}
-
-/**
- * Connect via Sky Mavis Waypoint (OAuth redirect).
- * TODO: Implement with @sky-mavis/waypoint when package is installed.
- */
-async function connectWaypoint(): Promise<WalletConnection> {
-  // TODO: Replace with actual Waypoint implementation
-  // import { Waypoint } from "@sky-mavis/waypoint";
-  // const waypoint = new Waypoint({ clientId: process.env.NEXT_PUBLIC_SKYMAVIS_CLIENT_ID });
-  // const result = await waypoint.connect();
-  // return { method: "waypoint", address: result.address, proof: result.signature };
-
-  throw new Error(
-    "Waypoint not yet implemented — install @sky-mavis/waypoint",
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Backend Verification Stub (BE2-3.7)
 // ---------------------------------------------------------------------------
@@ -135,7 +92,7 @@ export interface BackendVerificationResult {
  * frontend-side contract — Backend 2 only needs to fill in the fetch URL
  * and handle the response shape.
  *
- * @param address - The wallet address to verify (e.g. "ronin:...")
+ * @param address - The wallet address to verify
  * @param proof   - Signed proof of ownership from personal_sign
  * @returns       - { verified: true } on success, { verified: false, error: "..." } on failure
  */
@@ -163,36 +120,15 @@ export async function verifyWalletWithBackend(
 // ---------------------------------------------------------------------------
 
 /**
- * Pick the best wallet connection method based on environment.
+ * Connect using the only supported method: an injected EIP-1193 provider.
  *
- * Priority:
- * 1. Injected EIP-1193 (if available — covers desktop extensions)
- * 2. Tanto Connect (if on mobile and no injected provider)
- * 3. Sky Mavis Waypoint (universal fallback — OAuth redirect)
- *
- * Returns the connection details or throws if all methods fail.
+ * Returns the connection details or throws if no injected provider is found.
  */
 export async function pickWallet(): Promise<WalletConnection> {
-  // 1. Check for injected provider first
-  if (getInjectedProvider()) {
-    try {
-      return await connectInjected();
-    } catch {
-      // Fall through to next method
-    }
+  if (!getInjectedProvider()) {
+    throw new Error("No injected wallet provider found");
   }
-
-  // 2. If on mobile, try Tanto Connect
-  if (isMobile()) {
-    try {
-      return await connectTanto();
-    } catch {
-      // Fall through to Waypoint
-    }
-  }
-
-  // 3. Universal fallback: Sky Mavis Waypoint
-  return await connectWaypoint();
+  return await connectInjected();
 }
 
 /**
@@ -200,20 +136,7 @@ export async function pickWallet(): Promise<WalletConnection> {
  * Used to render connection options in the UI.
  */
 export function getAvailableMethods(): WalletMethod[] {
-  const methods: WalletMethod[] = [];
-
-  if (getInjectedProvider()) {
-    methods.push("injected");
-  }
-
-  if (isMobile()) {
-    methods.push("tanto");
-  }
-
-  // Waypoint is always available as a fallback
-  methods.push("waypoint");
-
-  return methods;
+  return getInjectedProvider() ? ["injected"] : [];
 }
 
 /**
@@ -237,8 +160,7 @@ export async function verifyWalletConnection(
         proof: {
           address: connection.address,
           message: connection.message,
-          signature: connection.method !== "waypoint" ? connection.proof : undefined,
-          token: connection.method === "waypoint" ? connection.proof : undefined,
+          signature: connection.proof,
         }
       }),
     });

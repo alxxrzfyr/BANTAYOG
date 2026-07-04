@@ -7,6 +7,23 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { QRScanner } from "@/lib/qr/scanner";
+import { authFetch } from "@/lib/api";
+
+/**
+ * Extracts the raw QR token from a scanned value. The beneficiary QR pass now
+ * encodes a balance URL ( /balance?token=<jwt> ), but older passes may encode
+ * the raw JWT directly — handle both.
+ */
+function extractQrToken(scanned: string): string {
+  try {
+    const url = new URL(scanned);
+    const t = url.searchParams.get("token");
+    if (t) return t;
+  } catch {
+    /* not a URL — fall through */
+  }
+  return scanned;
+}
 
 // ---------------------------------------------------------------------------
 // Checkout Page + QR Scanner Modal + PIN Validation Modal (ref: 25-27.png)
@@ -26,7 +43,11 @@ export default function CheckoutPage() {
     guardianName: string;
     balance: number;
   } | null>(null);
+  /** Raw signed QR token, forwarded to POST /api/transactions as `qrToken`. */
+  const [qrToken, setQrToken] = useState<string | null>(null);
   const [pinError, setPinError] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const checkoutButtonRef = useRef<HTMLButtonElement>(null);
   const qrCloseButtonRef = useRef<HTMLButtonElement>(null);
@@ -98,89 +119,134 @@ export default function CheckoutPage() {
 
   // ── Handle QR Scan Result ──
   const handleQRScanResult = useCallback(
-    (qrText: string) => {
+    (scanned: string) => {
       // Stop scanner after successful scan
       scannerRef.current?.stop();
 
+      const token = extractQrToken(scanned);
+      setQrToken(token);
+      setSubmitError(null);
+      setPinError(false);
+
+      // Decode the JWT payload purely for display (name/guardian). The token
+      // is verified server-side during the transaction; this client-side
+      // decode is best-effort and never trusted for authorization.
+      let display = {
+        id: "",
+        name: "Beneficiary",
+        guardianName: "Guardian",
+        balance: 0,
+      };
       try {
-        // Try to decode as JWT (base64url decode the payload)
-        const parts = qrText.split(".");
+        const parts = token.split(".");
         if (parts.length === 3) {
-          // It's a JWT — decode the payload
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-          setBeneficiaryData({
-            id: payload.beneficiaryId || payload.sub || "BEN-001",
+          const payload = JSON.parse(
+            atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+          );
+          display = {
+            id: payload.beneficiaryId || payload.sub || "",
             name: payload.childName || payload.name || "Beneficiary",
             guardianName: payload.guardianName || "Guardian",
-            balance: payload.balance || 740,
-          });
-        } else {
-          // Not a JWT — use mock data for demo
-          setBeneficiaryData({
-            id: "BEN-001",
-            name: "Maria Dela Cruz",
-            guardianName: "Juan Dela Cruz",
-            balance: 740,
-          });
+            balance: 0,
+          };
         }
-        setModalState("pin");
       } catch {
-        // Failed to decode — use mock data for demo
-        setBeneficiaryData({
-          id: "BEN-001",
-          name: "Maria Dela Cruz",
-          guardianName: "Juan Dela Cruz",
-          balance: 740,
-        });
-        setModalState("pin");
+        /* keep defaults — server will reject an invalid token */
       }
+
+      setBeneficiaryData(display);
+      setModalState("pin");
     },
     [],
   );
 
-  // ── PIN Verification ──
+  // ── PIN Verification + real on-chain settlement (POST /api/transactions) ──
   const handlePinComplete = useCallback(
     async (pin: string) => {
       setPinError(false);
-      if (!beneficiaryData) return;
+      setSubmitError(null);
+      if (!beneficiaryData || !qrToken || submitting) return;
 
+      // Map cart items to the transaction API schema. Cart items don't carry
+      // a nutrition category, so eligible items default to VEGETABLES; the
+      // credit cost is the whole-PHPC line total (server converts 1 credit =
+      // 1 PHPC and requires integer amounts).
+      const txItems = eligibleItems.map((item) => ({
+        category: "VEGETABLES" as const,
+        name: item.name,
+        quantity: item.quantity,
+        unitPricePhp: item.price,
+        creditCost: Math.max(1, Math.round(item.price * item.quantity)),
+      }));
+
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      setSubmitting(true);
       try {
-        const res = await fetch("/api/auth/verify-pin", {
+        const res = await authFetch("/api/transactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            beneficiaryId: beneficiaryData.id,
+            qrToken,
             pin,
+            items: txItems,
+            idempotencyKey,
           }),
         });
 
         if (res.ok) {
+          const totalDeducted = txItems.reduce((s, i) => s + i.creditCost, 0);
+
+          // Fetch the updated balance for the receipt's "remaining" figure.
+          let remaining = "";
+          try {
+            const balRes = await fetch(
+              `/api/balance/view?token=${encodeURIComponent(qrToken)}`,
+            );
+            if (balRes.ok) {
+              const bal = await balRes.json();
+              remaining = String(bal?.balance ?? "");
+            }
+          } catch {
+            /* remaining is optional on the receipt */
+          }
+
           const params = new URLSearchParams({
-            amount: total.toFixed(2),
+            amount: totalDeducted.toFixed(2),
             beneficiary: beneficiaryData.guardianName,
-            remaining: (beneficiaryData.balance - total).toFixed(0),
           });
+          if (remaining !== "") params.set("remaining", remaining);
           router.push(`/checkout/complete?${params.toString()}`);
           return;
         }
-      } catch {
-        // Fallback to local check
-      }
 
-      // Mock verification: accept '123456' as correct
-      if (pin === "123456") {
-        // Navigate to complete page with transaction data
-        const params = new URLSearchParams({
-          amount: total.toFixed(2),
-          beneficiary: beneficiaryData.guardianName,
-          remaining: (beneficiaryData.balance - total).toFixed(0),
-        });
-        router.push(`/checkout/complete?${params.toString()}`);
-      } else {
-        setPinError(true);
+        const body = await res.json().catch(() => ({}));
+        const message: string = body?.message ?? "";
+
+        // 401 with a PIN-specific message → wrong guardian PIN (retryable).
+        if (res.status === 401 && /pin/i.test(message)) {
+          setPinError(true);
+        } else if (res.status === 429) {
+          setSubmitError(
+            "Too many incorrect PIN attempts. This pass is temporarily locked. Try again later.",
+          );
+        } else if (res.status === 401) {
+          setSubmitError("Merchant session expired. Please log in again.");
+        } else {
+          setSubmitError(
+            message || "Transaction failed. Please try again.",
+          );
+        }
+      } catch {
+        setSubmitError("Network error. Please check your connection and try again.");
+      } finally {
+        setSubmitting(false);
       }
     },
-    [beneficiaryData, total, router],
+    [beneficiaryData, qrToken, eligibleItems, submitting, router],
   );
 
   // ── Empty Cart ──
@@ -464,14 +530,18 @@ export default function CheckoutPage() {
         <PINModal
           guardianName={beneficiaryData?.guardianName || "Beneficiary"}
           error={pinError}
+          submitError={submitError}
+          busy={submitting}
           onBack={() => {
             setModalState("qr-scan");
             setPinError(false);
+            setSubmitError(null);
           }}
           onComplete={handlePinComplete}
           onEscapeToNone={() => {
             handleCloseQRScanner();
             setPinError(false);
+            setSubmitError(null);
           }}
         />
       )}
@@ -486,12 +556,16 @@ export default function CheckoutPage() {
 function PINModal({
   guardianName,
   error,
+  submitError,
+  busy,
   onBack,
   onComplete,
   onEscapeToNone,
 }: {
   guardianName: string;
   error: boolean;
+  submitError?: string | null;
+  busy?: boolean;
   onBack: () => void;
   onComplete: (pin: string) => void;
   onEscapeToNone: () => void;
@@ -505,7 +579,14 @@ function PINModal({
     firstDigitRef.current?.focus();
   }, []);
 
+  // Clear entered digits when the server reports an incorrect PIN so the
+  // guardian can retry cleanly.
+  useEffect(() => {
+    if (error) setPin("");
+  }, [error]);
+
   const handleDigit = (digit: string) => {
+    if (busy) return;
     if (pin.length < maxDigits) {
       const newPin = pin + digit;
       setPin(newPin);
@@ -622,14 +703,36 @@ function PINModal({
           ))}
         </div>
 
-        {/* Error Message */}
-        {error && (
+        {/* Busy / Error Messages */}
+        {busy && (
+          <p
+            className="mt-4 inline-flex items-center gap-2 font-body text-sm font-semibold text-white/80"
+            role="status"
+            aria-live="polite"
+          >
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Settling transaction on-chain…
+          </p>
+        )}
+        {!busy && error && (
           <p
             className="mt-4 font-body text-sm font-semibold text-red-400"
             role="alert"
             aria-live="assertive"
           >
             Incorrect PIN. Please try again.
+          </p>
+        )}
+        {!busy && !error && submitError && (
+          <p
+            className="mt-4 max-w-xs text-center font-body text-sm font-semibold text-red-400"
+            role="alert"
+            aria-live="assertive"
+          >
+            {submitError}
           </p>
         )}
 

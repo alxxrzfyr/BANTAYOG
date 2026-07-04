@@ -10,7 +10,7 @@ import { authFetch } from "@/lib/api";
    MerchantRegistrationForm — mock 2.png (right card)
    Fields: Name of the Store, Name of the Owner,
    Phone Number (PH flag + "+63" prefix),
-   Wallet Address (Ronin ronin:… or 0x… — converted before submit),
+   Wallet Address (Polygon EVM 0x… — MetaMask address),
    Create Password, Confirm Password.
    Submit → POST /api/merchants/register
    Success → calls onSuccess() to show verified toast.
@@ -29,12 +29,7 @@ const formSchema = z
     walletAddress: z
       .string()
       .min(1, "Wallet address is required")
-      .refine(
-        (v) =>
-          /^0x[a-fA-F0-9]{40}$/.test(v) ||
-          /^ronin:[a-fA-F0-9]{40}$/.test(v),
-        "Must be a valid EVM (0x…) or Ronin (ronin:…) address"
-      ),
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Polygon/EVM address (0x…)"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -78,10 +73,8 @@ export function MerchantRegistrationForm({
     setSubmitting(true);
     setApiError(null);
 
-    /* Convert ronin: prefix → 0x for the API */
-    const walletAddress = values.walletAddress.startsWith("ronin:")
-      ? "0x" + values.walletAddress.slice(6)
-      : values.walletAddress;
+    /* Polygon/EVM address — used as-is */
+    const walletAddress = values.walletAddress;
 
     /* Build E.164 phone number */
     const mobileNumberE164 = "+63" + values.phoneLocal.replace(/^0/, "");
@@ -202,7 +195,7 @@ export function MerchantRegistrationForm({
           <label className={labelClass}>Wallet Address</label>
           <input
             type="text"
-            placeholder="Ronin Wallet Address"
+            placeholder="0x… Polygon Wallet Address"
             autoComplete="off"
             {...register("walletAddress")}
             className={inputClass(!!errors.walletAddress)}

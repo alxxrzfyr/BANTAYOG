@@ -34,7 +34,6 @@ vi.mock("@/lib/chain/contracts", () => ({
 }));
 
 vi.mock("@/lib/env", () => ({
-  getLguTreasuryAddress: () => "0x1234567890123456789012345678901234567890",
   getQrTokenSecret: () => "test-secret-for-qr-tokens-only-32b",
 }));
 

@@ -15,8 +15,21 @@ serve({ fetch: app.fetch, port }, async (info) => {
   
   // Start the on-chain event listener
   try {
+    const { loadChainConfig } = await import('./lib/chain/config.js')
+    const { BlockchainClient } = await import('./services/chain.client.js')
     const { startChainEventListener } = await import('./services/event-listener.js')
-    startChainEventListener()
+
+    const configResult = loadChainConfig(process.env)
+    if (configResult.isErr()) {
+      console.error('Failed to start blockchain event listener: invalid chain config', configResult.error)
+    } else {
+      const clientResult = await BlockchainClient.create(configResult.value)
+      if (clientResult.isErr()) {
+        console.error('Failed to start blockchain event listener:', clientResult.error)
+      } else {
+        startChainEventListener(clientResult.value)
+      }
+    }
   } catch (err) {
     console.error('Failed to start blockchain event listener:', err)
   }

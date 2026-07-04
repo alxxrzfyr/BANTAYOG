@@ -9,6 +9,7 @@
  * BE1 owns this file; review by all.
  */
 import { Result, ok, err } from 'neverthrow'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 
 // ---------------------------------------------------------------------------
 // Error classes (7 typed errors)
@@ -100,7 +101,7 @@ export { ok, err }
  * Maps an AppError to its stable HTTP status code.
  * Used at the HTTP boundary in route handlers.
  */
-export function errorToHttpStatus(error: AppError): number {
+export function errorToHttpStatus(error: AppError): ContentfulStatusCode {
   switch (error._tag) {
     case 'validation':
       return 400

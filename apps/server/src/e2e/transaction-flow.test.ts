@@ -47,6 +47,7 @@ vi.mock('../services/chain.client.js', () => {
 // ── Stateful mock DB ──
 let mockDbState: Record<string, any[]> = {
   beneficiaries: [],
+  beneficiary_wallets: [],
   merchants: [],
   transactions: [],
   outbox: [],
@@ -57,6 +58,7 @@ let mockDbState: Record<string, any[]> = {
 function resetMockDbState() {
   mockDbState = {
     beneficiaries: [],
+    beneficiary_wallets: [],
     merchants: [],
     transactions: [],
     outbox: [],
@@ -205,6 +207,16 @@ describe('End-to-End Transaction Flow Integration', () => {
     vi.clearAllMocks()
     resetMockDbState()
     geminiMockResponse = { candidates: [{ name: 'Cerelac Rice', confidence: 0.95 }] }
+
+    // BeneficiaryService.register loads ChainConfig to generate a custodial
+    // wallet during registration; stub the required Polygon Amoy variables.
+    vi.stubEnv('POLYGON_AMOY_RPC_URL', 'https://rpc-amoy.example.com')
+    vi.stubEnv('DEPLOYER_PRIVATE_KEY', '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80')
+    vi.stubEnv('LGU_ADMIN_WALLET_ADDRESS', '0x1234567890123456789012345678901234567890')
+    vi.stubEnv('PHPC_TOKEN_ADDRESS', '0xABCDEF0123456789ABCDEF0123456789ABCDEF01')
+    vi.stubEnv('PHPC_SUBSIDY_ADDRESS', '0x9876543210987654321098765432109876543210')
+    vi.stubEnv('CUSTODIAL_KEY_ENCRYPTION_KEY', 'test-key-encryption-key')
+    vi.stubEnv('QR_TOKEN_SECRET', 'test-qr-token-secret')
   })
 
   it('happy path: full transaction flow from registration to confirmation', async () => {

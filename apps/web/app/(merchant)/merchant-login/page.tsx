@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { MERCHANT_TOKEN_KEY } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Inline validation schema (zod not available in web app dependencies)
@@ -92,7 +93,13 @@ export default function MerchantLoginPage() {
       });
 
       if (res.ok) {
-        // Successful login — redirect to dashboard
+        // Persist the merchant access token so authFetch can authenticate
+        // merchant-only calls (e.g. POST /api/transactions at checkout).
+        const body = await res.json().catch(() => null);
+        const accessToken = body?.session?.accessToken;
+        if (accessToken) {
+          window.localStorage.setItem(MERCHANT_TOKEN_KEY, accessToken);
+        }
         router.push("/dashboard");
         return;
       }

@@ -10,7 +10,7 @@ import { RecentTransactions } from "@/components/merchant/recent-transactions";
 
 const MOCK_MERCHANT = {
   storeName: "Maria's Sari-Sari Store",
-  walletAddress: "ronin:7a3b8c2d4e5f6a1b9c0d2e3f4a5b6c7d8e9f0a1b",
+  walletAddress: "0x7a3b8c2d4e5f6a1b9c0d2e3f4a5b6c7d8e9f0a1b",
   balance: "0.00",
   phpEquivalent: "0.00",
 };
@@ -43,11 +43,11 @@ export default function MerchantDashboard() {
             <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
               <img
                 src="/merchantLogos/verifiedBadge.png"
-                alt="LGU Verified"
+                alt="Verified"
                 className="h-3.5 w-3.5"
               />
               <span className="font-body text-[10px] font-semibold text-[#034C52]">
-                LGU Verified Store
+                Verified Store
               </span>
             </div>
           </div>

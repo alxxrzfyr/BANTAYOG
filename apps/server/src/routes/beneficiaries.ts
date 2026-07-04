@@ -1,21 +1,13 @@
 import { Hono } from 'hono'
-import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { CreateBeneficiaryDto } from '@bantayog/schema'
 import { createServiceClient } from '../lib/supabase.js'
 import { BeneficiaryService } from '../services/beneficiary.service.js'
-import { ChainClient } from '../services/chain.client.js'
 import { toBeneficiaryDTO } from '../dto/mappers.js'
-import { formatUnits } from 'viem'
 import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
 const beneficiaryRoutes = new Hono<{ Bindings: Env }>()
-
-// Validation Schema for Credits top-up
-const addCreditsSchema = z.object({
-  amount: z.number().positive()
-})
 
 /**
  * POST /api/beneficiaries/register
@@ -31,6 +23,7 @@ beneficiaryRoutes.post('/register', zValidator('json', CreateBeneficiaryDto, (re
       message: errorMsg
     }, 400)
   }
+  return undefined
 }), async (c) => {
   const dto = c.req.valid('json')
   const db = createServiceClient()
@@ -90,17 +83,24 @@ beneficiaryRoutes.get('/', async (c) => {
 
 /**
  * PATCH /api/beneficiaries/:id/credits
- * Top-up credits with LGU balance pre-flight check
+ * Triggers the one-time tier-based PHPC allocation for a beneficiary
+ * (5,000 PHPC for Tier 1, 3,500 PHPC for Tier 2). The request body is
+ * ignored - the allocation amount is derived from the beneficiary's tier,
+ * not caller-supplied. Rejects duplicate allocations, insufficient
+ * treasury balance, invalid tier classifications, or on-chain failures.
  */
-beneficiaryRoutes.patch('/:id/credits', zValidator('json', addCreditsSchema), async (c) => {
+beneficiaryRoutes.patch('/:id/credits', async (c) => {
   const id = c.req.param('id')
-  const { amount } = c.req.valid('json')
   const db = createServiceClient()
   const service = new BeneficiaryService(db)
 
-  const result = await service.addCredits(id, amount)
+  const result = await service.allocateTierCredits(id)
   return result.match(
-    (updated) => c.json(toBeneficiaryDTO(updated)),
+    (res) => c.json({
+      beneficiary: toBeneficiaryDTO(res.beneficiary),
+      amount: res.amount,
+      txHash: res.txHash
+    }),
     (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
   )
 })

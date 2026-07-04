@@ -71,7 +71,8 @@ export default function BeneficiariesPage() {
     open: boolean;
     beneficiaryId: string;
     beneficiaryName: string;
-  }>({ open: false, beneficiaryId: "", beneficiaryName: "" });
+    tier: BeneficiaryRow["tier"];
+  }>({ open: false, beneficiaryId: "", beneficiaryName: "", tier: "TIER_2_STANDARD" });
   const [qrModal, setQrModal] = useState<{ open: boolean; data: QrPassData | null }>({
     open: false,
     data: null,
@@ -112,14 +113,17 @@ export default function BeneficiariesPage() {
     fetchAll();
   }, [fetchAll]);
 
-  /* ── Min credit amount to enable Add Credits (500 per slider spec) ── */
-  const MIN_CREDIT = 500;
   const canAddCredits = true;
 
   /* ── Open Add Credits modal ── */
   const openCredits = useCallback(
     (row: BeneficiaryRow) => {
-      setCreditsModal({ open: true, beneficiaryId: row.id, beneficiaryName: row.childName });
+      setCreditsModal({
+        open: true,
+        beneficiaryId: row.id,
+        beneficiaryName: row.childName,
+        tier: row.tier,
+      });
     },
     []
   );
@@ -331,9 +335,13 @@ export default function BeneficiariesPage() {
           valueColor="text-brand-coral"
         />
         <MetricCard
-          label="ALLOCATED STABLECOIN (PHPC)"
-          value={metrics ? `${metrics.allocatedPhpc} PHPC` : "—"}
-          subtext="LGU Subsidy Fund Pool"
+          label="LGU TREASURY (PHPC)"
+          value={
+            lguBalance !== null
+              ? `${lguBalance.toLocaleString("en-PH", { maximumFractionDigits: 0 })} PHPC`
+              : "—"
+          }
+          subtext="On-chain Subsidy Fund Pool"
           subtextColor="text-brand-darkTeal/40"
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/40">
@@ -345,7 +353,7 @@ export default function BeneficiariesPage() {
         <MetricCard
           label="VERIFIED MERCHANTS"
           value={metrics ? `${metrics.verifiedMerchants} Stores` : "—"}
-          subtext="Secured via Ronin Contract"
+          subtext="Secured via Polygon Amoy"
           subtextColor="text-brand-darkTeal/40"
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-brand-darkTeal/40">
@@ -499,6 +507,7 @@ export default function BeneficiariesPage() {
         onClose={() => setCreditsModal((s) => ({ ...s, open: false }))}
         beneficiaryId={creditsModal.beneficiaryId}
         beneficiaryName={creditsModal.beneficiaryName}
+        tier={creditsModal.tier}
         onSuccess={fetchAll}
       />
       <QrPassModal

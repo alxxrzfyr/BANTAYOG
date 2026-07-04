@@ -5,6 +5,8 @@ import { createServiceClient } from '../lib/supabase.js'
 import { TransactionService } from '../services/transaction.service.js'
 import { QrTokenService } from '../services/qr-token.service.js'
 import { PinService } from '../services/pin.service.js'
+import { BlockchainClient } from '../services/chain.client.js'
+import { loadChainConfig } from '../lib/chain/config.js'
 import { authMiddleware, type AuthContext } from '../middleware/auth.js'
 import { requireRole } from '../middleware/rbac.js'
 import { toTransactionDTO } from '../dto/mappers.js'
@@ -101,7 +103,11 @@ transactionRoutes.post(
     }
 
     const pinService = new PinService()
-    const verifyResult = await pinService.verifyPin(pin, beneficiary.pin_hash_argon2id || '')
+    // Requirements 7.3, 7.4, 7.5: lockout check happens inside
+    // verifyPinWithLockout BEFORE the PIN is attempted, and any error
+    // (including RateLimitError on lockout) is already mapped correctly by
+    // errorToHttpStatus (rateLimit -> 429).
+    const verifyResult = await pinService.verifyPinWithLockout(beneficiaryId, pin, beneficiary.pin_hash_argon2id || '')
     if (verifyResult.isErr()) {
       return c.json(errorToResponseBody(verifyResult.error), errorToHttpStatus(verifyResult.error))
     }
@@ -110,16 +116,56 @@ transactionRoutes.post(
       return c.json({ error: 'unauthorized', message: 'Incorrect guardian PIN' }, 401)
     }
 
-    // 4. Calculate total credit cost and verify credit balance
+    // 4. Calculate total credit cost and verify amount/credit balance
     const totalCreditDeducted = items.reduce((sum, item) => sum + Number(item.creditCost), 0)
+
+    // Requirement 7.9: reject non-positive purchase amounts before any balance check.
+    if (totalCreditDeducted <= 0) {
+      return c.json({ error: 'validation', message: 'Purchase amount must be greater than zero' }, 400)
+    }
+
     const currentBalance = Number(beneficiary.credit_balance)
+    // Requirement 7.7: reject over-balance purchases without mutating the balance.
     if (currentBalance < totalCreditDeducted) {
       return c.json({ error: 'bad_request', message: 'Insufficient beneficiary credit balance' }, 400)
     }
 
     const transactionService = new TransactionService(db)
 
-    // 5. Create transaction and outbox entry
+    // 5. Settle on-chain BEFORE persisting anything or deducting balance
+    // (Requirements 7.6, 7.8): load chain config, construct the blockchain
+    // client, transfer PHPC to the merchant wallet, and wait for
+    // confirmation. Nothing is mutated until this succeeds.
+    const chainConfigResult = loadChainConfig(process.env)
+    if (chainConfigResult.isErr()) {
+      return c.json(errorToResponseBody(chainConfigResult.error), errorToHttpStatus(chainConfigResult.error))
+    }
+
+    const clientResult = await BlockchainClient.create(chainConfigResult.value)
+    if (clientResult.isErr()) {
+      return c.json(errorToResponseBody(clientResult.error), errorToHttpStatus(clientResult.error))
+    }
+    const chainClient = clientResult.value
+
+    // Convert credits to base units (1 credit = 1 PHPC = 10^18 wei), matching
+    // the same whole-number-credit convention used by
+    // TransactionService.createTransaction's stablecoinAmountWei conversion.
+    const amountWei = BigInt(totalCreditDeducted) * BigInt(10 ** 18)
+
+    const transferResult = await chainClient.transferPHPC(merchant.wallet_address, amountWei)
+    if (transferResult.isErr()) {
+      return c.json(errorToResponseBody(transferResult.error), errorToHttpStatus(transferResult.error))
+    }
+    const onchainTxHash = transferResult.value
+
+    const confirmResult = await chainClient.waitForConfirmation(onchainTxHash)
+    if (confirmResult.isErr()) {
+      return c.json(errorToResponseBody(confirmResult.error), errorToHttpStatus(confirmResult.error))
+    }
+
+    // 6. Only after on-chain confirmation succeeds: persist the
+    // Transaction_Record (Requirement 7.8) reflecting the already-confirmed
+    // on-chain state.
     const txResult = await transactionService.createTransaction({
       beneficiaryId,
       merchantId: merchant.id,
@@ -132,19 +178,37 @@ transactionRoutes.post(
     }
     const tx = txResult.value
 
-    // 6. Deduct credit balance from beneficiary
+    const confirmedAt = new Date().toISOString()
+    await transactionService.updateStatus(tx.id, 'CONFIRMED', {
+      onchainTxHash,
+      confirmedAt
+    })
+
+    // 7. Deduct credit balance from beneficiary — moved to run AFTER
+    // on-chain confirmation (Requirement 7.6).
     const { error: updateErr } = await (db as any)
       .from('beneficiaries')
       .update({ credit_balance: currentBalance - totalCreditDeducted })
       .eq('id', beneficiaryId)
 
     if (updateErr) {
-      console.error('Failed to deduct credit balance:', updateErr)
+      // The on-chain transfer already succeeded at this point, so this is a
+      // reconciliation-worthy inconsistency (money moved on-chain but the
+      // off-chain ledger did not update) rather than a simple failed
+      // purchase. This known gap is left for the reconcile.ts cron / a
+      // manual ops process to catch; a full distributed-transaction fix is
+      // out of scope for this task (see Requirement 7.10 / Task 11.3).
+      console.error('On-chain transfer succeeded but balance deduction failed (reconciliation required):', {
+        transactionId: tx.id,
+        beneficiaryId,
+        onchainTxHash,
+        error: updateErr
+      })
       await transactionService.updateStatus(tx.id, 'FAILED')
       return c.json({ error: 'internal_error', message: 'Failed to complete transaction' }, 500)
     }
 
-    return c.json(toTransactionDTO(tx), 201)
+    return c.json(toTransactionDTO({ ...tx, status: 'CONFIRMED', onchain_tx_hash: onchainTxHash, confirmed_at: confirmedAt }), 201)
   }
 )
 

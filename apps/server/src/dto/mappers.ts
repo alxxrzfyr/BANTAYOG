@@ -69,6 +69,42 @@ export interface WalletBalanceDTO {
   formatted: string
 }
 
+/**
+ * Read-only transaction entry for the QR-token-authorized balance view
+ * (Requirement 8.5). Deliberately narrower than `TransactionDTO`: it omits
+ * `merchantId`, `items`, `stablecoinAmountWei`, and `idempotencyKey` since
+ * this is a PUBLIC, unauthenticated page and those fields are not
+ * appropriate to expose, and it exposes no field that could be used to
+ * create, modify, or deduct a balance.
+ */
+export interface BalanceViewTransactionDTO {
+  amount: number
+  status: string
+  onchainTxHash: string | null
+  createdAt: string
+  confirmedAt: string | null
+}
+
+/**
+ * Read-only balance + transaction-history shape returned by
+ * `GET /api/balance/view` (Requirements 8.2, 8.4, 8.5). Contains no
+ * mutating fields/actions and is scoped to a single beneficiary.
+ */
+export interface BalanceViewDTO {
+  balance: number
+  transactions: BalanceViewTransactionDTO[]
+}
+
+export function toBalanceViewTransactionDTO(row: any): BalanceViewTransactionDTO {
+  return {
+    amount: Number(row.total_credit_deducted ?? 0),
+    status: row.status,
+    onchainTxHash: row.onchain_tx_hash ?? null,
+    createdAt: row.created_at,
+    confirmedAt: row.confirmed_at ?? null
+  }
+}
+
 export function toBeneficiaryDTO(row: any): BeneficiaryDTO {
   const tierNum: number = row.tier ?? computeTier(row.created_at, row.child_age_months)
   const tier: 'TIER_1_CRITICAL' | 'TIER_2_STANDARD' = tierNum === 1 ? 'TIER_1_CRITICAL' : 'TIER_2_STANDARD'

@@ -64,7 +64,6 @@ registration-form-bugfix-spec.md
 merchantPages/
 plan.md
 
-
 # Logs
 *.log
 npm-debug.log*
