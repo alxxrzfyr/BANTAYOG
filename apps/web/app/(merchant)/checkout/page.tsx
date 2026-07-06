@@ -279,9 +279,13 @@ export default function CheckoutPage() {
             "Too many incorrect PIN attempts. This pass is temporarily locked. Try again later.",
           );
         } else if (res.status === 401) {
-          clearMerchantToken();
-          router.replace("/merchant-login");
-          return;
+          if (/session/i.test(message) || /merchant/i.test(message)) {
+            clearMerchantToken();
+            router.replace("/merchant-login");
+            return;
+          } else {
+            setSubmitError(message || "Invalid or expired QR token.");
+          }
         } else {
           setSubmitError(
             message || "Transaction failed. Please try again.",
