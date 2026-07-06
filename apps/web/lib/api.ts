@@ -69,7 +69,13 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
+  let baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  if (baseUrl && !baseUrl.startsWith("http")) {
+    baseUrl = `https://${baseUrl}`;
+  }
+  const fullUrl = url.startsWith("/") ? `${baseUrl}${url}` : url;
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });
