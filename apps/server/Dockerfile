@@ -25,8 +25,8 @@ COPY apps/server ./apps/server
 # Build the server
 RUN pnpm build --filter=@bantayog/server
 
-# Expose port
-EXPOSE 3001
+# Expose the port Railway injects via $PORT (default 3001 for local)
+EXPOSE ${PORT:-3001}
 
-# Start the server
-CMD ["pnpm", "--filter=@bantayog/server", "start"]
+# Start the server directly — avoids pnpm workspace startup overhead
+CMD ["node", "--import", "tsx", "apps/server/src/index.ts"]
