@@ -2,8 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@9.15.0
+# Install pnpm and tsx globally
+RUN npm install -g pnpm@9.15.0 tsx
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
@@ -28,5 +28,6 @@ RUN pnpm build --filter=@bantayog/server
 # Expose the port Railway injects via $PORT (default 3001 for local)
 EXPOSE ${PORT:-3001}
 
-# Start the server directly — avoids pnpm workspace startup overhead
-CMD ["node", "--import", "tsx", "apps/server/src/index.ts"]
+# Start the server — tsx is installed globally so it's resolvable from any directory
+WORKDIR /app/apps/server
+CMD ["tsx", "src/index.ts"]
