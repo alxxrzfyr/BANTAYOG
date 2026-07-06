@@ -26,10 +26,6 @@ const formSchema = z
       .min(9, "Enter a valid Philippine phone number")
       .max(11)
       .regex(/^\d+$/, "Phone must be digits only"),
-    walletAddress: z
-      .string()
-      .min(1, "Wallet address is required")
-      .regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Polygon/EVM address (0x…)"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -63,7 +59,6 @@ export function MerchantRegistrationForm({
       storeName: "",
       ownerName: "",
       phoneLocal: "",
-      walletAddress: "",
       password: "",
       confirmPassword: "",
     },
@@ -73,9 +68,6 @@ export function MerchantRegistrationForm({
     setSubmitting(true);
     setApiError(null);
 
-    /* Polygon/EVM address — used as-is */
-    const walletAddress = values.walletAddress;
-
     /* Build E.164 phone number */
     const mobileNumberE164 = "+63" + values.phoneLocal.replace(/^0/, "");
 
@@ -83,7 +75,6 @@ export function MerchantRegistrationForm({
       storeName: values.storeName.trim(),
       ownerName: values.ownerName.trim(),
       mobileNumberE164,
-      walletAddress,
       password: values.password,
     };
 
@@ -190,20 +181,7 @@ export function MerchantRegistrationForm({
           )}
         </div>
 
-        {/* Wallet Address */}
-        <div>
-          <label className={labelClass}>Wallet Address</label>
-          <input
-            type="text"
-            placeholder="0x… Polygon Wallet Address"
-            autoComplete="off"
-            {...register("walletAddress")}
-            className={inputClass(!!errors.walletAddress)}
-          />
-          {errors.walletAddress && (
-            <p className="text-xs text-red-500 font-semibold mt-1">{errors.walletAddress.message}</p>
-          )}
-        </div>
+
 
         {/* Create Password + Confirm Password */}
         <div className="grid grid-cols-2 gap-4">

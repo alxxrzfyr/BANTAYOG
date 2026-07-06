@@ -7,11 +7,13 @@ type EligibilityValue = "eligible" | "ineligible" | null;
 interface EligibilityToggleProps {
   value: EligibilityValue;
   onChange: (value: "eligible" | "ineligible") => void;
+  disabled?: boolean;
 }
 
 export function EligibilityToggle({
   value,
   onChange,
+  disabled = false,
 }: EligibilityToggleProps) {
   const isEligible = value === "eligible";
   const isIneligible = value === "ineligible";
@@ -21,17 +23,19 @@ export function EligibilityToggle({
       <label className="mb-2 block font-body text-xs font-medium text-gray-600">
         Category/Validation
       </label>
-      <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Item classification">
+      <div className={`grid grid-cols-2 gap-3 ${disabled ? "opacity-50" : ""}`} role="radiogroup" aria-label="Item classification">
         {/* Eligible option */}
         <button
           type="button"
           role="radio"
           aria-checked={isEligible}
-          onClick={() => onChange("eligible")}
+          onClick={() => !disabled && onChange("eligible")}
+          disabled={disabled}
           className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all ${
+            disabled ? "cursor-not-allowed border-gray-200 bg-gray-100" :
             isEligible
               ? "border-[#10b981] bg-[#ecfdf5]"
-              : "border-gray-200 bg-gray-50"
+              : "border-gray-200 bg-gray-50 hover:bg-gray-100/50"
           }`}
         >
           <img
@@ -66,11 +70,13 @@ export function EligibilityToggle({
           type="button"
           role="radio"
           aria-checked={isIneligible}
-          onClick={() => onChange("ineligible")}
+          onClick={() => !disabled && onChange("ineligible")}
+          disabled={disabled}
           className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all ${
+            disabled ? "cursor-not-allowed border-gray-200 bg-gray-100" :
             isIneligible
               ? "border-[#ef4444] bg-[#fef2f2]"
-              : "border-gray-200 bg-gray-50"
+              : "border-gray-200 bg-gray-50 hover:bg-gray-100/50"
           }`}
         >
           <img

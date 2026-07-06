@@ -44,7 +44,9 @@ export interface MerchantRow {
   store_name: string
   owner_name: string
   mobile_number_e164: string
-  wallet_address: string
+  wallet_address: string | null
+  wallet_balance: number
+  cashout_in_progress: boolean
   status: MerchantStatus
   created_at: string
 }
@@ -159,8 +161,10 @@ export interface Database {
       }
       merchants: {
         Row: MerchantRow
-        Insert: Omit<MerchantRow, 'id' | 'created_at' | 'status'> & {
+        Insert: Omit<MerchantRow, 'id' | 'created_at' | 'status' | 'wallet_balance' | 'cashout_in_progress'> & {
           status?: MerchantStatus
+          wallet_balance?: number
+          cashout_in_progress?: boolean
         }
         Update: Partial<Omit<MerchantRow, 'id' | 'created_at'>>
       }
@@ -270,6 +274,16 @@ export interface Database {
       claim_outbox_rows: {
         Args: { p_limit: number }
         Returns: Database['public']['Tables']['outbox']['Row'][]
+      }
+      settle_sale: {
+        Args: {
+          p_beneficiary_id: string
+          p_merchant_id: string
+          p_amount: number
+          p_items: Record<string, unknown>[]
+          p_transaction_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

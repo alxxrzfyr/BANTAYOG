@@ -3,27 +3,40 @@
 import Link from "next/link";
 import { WalletBalanceCard } from "@/components/merchant/wallet-balance-card";
 import { RecentTransactions } from "@/components/merchant/recent-transactions";
-
-// ---------------------------------------------------------------------------
-// Mock data — will be replaced with real API calls in Phase 3
-// ---------------------------------------------------------------------------
-
-const MOCK_MERCHANT = {
-  storeName: "Maria's Sari-Sari Store",
-  walletAddress: "0x7a3b8c2d4e5f6a1b9c0d2e3f4a5b6c7d8e9f0a1b",
-  balance: "0.00",
-  phpEquivalent: "0.00",
-};
+import { useMerchantProfile } from "@/hooks/use-merchant-profile";
 
 // ---------------------------------------------------------------------------
 // Merchant Dashboard — matches merchantPages/13.png
 // ---------------------------------------------------------------------------
 
 export default function MerchantDashboard() {
-  // In Phase 3, these will come from API calls:
-  // - GET /api/merchants (profile + wallet address)
-  // - GET /api/chain/balance (PHPC balance)
-  // - GET /api/transactions (recent transactions filtered by merchant)
+  const { data: profile, isLoading, isError, refetch } = useMerchantProfile();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[#fdf2ed]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#034C52] border-t-transparent" />
+        <p className="mt-4 font-body text-sm font-semibold text-[#034C52]">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (isError || !profile) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[#fdf2ed] px-5 text-center">
+        <p className="font-body text-base font-bold text-[#034C52]">Failed to load profile</p>
+        <p className="mt-2 font-body text-sm text-[#034C52]/60">There was an error loading your store profile.</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-6 rounded-xl bg-[#034C52] px-6 py-2.5 font-body text-sm font-bold text-white transition-colors hover:bg-[#034C52]/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const storeName = profile.storeName || "Unnamed Store";
 
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
@@ -38,7 +51,7 @@ export default function MerchantDashboard() {
           />
           <div>
             <h1 className="font-body text-sm font-bold text-[#034C52]">
-              {MOCK_MERCHANT.storeName}
+              {storeName}
             </h1>
             <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
               <img
@@ -65,9 +78,12 @@ export default function MerchantDashboard() {
       <div className="space-y-7 px-5 py-6">
         {/* 1. Wallet Balance Card */}
         <WalletBalanceCard
-          balance={MOCK_MERCHANT.balance}
-          phpEquivalent={MOCK_MERCHANT.phpEquivalent}
-          walletAddress={MOCK_MERCHANT.walletAddress}
+          balance={profile.walletBalance}
+          walletAddress={profile.walletAddress}
+          connected={profile.connected}
+          isLoading={isLoading}
+          isError={isError}
+          refetch={refetch}
         />
 
         {/* 2. Merchant Actions — Scan Cart Items */}

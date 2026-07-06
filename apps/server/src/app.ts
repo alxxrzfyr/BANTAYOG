@@ -48,6 +48,7 @@ app.use('/api/auth/login', rateLimit('login', 5, 60))
 app.use('/api/auth/merchant-login', rateLimit('merchant-login', 5, 60))
 app.use('/api/auth/verify-pin', rateLimit('pin', 3, 60))
 app.use('/api/vision/classify', rateLimit('gemini', 10, 60))
+app.use('/api/vision/analyze-nutrition', rateLimit('gemini', 10, 60))
 
 // --- Health check (public, no auth required) ---
 /**
@@ -85,6 +86,7 @@ import productRoutes from './routes/products.js'
 import visionRoutes from './routes/vision.js'
 import transactionRoutes from './routes/transactions.js'
 import balanceRoutes from './routes/balance.js'
+import merchantSelfRoutes from './routes/merchant-self.js'
 
 // Auth routes: mostly public (login, merchant-login); logout protected inside authRoutes
 app.route('/api/auth', authRoutes)
@@ -93,6 +95,13 @@ app.route('/api/auth', authRoutes)
 // solely by the signed QR token itself (Requirement 8.3), not by a session,
 // so it deliberately carries no authMiddleware/requireRole.
 app.route('/api/balance', balanceRoutes)
+
+// Merchant self-profile routes (merchant-only, authenticated)
+// MUST be registered before /api/merchants/* admin wildcard to avoid
+// the admin-only middleware intercepting /api/merchants/me requests.
+app.use('/api/merchants/me', authMiddleware, requireRole('merchant'))
+app.use('/api/merchants/me/*', authMiddleware, requireRole('merchant'))
+app.route('/api/merchants/me', merchantSelfRoutes)
 
 // Admin-only routes
 app.use('/api/beneficiaries', authMiddleware, requireRole('admin'))

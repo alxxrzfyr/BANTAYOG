@@ -27,8 +27,13 @@ describe('CreateMerchantDto', () => {
     walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
   }
 
-  it('accepts a valid input', () => {
+  it('accepts a valid input with walletAddress', () => {
     expect(CreateMerchantDto.safeParse(validInput).success).toBe(true)
+  })
+
+  it('accepts a valid input without walletAddress (optional)', () => {
+    const { walletAddress, ...inputWithoutWallet } = validInput
+    expect(CreateMerchantDto.safeParse(inputWithoutWallet).success).toBe(true)
   })
 
   it('rejects empty storeName', () => {
@@ -68,12 +73,19 @@ describe('MerchantDto', () => {
     ownerName: 'Nena Cruz',
     mobileNumberE164: '+639171234567',
     walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+    walletBalance: 1234.50,
     status: 'APPROVED',
     createdAt: '2026-06-29T00:00:00Z',
   }
 
   it('accepts a valid input', () => {
     expect(MerchantDto.safeParse(validInput).success).toBe(true)
+  })
+
+  it('accepts null walletAddress', () => {
+    expect(
+      MerchantDto.safeParse({ ...validInput, walletAddress: null }).success,
+    ).toBe(true)
   })
 
   it('rejects invalid UUID for id', () => {

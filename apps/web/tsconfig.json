@@ -9,6 +9,7 @@
       "@/providers/*": ["./providers/*"],
       "@/lib/*": ["./lib/*"],
       "@/app/*": ["./app/*"],
+      "@/hooks/*": ["./hooks/*"],
       "@bantayog/db": ["../../packages/db/src/index.ts"],
       "@bantayog/schema": ["../../packages/schema/src/index.ts"]
     }

@@ -189,7 +189,7 @@ export default function MerchantsPage() {
           }
         />
         <MetricCard
-          label="ALLOCATED STABLECOIN (PHPC)"
+          label="LGU TREASURY"
           value={metrics ? `${metrics.allocatedPhpc} PHPC` : "—"}
           subtext="LGU Subsidy Fund Pool"
           subtextColor="text-brand-darkTeal/40"

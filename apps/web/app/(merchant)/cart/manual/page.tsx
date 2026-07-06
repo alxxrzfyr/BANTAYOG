@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
 import { QuantitySelector } from "@/components/merchant/quantity-selector";
 import { EligibilityToggle } from "@/components/merchant/eligibility-toggle";
+import { useCameraPreview } from "@/hooks/use-camera-preview";
 
 // ---------------------------------------------------------------------------
 // Manual Input Flow — 3 visual states (ref: 22-24.png)
@@ -13,7 +14,7 @@ import { EligibilityToggle } from "@/components/merchant/eligibility-toggle";
 
 type VisualState = "blank" | "eligible" | "ineligible";
 
-const MOCK_FOOD_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI0UzRjBGMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwMzRDNTIiPlsgQkFOVEFZT0cgRUxJR0lCTEUgRk9PRCBdPC90ZXh0Pjwvc3ZnPg==";
+const MOCK_FOOD_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAADklEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 export default function ManualInputPage() {
   const router = useRouter();
@@ -33,69 +34,76 @@ export default function ManualInputPage() {
   // ── Camera state ──
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // ── Start camera ──
-  useEffect(() => {
-    if (capturedImage) return;
+  interface ChildSafetyAnalysis {
+    product_name: string;
+    is_child_friendly: boolean;
+    flagged_ingredients: string[];
+    reasoning: string;
+  }
+  const [analysisResult, setAnalysisResult] = useState<ChildSafetyAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    let mounted = true;
-    let localStream: MediaStream | null = null;
+  const {
+    status: cameraStatus,
+    errorMsg: cameraErrorMsg,
+    retryCount,
+    startCamera,
+    stopCamera,
+    retry: handleRetryCamera,
+  } = useCameraPreview(videoRef);
 
-    async function startCamera() {
-      try {
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false,
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false,
-          });
+  const runNutritionalAnalysis = useCallback(async (image: string) => {
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      const res = await fetch("/api/vision/analyze-nutrition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: image }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnalysisResult(data);
+        if (data.product_name && data.product_name !== "Unknown" && data.product_name !== "Unknown Product") {
+          setProductName(data.product_name);
         }
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        localStream = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          try {
-            await videoRef.current.play();
-          } catch (e) {
-            console.error("Autoplay failed:", e);
-          }
-        }
-        setCameraActive(true);
-        setCameraError(null);
-      } catch {
-        if (mounted) {
-          setCameraError("Camera unavailable");
-          setCameraActive(false);
-        }
+      } else {
+        setAnalysisResult({
+          product_name: "Captured Product",
+          is_child_friendly: true,
+          flagged_ingredients: [],
+          reasoning: "Failed to load detailed AI safety check. Use caution."
+        });
       }
+    } catch {
+      setAnalysisResult({
+        product_name: "Captured Product",
+        is_child_friendly: true,
+        flagged_ingredients: [],
+        reasoning: "Offline simulation mode: assuming child-friendly."
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
+  }, []);
 
-    startCamera();
-
-    return () => {
-      mounted = false;
-      localStream?.getTracks().forEach((t) => t.stop());
-    };
-  }, [capturedImage]);
+  // ── Start/stop camera based on state ──
+  useEffect(() => {
+    if (!capturedImage) {
+      startCamera("environment");
+    } else {
+      stopCamera();
+    }
+  }, [capturedImage, startCamera, stopCamera]);
 
   // ── Capture photo ──
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) {
       setCapturedImage(MOCK_FOOD_IMAGE);
-      setCameraActive(false);
+      stopCamera();
+      runNutritionalAnalysis(MOCK_FOOD_IMAGE);
       return;
     }
 
@@ -107,24 +115,17 @@ export default function ManualInputPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       setCapturedImage(MOCK_FOOD_IMAGE);
-      setCameraActive(false);
+      stopCamera();
+      runNutritionalAnalysis(MOCK_FOOD_IMAGE);
       return;
     }
 
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setCapturedImage(dataUrl);
-
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setCameraActive(false);
-  }, []);
-
-  // ── Bypass camera ──
-  const handleBypassCamera = useCallback(() => {
-    setCapturedImage(MOCK_FOOD_IMAGE);
-    setCameraActive(false);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-  }, []);
+    stopCamera();
+    runNutritionalAnalysis(dataUrl);
+  }, [stopCamera, runNutritionalAnalysis]);
 
   // ── Handle eligibility selection ──
   const handleEligibilityChange = (value: "eligible" | "ineligible") => {
@@ -138,7 +139,8 @@ export default function ManualInputPage() {
   const isQuantityValid = quantity >= 1;
   const isNameValid = productName.trim().length > 0;
   const hasImage = capturedImage !== null;
-  const isFormComplete = hasImage && isNameValid && isPriceValid && isQuantityValid && eligibility !== null;
+  const isImageUnrecognizable = analysisResult?.product_name === "Unrecognizable";
+  const isFormComplete = hasImage && isNameValid && isPriceValid && isQuantityValid && eligibility !== null && !isImageUnrecognizable;
 
   // ── Add Another Item ──
   const handleAddAnother = () => {
@@ -161,10 +163,8 @@ export default function ManualInputPage() {
     setEligibility(null);
     setVisualState("blank");
     setCapturedImage(null);
-
-    // Restart camera
-    setCameraActive(false);
-    setCameraError(null);
+    setAnalysisResult(null);
+    setIsAnalyzing(false);
   };
 
   // ── Proceed to Checkout ──
@@ -193,7 +193,7 @@ export default function ManualInputPage() {
   };
 
   const hasAnyItemInCart = items.length > 0;
-  const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null));
+  const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null)) && !isImageUnrecognizable;
 
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
@@ -230,12 +230,37 @@ export default function ManualInputPage() {
         <div className="mt-5 flex justify-center">
           <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border-[3px] border-[#b2dfdb] bg-gray-100">
             {capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Captured product"
-                className="aspect-[4/3] w-full object-cover"
-              />
-            ) : cameraActive ? (
+              <div className="relative aspect-[4/3] w-full overflow-hidden">
+                <img
+                  src={capturedImage}
+                  alt="Captured product"
+                  className="h-full w-full object-cover"
+                />
+                {!isAnalyzing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCapturedImage(null);
+                      setAnalysisResult(null);
+                      setEligibility(null);
+                      setVisualState("blank");
+                    }}
+                    className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1.5 font-body text-xs font-bold text-white transition-colors hover:bg-black/80"
+                  >
+                    Retake
+                  </button>
+                )}
+                {isAnalyzing && (
+                  <>
+                    <div className="absolute inset-x-0 top-0 h-1.5 bg-[#80cbc4] shadow-[0_0_12px_#80cbc4] scanner-animation-bar" />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
+                      <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (cameraStatus === "ready" || cameraStatus === "loading") ? (
               <>
                 <video
                   ref={videoRef}
@@ -245,57 +270,107 @@ export default function ManualInputPage() {
                   className="aspect-[4/3] w-full object-cover"
                   aria-label="Camera viewfinder for capturing product image"
                 />
-                {/* Corner brackets */}
-                <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute left-3 top-3 h-8 w-8 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
-                  <div className="absolute right-3 top-3 h-8 w-8 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
-                  <div className="absolute bottom-3 left-3 h-8 w-8 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
-                  <div className="absolute bottom-3 right-3 h-8 w-8 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
-                </div>
-                {/* Camera button */}
-                <button
-                  type="button"
-                  onClick={capturePhoto}
-                  className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
-                  aria-label="Capture photo"
-                >
-                  <img
-                    src="/merchantLogos/camera2.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                </button>
+                {cameraStatus === "loading" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#034C52] border-t-transparent" />
+                    <p className="text-xs font-semibold text-[#034C52]/60">
+                      Camera starting...
+                    </p>
+                  </div>
+                )}
+                {cameraStatus === "ready" && (
+                  <>
+                    {/* Corner brackets */}
+                    <div className="pointer-events-none absolute inset-0">
+                      <div className="absolute left-3 top-3 h-8 w-8 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
+                      <div className="absolute right-3 top-3 h-8 w-8 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
+                      <div className="absolute bottom-3 left-3 h-8 w-8 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
+                      <div className="absolute bottom-3 right-3 h-8 w-8 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
+                    </div>
+                    {/* Camera button */}
+                    <button
+                      type="button"
+                      onClick={capturePhoto}
+                      className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
+                      aria-label="Capture photo"
+                    >
+                      <img
+                        src="/merchantLogos/camera2.png"
+                        alt=""
+                        className="h-10 w-10"
+                      />
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <div className="flex flex-col aspect-[4/3] w-full items-center justify-center gap-3 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
                 <p className="text-xs font-semibold text-[#034C52]/60">
-                  {cameraError || "Camera starting..."}
+                  {cameraStatus === "timeout" ? "Camera activation timed out." : (cameraErrorMsg || "Camera unavailable")}
                 </p>
-                <button
-                  type="button"
-                  onClick={handleBypassCamera}
-                  className="rounded-full bg-[#034C52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#034C52]/90"
-                >
-                  Simulate Camera Capture
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRetryCamera}
+                    disabled={retryCount >= 3}
+                    className="rounded-full bg-[#034C52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#034C52]/90 disabled:opacity-50"
+                  >
+                    Retry ({retryCount}/3)
+                  </button>
+                </div>
               </div>
             )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
 
-        {/* Quick Simulation Bypass Button (Always Visible when capturedImage is null) */}
-        {!capturedImage && (
-          <div className="mt-3 flex justify-center">
-            <button
-              type="button"
-              onClick={handleBypassCamera}
-              className="w-full max-w-sm rounded-xl border-2 border-dashed border-[#034C52]/40 bg-[#034C52]/5 py-3 font-body text-xs font-bold text-[#034C52] hover:bg-[#034C52]/10"
-            >
-              ⚡ Bypassed Camera? Use Mock Food Image
-            </button>
+        {/* AI Analysis Loading / Results */}
+        {isAnalyzing ? (
+          <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#b2dfdb] bg-white p-6 shadow-sm">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#034C52] border-t-transparent" />
+            <p className="mt-2 font-body text-xs font-semibold text-[#034C52]/60">AI Nutritional Safety Check in progress...</p>
           </div>
-        )}
+        ) : analysisResult ? (
+          isImageUnrecognizable ? (
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-center shadow-sm" role="alert">
+              <span className="block font-body text-sm font-bold text-red-800">
+                ⚠ Poor lighting or unrecognizable product.
+              </span>
+              <span className="mt-1 block font-body text-xs text-red-700">
+                Please retake the photo under better lighting. You cannot enter amount or quantity.
+              </span>
+            </div>
+          ) : (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#b2dfdb] bg-white shadow-sm">
+              <div className={`px-4 py-3 flex items-center justify-between border-b ${analysisResult.is_child_friendly ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"}`}>
+                <span className="font-body text-xs font-bold uppercase tracking-wider text-[#034C52]">
+                  Nutritional Safety Scan
+                </span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-body text-xs font-semibold ${analysisResult.is_child_friendly ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                  {analysisResult.is_child_friendly ? "✓ Child Friendly" : "⚠ Not Child Friendly"}
+                </span>
+              </div>
+              <div className="px-4 py-4 space-y-3">
+                <div>
+                  <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Reasoning</h4>
+                  <p className="mt-1 font-body text-sm text-gray-700 leading-relaxed">{analysisResult.reasoning}</p>
+                </div>
+                {analysisResult.flagged_ingredients.length > 0 && (
+                  <div>
+                    <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">Flagged Ingredients</h4>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {analysisResult.flagged_ingredients.map((ing, idx) => (
+                        <span key={idx} className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 font-body text-xs font-medium text-amber-800">
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        ) : null}
 
         {/* Form Card */}
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">
@@ -310,7 +385,8 @@ export default function ManualInputPage() {
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Enter product name"
-              className="w-full font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300"
+              disabled={isImageUnrecognizable || isAnalyzing}
+              className="w-full font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -320,7 +396,7 @@ export default function ManualInputPage() {
               <label htmlFor="price-manual" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
                 Price (PHP)
               </label>
-              <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
+              <div className={`flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075] ${(isImageUnrecognizable || isAnalyzing) ? "bg-gray-100 opacity-50" : "bg-gray-50"}`}>
                 <span className="flex-shrink-0 font-body text-sm text-gray-500">
                   ₱
                 </span>
@@ -333,7 +409,8 @@ export default function ManualInputPage() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
+                    disabled={isImageUnrecognizable || isAnalyzing}
+                    className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075] disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -342,6 +419,7 @@ export default function ManualInputPage() {
               value={quantity}
               onChange={setQuantity}
               min={1}
+              disabled={isImageUnrecognizable || isAnalyzing}
             />
           </div>
 
@@ -350,6 +428,7 @@ export default function ManualInputPage() {
             <EligibilityToggle
               value={eligibility}
               onChange={handleEligibilityChange}
+              disabled={isImageUnrecognizable || isAnalyzing}
             />
           </div>
         </div>

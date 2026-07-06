@@ -8,6 +8,7 @@ import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { QRScanner } from "@/lib/qr/scanner";
 import { authFetch } from "@/lib/api";
+import { useMerchantProfile } from "@/hooks/use-merchant-profile";
 
 /**
  * Extracts the raw QR token from a scanned value. The beneficiary QR pass now
@@ -25,6 +26,22 @@ function extractQrToken(scanned: string): string {
   return scanned;
 }
 
+/**
+ * Masks the beneficiary guardian's name for privacy.
+ * e.g., "Juan Dela Cruz" -> "J*** D*** C***"
+ */
+function maskName(name: string): string {
+  if (!name || name === "Beneficiary" || name === "Guardian") return name;
+  return name
+    .split(" ")
+    .map((word) => {
+      if (word.length === 0) return "";
+      if (word.length === 1) return word;
+      return word[0] + "*".repeat(word.length - 1);
+    })
+    .join(" ");
+}
+
 // ---------------------------------------------------------------------------
 // Checkout Page + QR Scanner Modal + PIN Validation Modal (ref: 25-27.png)
 // ---------------------------------------------------------------------------
@@ -35,6 +52,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const inputSource = useCartStore((s) => s.inputSource);
+
+  const { data: profile } = useMerchantProfile();
+  const storeName = profile?.storeName || "Unnamed Store";
 
   const [modalState, setModalState] = useState<ModalState>("none");
   const [beneficiaryData, setBeneficiaryData] = useState<{
@@ -178,6 +198,25 @@ export default function CheckoutPage() {
         unitPricePhp: item.price,
         creditCost: Math.max(1, Math.round(item.price * item.quantity)),
       }));
+
+      // Frontend Validations
+      const totalQuantityValid = txItems.every((item) => item.quantity > 0);
+      const totalPricesValid = txItems.every((item) => item.unitPricePhp >= 0);
+      const computedTotal = eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const totalMatches = Math.abs(computedTotal - total) < 0.001;
+
+      if (!totalQuantityValid) {
+        setSubmitError("Transaction aborted: Item quantities must be greater than zero.");
+        return;
+      }
+      if (!totalPricesValid) {
+        setSubmitError("Transaction aborted: Unit prices cannot be negative.");
+        return;
+      }
+      if (!totalMatches) {
+        setSubmitError("Transaction aborted: Cart total mismatch detected.");
+        return;
+      }
 
       const idempotencyKey =
         typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -339,7 +378,7 @@ export default function CheckoutPage() {
             </div>
             <div>
               <p className="font-body text-base font-bold text-gray-900">
-                Store Name
+                {storeName}
               </p>
               <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#a8d5ba] bg-[#f0faf3] px-2 py-0.5">
                 <img
@@ -682,7 +721,7 @@ function PINModal({
           Authorizing voucher transaction for
         </p>
         <p className="mt-1 text-center font-body text-sm font-bold text-[#f48d79]">
-          {guardianName}
+          {maskName(guardianName)}
         </p>
 
         {/* PIN Progress Circles */}
@@ -714,7 +753,7 @@ function PINModal({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
-            Settling transaction on-chain…
+            Processing checkout payment…
           </p>
         )}
         {!busy && error && (

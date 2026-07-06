@@ -23,7 +23,7 @@ export class MerchantService {
     storeName: string;
     ownerName: string;
     mobileNumberE164: string;
-    walletAddress: string;
+    walletAddress?: string;
     password?: string;
   }): Promise<AppResult<any>> {
     const db = this.db;
@@ -48,14 +48,14 @@ export class MerchantService {
       return err(new AuthError('Supabase Auth user creation returned empty data', 'forbidden'));
     }
 
-    // 2. Insert merchant profile record
+    // 2. Insert merchant profile record (wallet_address is always null on creation per Req 14.3)
     try {
       const record = await this.merchantRepo.insert({
         auth_user_id: authData.user.id,
         store_name: dto.storeName,
         owner_name: dto.ownerName,
         mobile_number_e164: dto.mobileNumberE164,
-        wallet_address: dto.walletAddress,
+        wallet_address: null,
         status: 'APPROVED' // Default to approved on registration for phase 2/3 flows
       });
       return ok(record);

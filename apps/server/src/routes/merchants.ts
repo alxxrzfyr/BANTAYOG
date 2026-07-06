@@ -24,11 +24,11 @@ merchantRoutes.post('/register', zValidator('json', registerMerchantSchema), asy
   const db = createServiceClient()
   const service = new MerchantService(db)
 
+  // Req 14.3, 14.5: Any supplied walletAddress is ignored; merchant is created with wallet_address = null
   const result = await service.register({
     storeName: dto.storeName,
     ownerName: dto.ownerName,
     mobileNumberE164: dto.mobileNumberE164,
-    walletAddress: dto.walletAddress,
     password: dto.password
   })
 

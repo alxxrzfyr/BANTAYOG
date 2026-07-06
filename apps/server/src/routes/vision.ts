@@ -33,5 +33,40 @@ visionRoutes.post('/classify', zValidator('json', classifySchema), async (c) => 
   )
 })
 
+/**
+ * POST /api/vision/analyze-nutrition
+ * Accepts inline base64 image data and returns structured child nutritional safety verdict.
+ */
+visionRoutes.post('/analyze-nutrition', zValidator('json', classifySchema), async (c) => {
+  const { imageBase64 } = c.req.valid('json')
+  const db = createServiceClient()
+  const visionService = new VisionService(db)
+
+  const result = await visionService.analyzeChildSafety(imageBase64)
+
+  return result.match(
+    (res) => c.json(res),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
+})
+
+/**
+ * POST /api/vision/analyze-scan
+ * Performs unified product identification, rate-limit fallback, product catalog lookup,
+ * price research (±₱10 for drafts), and child-safety gates.
+ */
+visionRoutes.post('/analyze-scan', zValidator('json', classifySchema), async (c) => {
+  const { imageBase64 } = c.req.valid('json')
+  const db = createServiceClient()
+  const visionService = new VisionService(db)
+
+  const result = await visionService.analyzeScan(imageBase64)
+
+  return result.match(
+    (res) => c.json(res),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
+})
+
 export default visionRoutes
 

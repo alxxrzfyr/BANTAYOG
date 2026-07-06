@@ -66,6 +66,8 @@ describe('Row types compile-check', () => {
       owner_name: 'Test Owner',
       mobile_number_e164: '+639171234567',
       wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+      wallet_balance: 0,
+      cashout_in_progress: false,
       status: 'PENDING',
       created_at: '2026-06-29T00:00:00Z',
     }

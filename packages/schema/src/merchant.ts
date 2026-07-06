@@ -26,7 +26,8 @@ export const CreateMerchantDto = z.object({
     .regex(/^\+[1-9]\d{1,14}$/, 'Must be E.164 format (e.g. +639171234567)'),
   walletAddress: z
     .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Must be a valid EVM address'),
+    .regex(/^0x[a-fA-F0-9]{40}$/, 'Must be a valid EVM address')
+    .optional(),
 })
 export type CreateMerchantDto = z.infer<typeof CreateMerchantDto>
 
@@ -37,7 +38,8 @@ export const MerchantDto = z.object({
   storeName: z.string(),
   ownerName: z.string(),
   mobileNumberE164: z.string(),
-  walletAddress: z.string(),
+  walletAddress: z.string().nullable(),
+  walletBalance: z.number(),
   status: MerchantStatusSchema,
   createdAt: z.string().datetime(),
 })

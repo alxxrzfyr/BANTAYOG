@@ -34,6 +34,7 @@ exports[`DTO Mappers Snapshot Tests > should correctly map a merchant record 1`]
   "status": "APPROVED",
   "storeName": "Santos Sari-Sari Store",
   "walletAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+  "walletBalance": 0,
 }
 `;
 

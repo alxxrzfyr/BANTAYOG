@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { z } from "zod";
+
+const STORAGE_KEY = "bantayog-cart";
+const PERSIST_VERSION = 1;
 
 export interface CartItem {
   id: string;
@@ -12,29 +17,94 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   inputSource: "ai" | "manual" | null;
+  restoreError: string | null;
   addItem: (item: Omit<CartItem, "id">) => void;
   removeItem: (id: string) => void;
   setInputSource: (source: "ai" | "manual") => void;
   clearCart: () => void;
 }
 
-let nextId = 1;
+/** Zod schema used to validate persisted cart data on rehydration */
+const CartItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  quantity: z.number().int().positive(),
+  eligibility: z.enum(["eligible", "ineligible"]),
+  imageDataUrl: z.string().optional(),
+});
 
-export const useCartStore = create<CartState>((set) => ({
-  items: [],
-  inputSource: null,
+const PersistedStateSchema = z.object({
+  items: z.array(CartItemSchema),
+});
 
-  addItem: (item) =>
-    set((state) => ({
-      items: [...state.items, { ...item, id: `cart-${nextId++}` }],
-    })),
+function generateId(): string {
+  return crypto.randomUUID();
+}
 
-  removeItem: (id) =>
-    set((state) => ({
-      items: state.items.filter((i) => i.id !== id),
-    })),
+export const useCartStore = create<CartState>()(
+  persist(
+    (set) => ({
+      items: [],
+      inputSource: null,
+      restoreError: null,
 
-  setInputSource: (source) => set({ inputSource: source }),
+      addItem: (item) =>
+        set((state) => ({
+          items: [...state.items, { ...item, id: generateId() }],
+        })),
 
-  clearCart: () => set({ items: [], inputSource: null }),
-}));
+      removeItem: (id) =>
+        set((state) => ({
+          items: state.items.filter((i) => i.id !== id),
+        })),
+
+      setInputSource: (source) => set({ inputSource: source }),
+
+      clearCart: () => {
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem(STORAGE_KEY);
+        }
+        return set({ items: [], inputSource: null, restoreError: null });
+      },
+    }),
+    {
+      name: STORAGE_KEY,
+      version: PERSIST_VERSION,
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl }) => ({
+          id,
+          name,
+          price,
+          quantity,
+          eligibility,
+          imageDataUrl,
+        })),
+      }),
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (error) {
+            // Persistence layer error — reset to empty cart
+            useCartStore.setState({
+              items: [],
+              restoreError: "The previous cart could not be restored.",
+            });
+            return;
+          }
+
+          if (state) {
+            const result = PersistedStateSchema.safeParse({ items: state.items });
+            if (!result.success) {
+              // Validation failed — initialize empty cart and flag restore error
+              useCartStore.setState({
+                items: [],
+                restoreError: "The previous cart could not be restored.",
+              });
+            }
+          }
+        };
+      },
+    }
+  )
+);

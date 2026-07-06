@@ -78,6 +78,8 @@ let transactionRows: any[] = []
 let outboxRows: any[] = []
 let beneficiaryUpdateCalls: { credit_balance: number }[] = []
 let nextTransactionId = 1
+let rpcCalls: { fn: string; args: any }[] = []
+let rpcError: any = null
 
 function makeSingleQuery(row: any) {
   const builder: any = {
@@ -197,6 +199,45 @@ function makeOutboxBuilder() {
 }
 
 const mockSupabaseClient: any = {
+  rpc: vi.fn().mockImplementation(async (fn: string, args: any) => {
+    rpcCalls.push({ fn, args })
+    if (rpcError) {
+      return { data: null, error: rpcError }
+    }
+    if (fn === 'settle_sale') {
+      const { p_beneficiary_id, p_merchant_id, p_amount, p_items, p_transaction_id } = args
+      if (p_amount <= 0) {
+        return { data: null, error: new Error('Amount must be greater than zero') }
+      }
+      if (!beneficiaryRow || beneficiaryRow.id !== p_beneficiary_id) {
+        return { data: null, error: new Error('Beneficiary not found') }
+      }
+      if (beneficiaryRow.credit_balance < p_amount) {
+        return { data: null, error: new Error('Insufficient beneficiary credit balance') }
+      }
+      beneficiaryRow.credit_balance -= p_amount
+      beneficiaryUpdateCalls.push({ credit_balance: beneficiaryRow.credit_balance })
+      if (merchantRow && merchantRow.id === p_merchant_id) {
+        merchantRow.wallet_balance += p_amount
+      }
+      const newTx = {
+        id: p_transaction_id,
+        beneficiary_id: p_beneficiary_id,
+        merchant_id: p_merchant_id,
+        item_list_jsonb: p_items,
+        total_credit_deducted: p_amount,
+        stablecoin_amount_wei: '0',
+        onchain_tx_hash: null,
+        idempotency_key: p_transaction_id,
+        status: 'CONFIRMED',
+        created_at: new Date().toISOString(),
+        confirmed_at: new Date().toISOString()
+      }
+      transactionRows.push(newTx)
+      return { data: p_transaction_id, error: null }
+    }
+    return { data: null, error: new Error('Unknown RPC') }
+  }),
   from: vi.fn().mockImplementation((table: string) => {
     if (table === 'merchants') return makeSingleQuery(merchantRow)
     if (table === 'beneficiaries') return makeBeneficiariesBuilder(beneficiaryRow)
@@ -257,6 +298,7 @@ function resetDbMockState() {
     auth_user_id: 'merchant-auth-id',
     status: 'APPROVED',
     wallet_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+    wallet_balance: 0,
   }
 
   beneficiaryRow = {
@@ -269,6 +311,8 @@ function resetDbMockState() {
   outboxRows = []
   beneficiaryUpdateCalls = []
   nextTransactionId = 1
+  rpcCalls = []
+  rpcError = null
 }
 
 describe('POST /api/transactions — HTTP response codes', () => {
@@ -404,15 +448,18 @@ describe('Property 18: authorized in-balance purchase deducts and transfers the 
         expect(beneficiaryUpdateCalls.length).toBe(1)
         expect(beneficiaryUpdateCalls[0].credit_balance).toBe(500 - creditCost)
 
-        // The persisted transaction row's onchain_tx_hash matches the
-        // mocked BlockchainClient's returned hash ('0xhash', see the
-        // `../services/chain.client.js` mock above).
+        // Settle sale RPC was called
+        expect(rpcCalls.length).toBe(1)
+        expect(rpcCalls[0].fn).toBe('settle_sale')
+        expect(rpcCalls[0].args.p_amount).toBe(creditCost)
+
+        // The persisted transaction row's onchain_tx_hash is null in custodial model
         expect(transactionRows.length).toBe(1)
         expect(transactionRows[0].status).toBe('CONFIRMED')
-        expect(transactionRows[0].onchain_tx_hash).toBe('0xhash')
+        expect(transactionRows[0].onchain_tx_hash).toBeNull()
 
         const body = await res.json()
-        expect(body.onchainTxHash).toBe('0xhash')
+        expect(body.onchainTxHash).toBeNull()
       }),
       { numRuns: 20 },
     )
@@ -475,6 +522,38 @@ describe('Property 19: invalid-amount and over-balance purchases are rejected wi
         },
       ),
       { numRuns: 30 },
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Property 22: An incorrect PIN never changes balances
+// ---------------------------------------------------------------------------
+describe('Property 22: An incorrect PIN never changes balances (Requirement 13.3)', () => {
+  it('rejects with 401 and does not change balances or insert transaction on incorrect PIN', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.string({ minLength: 6, maxLength: 6 }), fc.uuid(), async (incorrectPin, idempotencyKey) => {
+        resetDbMockState()
+
+        mockVerifyToken.mockResolvedValueOnce(
+          ok({ beneficiaryId: 'beneficiary-1', walletRef: '0xabc', tier: 1 }),
+        )
+        // Simulate incorrect PIN verification
+        mockVerifyPinWithLockout.mockResolvedValueOnce(ok(false))
+
+        const res = await postTransaction(
+          baseBody({
+            idempotencyKey,
+            pin: incorrectPin,
+          }),
+        )
+
+        expect(res.status).toBe(401)
+        expect(beneficiaryUpdateCalls.length).toBe(0)
+        expect(transactionRows.length).toBe(0)
+        expect(rpcCalls.length).toBe(0)
+      }),
+      { numRuns: 20 },
     )
   })
 })

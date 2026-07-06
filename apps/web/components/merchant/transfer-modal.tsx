@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { authFetch } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Transfer Modal — matches merchantPages/14.png
@@ -11,7 +12,7 @@ interface TransferModalProps {
   onClose: () => void;
   balance: string;
   phpEquivalent: string;
-  walletAddress: string;
+  walletAddress: string | null;
   onTransferSuccess?: () => void;
 }
 
@@ -48,26 +49,33 @@ export function TransferModal({
   if (!open) return null;
 
   const handleCopy = async () => {
+    if (!walletAddress) {
+      setError("No wallet address available to copy");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API not available — silent fail
+      setError("Copy did not succeed");
     }
   };
 
   const handleConfirm = async () => {
+    if (!walletAddress) {
+      setError("Wallet address is required for transfer");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/chain/transfer", {
+      const res = await authFetch("/api/merchants/me/cashout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: balance,
-          destinationAddress: walletAddress,
+          destination: walletAddress,
         }),
       });
 
@@ -180,7 +188,7 @@ export function TransferModal({
           </p>
           <div className="flex items-center gap-2">
             <span className="flex-1 truncate rounded-lg border border-gray-200 bg-white px-3 py-2 font-body text-sm text-gray-600">
-              {walletAddress}
+              {walletAddress || ""}
             </span>
             <button
               type="button"
@@ -243,7 +251,7 @@ export function TransferModal({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={loading}
+            disabled={loading || !walletAddress}
             className="flex-1 rounded-full bg-[#f48d79] py-3 font-body text-sm font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (

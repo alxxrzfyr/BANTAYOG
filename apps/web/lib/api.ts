@@ -15,17 +15,23 @@ export const MERCHANT_TOKEN_KEY = "bantayog_merchant_access_token";
 
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   let token: string | null = null;
-  try {
-    const { data } = await supabase.auth.getSession();
-    token = data.session?.access_token ?? null;
-  } catch (err) {
-    console.error("Error retrieving Supabase session:", err);
+
+  // Prioritize merchant token for merchant-specific endpoints to prevent Admin session interference
+  const isMerchantEndpoint = url.includes("/merchants/me") || url.includes("/transactions");
+  if (isMerchantEndpoint && typeof window !== "undefined") {
+    token = window.localStorage.getItem(MERCHANT_TOKEN_KEY);
   }
 
-  // Fall back to a stored merchant token. The merchant login endpoint returns
-  // a Supabase access token that isn't persisted in the browser Supabase
-  // client (no refresh token is returned), so it's stashed in localStorage
-  // and used here for merchant-authenticated calls (e.g. POST /api/transactions).
+  if (!token) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      token = data.session?.access_token ?? null;
+    } catch (err) {
+      console.error("Error retrieving Supabase session:", err);
+    }
+  }
+
+  // Fall back to a stored merchant token
   if (!token && typeof window !== "undefined") {
     token = window.localStorage.getItem(MERCHANT_TOKEN_KEY);
   }

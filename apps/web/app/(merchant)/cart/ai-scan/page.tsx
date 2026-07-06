@@ -10,6 +10,8 @@ import { QuantitySelector } from "@/components/merchant/quantity-selector";
 import { EligibilityToggle } from "@/components/merchant/eligibility-toggle";
 import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
+import { useCameraPreview } from "@/hooks/use-camera-preview";
+import { authFetch } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // AI Image Scan Flow — 3 stages in one page (ref: 16-21.png)
@@ -17,18 +19,7 @@ import { ItemCard } from "@/components/merchant/item-card";
 
 type Stage = 1 | 2 | 3;
 
-interface DetectionResult {
-  name: string;
-  eligibility: "eligible" | "ineligible";
-}
-
-// Mock response for testing when backend API is unavailable
-const MOCK_RESULT: DetectionResult = {
-  name: "Fresh Milk",
-  eligibility: "eligible",
-};
-
-const MOCK_FOOD_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI0UzRjBGMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwMzRDNTIiPlsgQkFOVEFZT0cgRUxJR0lCTEUgTUlMSyBdPC90ZXh0Pjwvc3ZnPg==";
+const MOCK_FOOD_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAADklEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 export default function AIScanPage() {
   return (
@@ -57,73 +48,110 @@ function AIScanContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [priceRangeMin, setPriceRangeMin] = useState<number | null>(null);
+  const [priceRangeMax, setPriceRangeMax] = useState<number | null>(null);
+  const [isUnrecognizedBrand, setIsUnrecognizedBrand] = useState(false);
+  const [isProcessingPrice, setIsProcessingPrice] = useState(false);
+
+  interface ChildSafetyAnalysis {
+    product_name: string;
+    is_child_friendly: boolean;
+    flagged_ingredients: string[];
+    reasoning: string;
+  }
+  const [analysisResult, setAnalysisResult] = useState<ChildSafetyAnalysis | null>(null);
+
   // ── Camera state ──
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // ── Start camera ──
+  const {
+    status: cameraStatus,
+    errorMsg: cameraErrorMsg,
+    retryCount,
+    startCamera,
+    stopCamera,
+    retry: handleRetryCamera,
+  } = useCameraPreview(videoRef);
+
+  // ── Start/stop camera based on stage & capturedImage ──
   useEffect(() => {
-    if (stage !== 1 || capturedImage) return;
-
-    let mounted = true;
-    let localStream: MediaStream | null = null;
-
-    async function startCamera() {
-      try {
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false,
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false,
-          });
-        }
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        localStream = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          try {
-            await videoRef.current.play();
-          } catch (e) {
-            console.error("Autoplay failed:", e);
-          }
-        }
-        setCameraActive(true);
-        setCameraError(null);
-      } catch {
-        if (mounted) {
-          setCameraError(
-            "Camera access denied. Please allow camera access and try again.",
-          );
-          setCameraActive(false);
-        }
-      }
+    if (stage === 1 && !capturedImage) {
+      startCamera("environment");
+    } else {
+      stopCamera();
     }
+  }, [stage, capturedImage, startCamera, stopCamera]);
 
-    startCamera();
+  // ── Run AI Scan ──
+  const runAIScan = async (image: string) => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const res = await authFetch("/api/vision/analyze-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: image }),
+      });
 
-    return () => {
-      mounted = false;
-      localStream?.getTracks().forEach((t) => t.stop());
-    };
-  }, [stage, capturedImage]);
+      if (!res.ok) {
+        throw new Error("Failed to analyze scan");
+      }
+
+      const result = await res.json();
+
+      if (result.status === "blurry") {
+        setError("Photo is too blurry to analyze — please retake the picture");
+        setCapturedImage(null); // Reset captured image to show camera viewfinder again
+        return; // stay in Step 1
+      }
+
+      if (result.status === "unrecognized") {
+        setProductName("");
+        setEligibility(result.isChildFriendly ? "eligible" : "ineligible");
+        setAnalysisResult({
+          product_name: "Unrecognized Brand",
+          is_child_friendly: result.isChildFriendly,
+          flagged_ingredients: result.flaggedIngredients || [],
+          reasoning: result.reasoning || "Brand unrecognized. Please enter product details manually."
+        });
+        setPriceRangeMin(null);
+        setPriceRangeMax(null);
+        setIsUnrecognizedBrand(true);
+        setStage(2); // Go to Step 2
+        return;
+      }
+
+      if (result.status === "identified") {
+        setProductName(result.productName);
+        setEligibility(result.eligibilityStatus);
+        setAnalysisResult({
+          product_name: result.productName,
+          is_child_friendly: result.isChildFriendly,
+          flagged_ingredients: result.flaggedIngredients || [],
+          reasoning: result.reasoning
+        });
+        setPriceRangeMin(result.priceRangeMin);
+        setPriceRangeMax(result.priceRangeMax);
+        setIsUnrecognizedBrand(false);
+        setStage(2); // Go to Step 2
+        return;
+      }
+    } catch (err: any) {
+      setError("Failed to analyze image. Please try again under better lighting.");
+      setCapturedImage(null);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // ── Capture photo ──
   const capturePhoto = useCallback(() => {
+    setError(null);
     if (!videoRef.current || !canvasRef.current) {
       setCapturedImage(MOCK_FOOD_IMAGE);
-      setCameraActive(false);
+      stopCamera();
+      runAIScan(MOCK_FOOD_IMAGE);
       return;
     }
 
@@ -135,76 +163,105 @@ function AIScanContent() {
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       setCapturedImage(MOCK_FOOD_IMAGE);
-      setCameraActive(false);
+      stopCamera();
+      runAIScan(MOCK_FOOD_IMAGE);
       return;
     }
 
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setCapturedImage(dataUrl);
+    stopCamera();
+    runAIScan(dataUrl);
+  }, [stopCamera]);
 
-    // Stop camera after capture
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setCameraActive(false);
-  }, []);
-
-  // ── Bypass camera ──
-  const handleBypassCamera = useCallback(() => {
-    setCapturedImage(MOCK_FOOD_IMAGE);
-    setCameraActive(false);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-  }, []);
-
-  // ── Validate price ──
-  const priceValue = parseFloat(price);
-  const isPriceValid = !isNaN(priceValue) && priceValue > 0;
-  const isQuantityValid = quantity >= 1;
-  const isFormValid = isPriceValid && isQuantityValid;
-
-  // ── Submit to AI (Stage 1 → Stage 2) ──
-  const handleContinue = async () => {
-    if (!isFormValid || !capturedImage) return;
-
-    setIsProcessing(true);
+  // ── Validate product name & lookup pricing dynamically on blur ──
+  const handleProductNameBlur = async () => {
+    if (!productName.trim()) return;
+    setIsProcessingPrice(true);
     setError(null);
-
     try {
-      // Try real API first
-      const res = await fetch("/api/vision/classify", {
+      const res = await authFetch("/api/products/validate-or-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: capturedImage }),
+        body: JSON.stringify({ name: productName })
       });
-
       if (res.ok) {
         const data = await res.json();
-        const candidate = data.candidates?.[0];
-        const name = candidate?.name || "Unknown Product";
-        const eligibility = candidate?.product?.eligibilityStatus?.toLowerCase() === "eligible" ? "eligible" : "ineligible";
-        setProductName(name);
-        setEligibility(eligibility);
-      } else {
-        // Fall back to mock response
-        setProductName(MOCK_RESULT.name);
-        setEligibility(MOCK_RESULT.eligibility);
+        if (data.matched) {
+          setPriceRangeMin(data.product.price_range_min);
+          setPriceRangeMax(data.product.price_range_max);
+          setEligibility(data.product.eligibility_status);
+          
+          setAnalysisResult(prev => prev ? {
+            ...prev,
+            product_name: data.product.name,
+            is_child_friendly: data.product.eligibility_status === 'eligible'
+          } : null);
+        }
       }
-    } catch {
-      // API unavailable — use mock response
-      setProductName(MOCK_RESULT.name);
-      setEligibility(MOCK_RESULT.eligibility);
+    } catch (e) {
+      console.error(e);
     } finally {
-      setIsProcessing(false);
-      setStage(2);
+      setIsProcessingPrice(false);
     }
   };
 
+  // ── Validate price ──
+  const priceValue = parseFloat(price);
+  const isPriceRangeValid = priceRangeMin !== null && priceRangeMax !== null
+    ? (priceValue >= priceRangeMin && priceValue <= priceRangeMax)
+    : true;
+  const isPriceValid = !isNaN(priceValue) && priceValue > 0 && isPriceRangeValid;
+  const isQuantityValid = quantity >= 1;
+  const isFormValid = isPriceValid && isQuantityValid && productName.trim().length > 0;
+
   // ── Add to cart (Stage 2 → Stage 3) ──
-  const handleAddToCart = () => {
-    if (!productName || !isPriceValid || !eligibility) return;
+  const handleAddToCart = async () => {
+    if (!productName || !eligibility) return;
+
+    if (isUnrecognizedBrand && (priceRangeMin === null || priceRangeMax === null)) {
+      setIsProcessing(true);
+      try {
+        const res = await authFetch("/api/products/validate-or-create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: productName })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.matched) {
+            const p = data.product;
+            setPriceRangeMin(p.price_range_min);
+            setPriceRangeMax(p.price_range_max);
+            setEligibility(p.eligibility_status);
+            const val = parseFloat(price);
+            if (val < p.price_range_min || val > p.price_range_max) {
+              setError(`Price must be between ₱${p.price_range_min} and ₱${p.price_range_max}`);
+              setIsProcessing(false);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
+    const val = parseFloat(price);
+    if (isNaN(val) || val <= 0) return;
+    if (priceRangeMin !== null && priceRangeMax !== null) {
+      if (val < priceRangeMin || val > priceRangeMax) {
+        setError(`Price must be between ₱${priceRangeMin} and ₱${priceRangeMax}`);
+        return;
+      }
+    }
 
     addItem({
       name: productName,
-      price: priceValue,
+      price: val,
       quantity,
       eligibility,
       imageDataUrl: capturedImage || undefined,
@@ -222,9 +279,10 @@ function AIScanContent() {
     setQuantity(1);
     setEligibility(null);
     setError(null);
-    // Restart camera
-    setCameraActive(false);
-    setCameraError(null);
+    setAnalysisResult(null);
+    setPriceRangeMin(null);
+    setPriceRangeMax(null);
+    setIsUnrecognizedBrand(false);
   };
 
   // ── Stage 1 — Capture ──
@@ -266,12 +324,23 @@ function AIScanContent() {
           {/* Camera Viewfinder */}
           <div className="relative overflow-hidden rounded-2xl border-[3px] border-[#b2dfdb] bg-gray-100">
             {capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Captured product"
-                className="aspect-[4/3] w-full object-cover"
-              />
-            ) : cameraActive ? (
+              <div className="relative aspect-[4/3] w-full overflow-hidden">
+                <img
+                  src={capturedImage}
+                  alt="Captured product"
+                  className="h-full w-full object-cover"
+                />
+                {isProcessing && (
+                  <>
+                    <div className="absolute inset-x-0 top-0 h-1.5 bg-[#80cbc4] shadow-[0_0_12px_#80cbc4] scanner-animation-bar" />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
+                      <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (cameraStatus === "ready" || cameraStatus === "loading") ? (
               <>
                 <video
                   ref={videoRef}
@@ -281,154 +350,68 @@ function AIScanContent() {
                   className="aspect-[4/3] w-full object-cover"
                   aria-label="Camera viewfinder for capturing product image"
                 />
-                {/* Corner brackets */}
-                <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute left-3 top-3 h-10 w-10 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
-                  <div className="absolute right-3 top-3 h-10 w-10 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
-                  <div className="absolute bottom-3 left-3 h-10 w-10 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
-                  <div className="absolute bottom-3 right-3 h-10 w-10 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
-                </div>
-                {/* Camera capture button */}
-                <button
-                  type="button"
-                  onClick={capturePhoto}
-                  className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
-                  aria-label="Capture photo"
-                >
-                  <img
-                    src="/merchantLogos/camera2.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                </button>
+                {cameraStatus === "loading" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#034C52] border-t-transparent" />
+                    <p className="text-xs font-semibold text-[#034C52]/60">
+                      Camera starting...
+                    </p>
+                  </div>
+                )}
+                {cameraStatus === "ready" && (
+                  <>
+                    {/* Corner brackets */}
+                    <div className="pointer-events-none absolute inset-0">
+                      <div className="absolute left-3 top-3 h-10 w-10 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
+                      <div className="absolute right-3 top-3 h-10 w-10 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
+                      <div className="absolute bottom-3 left-3 h-10 w-10 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
+                      <div className="absolute bottom-3 right-3 h-10 w-10 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
+                    </div>
+                    {/* Camera capture button */}
+                    <button
+                      type="button"
+                      onClick={capturePhoto}
+                      className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
+                      aria-label="Capture photo"
+                    >
+                      <img
+                        src="/merchantLogos/camera2.png"
+                        alt=""
+                        className="h-10 w-10"
+                      />
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <div className="flex flex-col aspect-[4/3] w-full items-center justify-center gap-3 p-4 text-center bg-[#E3F0F2]" aria-live="polite">
                 <p className="text-xs font-semibold text-[#034C52]/60">
-                  {cameraError || "Camera starting..."}
+                  {cameraStatus === "timeout" ? "Camera activation timed out." : (cameraErrorMsg || "Camera unavailable")}
                 </p>
-                <button
-                  type="button"
-                  onClick={handleBypassCamera}
-                  className="rounded-full bg-[#034C52] px-4 py-2 text-xs font-bold text-white hover:bg-[#034C52]/90"
-                >
-                  Simulate Camera Capture
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRetryCamera}
+                    disabled={retryCount >= 3}
+                    className="rounded-full bg-[#034C52] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#034C52]/90 disabled:opacity-50"
+                  >
+                    Retry ({retryCount}/3)
+                  </button>
+                </div>
               </div>
             )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
 
-          {/* Quick Simulation Bypass Button (Always Visible when capturedImage is null) */}
-          {!capturedImage && (
-            <button
-              type="button"
-              onClick={handleBypassCamera}
-              className="mt-3 w-full rounded-xl border-2 border-dashed border-[#034C52]/40 bg-[#034C52]/5 py-3 font-body text-xs font-bold text-[#034C52] hover:bg-[#034C52]/10"
-            >
-              ⚡ Bypassed Camera? Use Mock Food Image
-            </button>
-          )}
-
           {/* Instruction */}
           <p className="mt-3 text-center font-body text-xs italic text-gray-400">
-            Take a picture of a single item in good lighting or click the bypass button above to test.
+            Take a picture of a single item in good lighting.
           </p>
 
-          {/* AI Detection Result / Form */}
-          {capturedImage && (
-            <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-body text-sm font-bold text-[#034C52]">
-                  AI Detection Result
-                </span>
-              </div>
-
-              {/* Product Name (readonly at this stage) */}
-              <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <label className="mb-1 block font-body text-xs font-medium text-gray-500">Product Name</label>
-                <p className="font-body text-base font-bold text-gray-800">
-                  {isProcessing ? "Analyzing..." : productName || "—"}
-                </p>
-              </div>
-
-              {/* Price & Quantity */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="price-capture" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
-                    Price (PHP)
-                  </label>
-                  <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
-                    <span className="flex-shrink-0 font-body text-sm text-gray-500">
-                      ₱
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <input
-                        id="price-capture"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <QuantitySelector
-                  value={quantity}
-                  onChange={setQuantity}
-                  min={1}
-                />
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="mt-3 rounded-lg bg-red-50 px-3 py-2" role="alert">
-                  <p className="font-body text-xs text-red-600">{error}</p>
-                </div>
-              )}
-
-              {/* Continue Button */}
-              <button
-                type="button"
-                onClick={handleContinue}
-                disabled={!isFormValid || isProcessing}
-                aria-disabled={!isFormValid || isProcessing}
-                aria-describedby="continue-hint"
-                className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <span className="inline-flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                    Analyzing...
-                  </span>
-                ) : (
-                  "Continue"
-                )}
-              </button>
-              <span id="continue-hint" className="sr-only">
-                {!isFormValid ? "Please enter a valid price and quantity" : isProcessing ? "AI is analyzing the image" : ""}
-              </span>
+          {/* Error */}
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-center" role="alert">
+              <p className="font-body text-xs font-semibold text-red-600">{error}</p>
             </div>
           )}
         </div>
@@ -438,6 +421,8 @@ function AIScanContent() {
 
   // ── Stage 2 — Review ──
   if (stage === 2) {
+    const isChildFriendly = eligibility === "eligible";
+
     return (
       <div className="min-h-dvh bg-[#fdf2ed]">
         {/* Header */}
@@ -488,9 +473,53 @@ function AIScanContent() {
               <div className="h-28 w-28 overflow-hidden rounded-2xl border border-gray-200 bg-white">
                 <img
                   src={capturedImage}
-                  alt={productName}
+                  alt={productName || "Product"}
                   className="h-full w-full object-cover"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Unrecognized Brand Hint */}
+          {isUnrecognizedBrand && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" role="alert">
+              <span className="block font-body text-sm font-bold text-amber-800">
+                ⚠ Brand Unrecognized
+              </span>
+              <span className="mt-1 block font-body text-xs text-amber-700">
+                AI could not confidently identify this brand. Please manually type the product name below.
+              </span>
+            </div>
+          )}
+
+          {/* Child Safety Analysis Card */}
+          {analysisResult && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#b2dfdb] bg-white shadow-sm">
+              <div className={`px-4 py-3 flex items-center justify-between border-b ${isChildFriendly ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"}`}>
+                <span className="font-body text-xs font-bold uppercase tracking-wider text-[#034C52]">
+                  Nutritional Safety Scan
+                </span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-body text-xs font-semibold ${isChildFriendly ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                  {isChildFriendly ? "✓ Child Friendly" : "⚠ Not Good for Children"}
+                </span>
+              </div>
+              <div className="px-4 py-4 space-y-3">
+                <div>
+                  <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Reasoning</h4>
+                  <p className="mt-1 font-body text-sm text-gray-700 leading-relaxed">{analysisResult.reasoning}</p>
+                </div>
+                {analysisResult.flagged_ingredients.length > 0 && (
+                  <div>
+                    <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">Flagged Ingredients</h4>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {analysisResult.flagged_ingredients.map((ing, idx) => (
+                        <span key={idx} className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 font-body text-xs font-medium text-amber-800">
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -505,8 +534,9 @@ function AIScanContent() {
                 type="text"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                className="min-w-0 flex-1 font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300"
-                placeholder="Product name"
+                onBlur={handleProductNameBlur}
+                className="min-w-0 flex-1 font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300 focus:border-b focus:border-[#017075]"
+                placeholder="Type Product Name..."
               />
               <button
                 type="button"
@@ -529,75 +559,84 @@ function AIScanContent() {
               </button>
             </div>
 
-            {/* Price & Quantity */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="price-ai" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
-                  Price (PHP)
-                </label>
-                <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
-                  <span className="flex-shrink-0 font-body text-sm text-gray-500">
-                    ₱
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <input
-                      id="price-ai"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
-                    />
+            {/* Price & Quantity - ONLY if child friendly */}
+            {isChildFriendly ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="price-ai" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
+                    Price (PHP)
+                  </label>
+                  <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075]">
+                    <span className="flex-shrink-0 font-body text-sm text-gray-500">
+                      ₱
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <input
+                        id="price-ai"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
+                      />
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center"
-                    aria-label="Edit price"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#9e8e82"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="opacity-50"
-                    >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
+                  {/* Price limits helper */}
+                  {priceRangeMin !== null && priceRangeMax !== null && (
+                    <span className="mt-1 block font-body text-[10px] text-gray-400">
+                      Allowed range: ₱{priceRangeMin} - ₱{priceRangeMax}
+                    </span>
+                  )}
+                  {isProcessingPrice && (
+                    <span className="mt-1 block font-body text-[10px] text-[#034C52] animate-pulse">
+                      Updating price range...
+                    </span>
+                  )}
                 </div>
+                <QuantitySelector
+                  value={quantity}
+                  onChange={setQuantity}
+                  min={1}
+                />
               </div>
-              <QuantitySelector
-                value={quantity}
-                onChange={setQuantity}
-                min={1}
-              />
-            </div>
+            ) : (
+              <div className="rounded-xl bg-red-50 p-4 border border-red-100">
+                <p className="font-body text-xs text-red-700 font-semibold leading-relaxed">
+                  ⚠ Purchase Blocked: This product is flagged as "Not Good for Children". In compliance with local nutritional health policies, it cannot be sold to beneficiaries.
+                </p>
+              </div>
+            )}
 
-            {/* Eligibility Toggle */}
+            {/* Eligibility Toggle (visual representation only) */}
             <div className="mt-5">
-              <EligibilityToggle value={eligibility} onChange={setEligibility} />
+              <EligibilityToggle value={eligibility} onChange={() => {}} disabled={true} />
             </div>
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={!productName || !isPriceValid || !eligibility}
-            aria-disabled={!productName || !isPriceValid || !eligibility}
-            aria-describedby="add-to-cart-hint"
-            className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Add to Cart
-          </button>
+          {/* Validation Error Banner */}
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-center" role="alert">
+              <p className="font-body text-xs font-semibold text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Add to Cart Button - HIDDEN entirely if ineligible */}
+          {isChildFriendly && (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!isFormValid || isProcessingPrice || isProcessing}
+              aria-disabled={!isFormValid || isProcessingPrice || isProcessing}
+              aria-describedby="add-to-cart-hint"
+              className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isProcessing ? "Validating price..." : "Add to Cart"}
+            </button>
+          )}
           <span id="add-to-cart-hint" className="sr-only">
-            {!productName ? "Enter a product name" : !isPriceValid ? "Enter a valid price greater than 0" : "Select an eligibility classification"}
+            {!productName ? "Enter a product name" : !isPriceValid ? "Enter a valid price within catalog range" : "Select an eligibility classification"}
           </span>
         </div>
       </div>

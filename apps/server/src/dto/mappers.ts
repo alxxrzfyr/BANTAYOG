@@ -27,7 +27,8 @@ export interface MerchantDTO {
   storeName: string
   ownerName: string
   mobileNumberE164: string
-  walletAddress: string
+  walletAddress: string | null
+  walletBalance: number
   status: string
   createdAt: string
 }
@@ -149,7 +150,8 @@ export function toMerchantDTO(row: any): MerchantDTO {
     storeName: row.store_name,
     ownerName: row.owner_name,
     mobileNumberE164: row.mobile_number_e164,
-    walletAddress: row.wallet_address,
+    walletAddress: row.wallet_address ?? null,
+    walletBalance: Number(row.wallet_balance ?? 0),
     status: row.status,
     createdAt: row.created_at
   }

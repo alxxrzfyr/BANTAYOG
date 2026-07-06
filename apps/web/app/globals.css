@@ -390,3 +390,16 @@ input[type=range]::-moz-range-progress {
     padding: 0 1rem;
   }
 }
+
+@keyframes scan {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(100% - 4px));
+  }
+}
+
+.scanner-animation-bar {
+  animation: scan 2.5s ease-in-out infinite;
+}
