@@ -38,6 +38,7 @@ typechain-types/
 !.vscode/extensions.json
 .idea/
 .kiro/
+kiro/
 *.swp
 *.swo
 .DS_Store
