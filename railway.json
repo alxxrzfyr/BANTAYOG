@@ -5,7 +5,7 @@
     "dockerfilePath": "apps/server/Dockerfile"
   },
   "deploy": {
-    "startCommand": "cd /app/apps/server && tsx src/index.ts",
+    "startCommand": "tsx /app/apps/server/src/index.ts",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
