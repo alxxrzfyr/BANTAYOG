@@ -5,8 +5,7 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@9.15.0
 
-# Copy monorepo root files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
 # Copy workspace package files
 COPY packages/config/package.json ./packages/config/
