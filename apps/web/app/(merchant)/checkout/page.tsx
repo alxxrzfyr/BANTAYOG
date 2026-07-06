@@ -7,7 +7,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { QRScanner } from "@/lib/qr/scanner";
-import { authFetch } from "@/lib/api";
+import { authFetch, clearMerchantToken } from "@/lib/api";
 import { useMerchantProfile } from "@/hooks/use-merchant-profile";
 
 /**
@@ -69,6 +69,7 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(true);
   const checkoutButtonRef = useRef<HTMLButtonElement>(null);
   const qrCloseButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -100,6 +101,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (modalState !== "qr-scan" || !videoRef.current) return;
 
+    setCameraLoading(true);
     const scanner = new QRScanner();
     scannerRef.current = scanner;
 
@@ -108,7 +110,11 @@ export default function CheckoutPage() {
         // On successful scan, decode the JWT and extract beneficiary data
         handleQRScanResult(result.text);
       })
+      .then(() => {
+        setCameraLoading(false);
+      })
       .catch((err) => {
+        setCameraLoading(false);
         setCameraError(
           err.message || "Camera access denied. Please allow camera access.",
         );
@@ -187,12 +193,12 @@ export default function CheckoutPage() {
       setSubmitError(null);
       if (!beneficiaryData || !qrToken || submitting) return;
 
-      // Map cart items to the transaction API schema. Cart items don't carry
-      // a nutrition category, so eligible items default to VEGETABLES; the
+      // Map cart items to the transaction API schema. Cart items carry a
+      // nutrition category (which defaults to VEGETABLES if missing); the
       // credit cost is the whole-PHPC line total (server converts 1 credit =
       // 1 PHPC and requires integer amounts).
       const txItems = eligibleItems.map((item) => ({
-        category: "VEGETABLES" as const,
+        category: (item.category || "VEGETABLES") as any,
         name: item.name,
         quantity: item.quantity,
         unitPricePhp: item.price,
@@ -273,7 +279,9 @@ export default function CheckoutPage() {
             "Too many incorrect PIN attempts. This pass is temporarily locked. Try again later.",
           );
         } else if (res.status === 401) {
-          setSubmitError("Merchant session expired. Please log in again.");
+          clearMerchantToken();
+          router.replace("/merchant-login");
+          return;
         } else {
           setSubmitError(
             message || "Transaction failed. Please try again.",
@@ -530,6 +538,16 @@ export default function CheckoutPage() {
                   aria-label="Camera viewfinder for scanning QR codes"
                 />
 
+                {/* Camera loading indicator */}
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 rounded-3xl gap-2 p-4 text-center z-10" aria-live="polite">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#f48d79] border-t-transparent" />
+                    <p className="font-body text-sm font-semibold text-white/80">
+                      Starting camera...
+                    </p>
+                  </div>
+                )}
+
                 {/* Scanner frame border */}
                 <div className="pointer-events-none absolute inset-2 rounded-2xl border-2 border-dashed border-[#f48d79]" />
 
@@ -696,7 +714,26 @@ function PINModal({
             Pin Validation
           </span>
         </div>
-        <div className="w-11" />
+        <button
+          type="button"
+          onClick={onEscapeToNone}
+          className="flex h-11 w-11 items-center justify-center"
+          aria-label="Close PIN validation and return to checkout"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </header>
 
       {/* Content */}

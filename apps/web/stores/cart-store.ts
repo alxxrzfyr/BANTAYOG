@@ -12,6 +12,7 @@ export interface CartItem {
   quantity: number;
   eligibility: "eligible" | "ineligible";
   imageDataUrl?: string;
+  category?: string;
 }
 
 interface CartState {
@@ -32,6 +33,7 @@ const CartItemSchema = z.object({
   quantity: z.number().int().positive(),
   eligibility: z.enum(["eligible", "ineligible"]),
   imageDataUrl: z.string().optional(),
+  category: z.string().optional(),
 });
 
 const PersistedStateSchema = z.object({
@@ -73,13 +75,14 @@ export const useCartStore = create<CartState>()(
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
-        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl }) => ({
+        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl, category }) => ({
           id,
           name,
           price,
           quantity,
           eligibility,
           imageDataUrl,
+          category,
         })),
       }),
       onRehydrateStorage: () => {

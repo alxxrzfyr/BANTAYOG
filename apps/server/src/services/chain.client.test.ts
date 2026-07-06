@@ -12,12 +12,13 @@ import type { ChainConfig } from '../lib/chain/config.js'
 // tests stay deterministic and never touch the network, while keeping every
 // other viem export (defineChain, keccak256, toBytes, http) real.
 // ---------------------------------------------------------------------------
-const { getChainIdMock, readContractMock, writeContractMock, createPublicClientMock, createWalletClientMock } =
+const { getChainIdMock, readContractMock, writeContractMock, getTransactionCountMock, createPublicClientMock, createWalletClientMock } =
   vi.hoisted(() => {
     return {
       getChainIdMock: vi.fn(),
       readContractMock: vi.fn(),
       writeContractMock: vi.fn(),
+      getTransactionCountMock: vi.fn(),
       createPublicClientMock: vi.fn(),
       createWalletClientMock: vi.fn(),
     }
@@ -35,7 +36,8 @@ vi.mock('viem', async () => {
 createPublicClientMock.mockImplementation(() => ({
   getChainId: getChainIdMock,
   readContract: readContractMock,
-  waitForTransactionReceipt: vi.fn(),
+  getTransactionCount: getTransactionCountMock,
+  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: 'success' }),
 }))
 
 createWalletClientMock.mockImplementation((args: { account?: unknown }) => ({
@@ -78,6 +80,7 @@ function buildConfig(overrides: Partial<ChainConfig> = {}): ChainConfig {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  getTransactionCountMock.mockResolvedValue(0)
 })
 
 // ---------------------------------------------------------------------------
@@ -297,7 +300,7 @@ describe('Property 4: chain operation failures propagate as typed errors with no
           // the very next write call on the same client instance succeeds
           // cleanly rather than replaying or being tainted by the prior
           // failure.
-          writeContractMock.mockResolvedValueOnce('0xrecovered' as Hex)
+          writeContractMock.mockResolvedValue('0xrecovered' as Hex)
           const recoveredResult = await client.allocateCredits('some-beneficiary', amount)
           expect(recoveredResult.isOk()).toBe(true)
           expect(recoveredResult._unsafeUnwrap()).toBe('0xrecovered')

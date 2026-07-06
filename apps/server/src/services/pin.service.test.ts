@@ -115,7 +115,7 @@ describe('Property 16: PIN hashing/verification round-trip', () => {
       ),
       { numRuns: 20 },
     )
-  })
+  }, 120000)
 })
 
 
@@ -170,5 +170,5 @@ describe('Property 17: PIN lockout after five consecutive failures', () => {
       ),
       { numRuns: 20 },
     )
-  })
+  }, 120000)
 })

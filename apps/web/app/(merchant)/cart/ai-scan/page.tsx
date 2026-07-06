@@ -46,6 +46,7 @@ function AIScanContent() {
   const [eligibility, setEligibility] = useState<
     "eligible" | "ineligible" | null
   >(null);
+  const [category, setCategory] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +132,7 @@ function AIScanContent() {
         const detectedName = result.productName || "Unrecognized Brand";
         setProductName(detectedName);
         setEligibility(result.isChildFriendly ? "eligible" : "ineligible");
+        setCategory(undefined);
         setAnalysisResult({
           product_name: detectedName,
           is_child_friendly: result.isChildFriendly,
@@ -147,6 +149,7 @@ function AIScanContent() {
       if (result.status === "identified") {
         setProductName(result.productName);
         setEligibility(result.eligibilityStatus);
+        setCategory(result.category);
         setAnalysisResult({
           product_name: result.productName,
           is_child_friendly: result.isChildFriendly,
@@ -226,6 +229,7 @@ function AIScanContent() {
           setPriceRangeMin(data.product.price_range_min);
           setPriceRangeMax(data.product.price_range_max);
           setEligibility(data.product.eligibility_status);
+          setCategory(data.product.category);
           
           setAnalysisResult(prev => prev ? {
             ...prev,
@@ -269,6 +273,7 @@ function AIScanContent() {
             setPriceRangeMin(p.price_range_min);
             setPriceRangeMax(p.price_range_max);
             setEligibility(p.eligibility_status);
+            setCategory(p.category);
             const val = parseFloat(price);
             if (val < p.price_range_min || val > p.price_range_max) {
               setError(`Price must be between ₱${p.price_range_min} and ₱${p.price_range_max}`);
@@ -299,6 +304,7 @@ function AIScanContent() {
       quantity,
       eligibility,
       imageDataUrl: capturedImage || undefined,
+      category,
     });
     setInputSource("ai");
     setStage(3);
@@ -312,6 +318,7 @@ function AIScanContent() {
     setPrice("");
     setQuantity(1);
     setEligibility(null);
+    setCategory(undefined);
     setError(null);
     setAnalysisResult(null);
     setPriceRangeMin(null);

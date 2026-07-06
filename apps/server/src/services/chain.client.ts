@@ -298,7 +298,7 @@ export class BlockchainClient {
       return ok(hash)
     } catch (e: any) {
       console.error("CAUGHT ONCHAIN ERROR:", e);
-      return err(new OnchainError(`allocateCredits failed: ${e.message || 'Unknown Error'}`, toErrorCode(e)))
+      return err(new OnchainError(`allocateCredits failed on ${NETWORK_NAME}: ${e.message || 'Unknown Error'}`, toErrorCode(e)))
     }
   }
 

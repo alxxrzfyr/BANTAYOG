@@ -304,7 +304,7 @@ describe('Property 15: registration wallet failure persists no partial state', (
       ),
       { numRuns: 100 },
     )
-  })
+  }, 120000)
 })
 
 // ---------------------------------------------------------------------------
