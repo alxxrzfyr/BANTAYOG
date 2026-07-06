@@ -16,8 +16,10 @@
 
 BANTAYOG converts loose nutrition cash grants into a nutrition-locked, blockchain-settled digital wallet. Guardians get a physical QR "Nutri-Pass" that can only be spent on approved nutritious food at local sari-sari stores, with every transaction traceable on-chain on the Polygon Amoy testnet.
 
-> [!NOTE]
-> Built for SparkFest 2026 (theme: Building Smarter, Safer, and More Inclusive Communities) to close the gap between government nutrition funding and actual child nutrition outcomes.
+
+[!NOTE]
+Built for SparkFest 2026 (theme: Building Smarter, Safer, and More Inclusive Communities) to close the gap between government nutrition funding and actual child nutrition outcomes.
+
 
 ---
 
@@ -199,7 +201,6 @@ npm install -g pnpm@9.15.0
 git clone <repository-url> bantayog
 cd bantayog
 pnpm install
-```
 
 ### 7.3 Environment Variables
 
@@ -287,7 +288,6 @@ Your deployer wallet needs POL to pay gas on Polygon Amoy.
 
 ```bash
 pnpm deploy:contracts
-```
 
 This runs `packages/contracts/scripts/deploy.ts` against the `amoy` network:
 
