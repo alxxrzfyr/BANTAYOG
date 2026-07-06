@@ -97,8 +97,12 @@ export default function MerchantLoginPage() {
         // merchant-only calls (e.g. POST /api/transactions at checkout).
         const body = await res.json().catch(() => null);
         const accessToken = body?.session?.accessToken;
+        const expiresAt = body?.session?.expiresAt;  // unix timestamp
         if (accessToken) {
           window.localStorage.setItem(MERCHANT_TOKEN_KEY, accessToken);
+          if (expiresAt) {
+            window.localStorage.setItem(MERCHANT_TOKEN_KEY + "_expires", String(expiresAt));
+          }
         }
         router.push("/dashboard");
         return;

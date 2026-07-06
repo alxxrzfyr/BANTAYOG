@@ -24,6 +24,7 @@ interface BalanceTransaction {
 }
 
 interface BalanceView {
+  beneficiaryName: string;
   balance: number;
   transactions: BalanceTransaction[];
 }
@@ -132,6 +133,10 @@ function BalanceContent() {
           <>
             {/* Balance card */}
             <div className="rounded-3xl bg-[#034C52] px-7 py-8 text-center shadow-sm">
+              <p className="font-body text-base font-bold text-white/90">
+                {state.data.beneficiaryName}
+              </p>
+              <div className="h-px w-16 bg-white/10 mx-auto my-4" />
               <p className="font-body text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
                 Current Balance
               </p>

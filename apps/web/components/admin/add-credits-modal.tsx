@@ -31,6 +31,7 @@ export interface AddCreditsModalProps {
   tier: BeneficiaryTier;
   /** Called after a successful credit addition so the table can refresh */
   onSuccess: () => void;
+  lguBalance: number | null;
 }
 
 /** Fixed one-time allocation amounts, in whole PHPC (Requirements 4.1, 4.2). */
@@ -44,9 +45,8 @@ export function AddCreditsModal({
   beneficiaryName,
   tier,
   onSuccess,
+  lguBalance,
 }: AddCreditsModalProps) {
-  const [lguBalance, setLguBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,20 +54,11 @@ export function AddCreditsModal({
   const allocationAmount = isCritical ? TIER_1_ALLOCATION : TIER_2_ALLOCATION;
   const tierLabel = isCritical ? "Tier 1 · Critical 1,000-Day Window" : "Tier 2 · Standard";
 
-  /* Fetch LGU wallet balance when modal opens */
+  /* Reset error when modal opens */
   useEffect(() => {
-    if (!open) return;
-    setError(null);
-    setBalanceLoading(true);
-
-    authFetch("/api/chain/balance")
-      .then((r) => r.json())
-      .then((data) => {
-        const bal = parseFloat(data?.formatted ?? data?.balance ?? "0");
-        setLguBalance(isNaN(bal) ? 0 : bal);
-      })
-      .catch(() => setLguBalance(0))
-      .finally(() => setBalanceLoading(false));
+    if (open) {
+      setError(null);
+    }
   }, [open]);
 
   const insufficientBalance =
@@ -121,7 +112,7 @@ export function AddCreditsModal({
         <div className="rounded-t-[1.75rem] bg-brand-darkTeal px-8 pt-7 pb-6 flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-white font-black text-3xl leading-none tracking-tight">
-              {balanceLoading ? "…" : lguBalance !== null
+              {lguBalance !== null
                 ? `${lguBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} PHPC`
                 : "00.00 PHPC"}
             </p>

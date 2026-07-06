@@ -48,6 +48,7 @@ const PAGE_SIZE = 5;
 export default function MerchantsPage() {
   const [merchants, setMerchants] = useState<MerchantRow[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [lguBalance, setLguBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -56,9 +57,10 @@ export default function MerchantsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [merchantRes, metricsRes] = await Promise.allSettled([
+      const [merchantRes, metricsRes, balRes] = await Promise.allSettled([
         authFetch("/api/merchants"),
         authFetch("/api/beneficiaries/metrics"),
+        authFetch("/api/chain/balance"),
       ]);
 
       if (merchantRes.status === "fulfilled" && merchantRes.value.ok) {
@@ -69,6 +71,12 @@ export default function MerchantsPage() {
       if (metricsRes.status === "fulfilled" && metricsRes.value.ok) {
         const m = await metricsRes.value.json();
         setMetrics(m);
+      }
+
+      if (balRes.status === "fulfilled" && balRes.value.ok) {
+        const b = await balRes.value.json();
+        const parsed = parseFloat(b?.formatted ?? b?.balance ?? "0");
+        setLguBalance(isNaN(parsed) ? 0 : parsed);
       }
     } finally {
       setLoading(false);
@@ -189,9 +197,13 @@ export default function MerchantsPage() {
           }
         />
         <MetricCard
-          label="LGU TREASURY"
-          value={metrics ? `${metrics.allocatedPhpc} PHPC` : "—"}
-          subtext="LGU Subsidy Fund Pool"
+          label="LGU TREASURY (MOCK PHPC)"
+          value={
+            lguBalance !== null
+              ? `${lguBalance.toLocaleString("en-PH", { maximumFractionDigits: 0 })} PHPC`
+              : "—"
+          }
+          subtext="On-chain Subsidy Fund Pool"
           subtextColor="text-brand-darkTeal/40"
           valueLarge
           icon={

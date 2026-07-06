@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
 import { ProgressIndicator } from "@/components/merchant/progress-indicator";
 import { QuantitySelector } from "@/components/merchant/quantity-selector";
@@ -11,7 +11,7 @@ import { EligibilityToggle } from "@/components/merchant/eligibility-toggle";
 import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
-import { authFetch } from "@/lib/api";
+import { authFetch, clearMerchantToken } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // AI Image Scan Flow — 3 stages in one page (ref: 16-21.png)
@@ -30,6 +30,7 @@ export default function AIScanPage() {
 }
 
 function AIScanContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const addItem = useCartStore((s) => s.addItem);
   const setInputSource = useCartStore((s) => s.setInputSource);
@@ -95,7 +96,27 @@ function AIScanContent() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to analyze scan");
+        // Try to parse the actual error from server
+        let serverError = "";
+        try {
+          const errBody = await res.json();
+          serverError = errBody?.message || "";
+        } catch { /* ignore */ }
+
+        if (res.status === 401 || res.status === 403) {
+          // Token expired or invalid — clear it and redirect to login
+          clearMerchantToken();
+          router.replace("/merchant-login");
+          return;
+        } else if (res.status === 429 || serverError.includes("rate_limit")) {
+          setError("AI service is busy — please wait a moment and try again.");
+        } else if (serverError.includes("image_error")) {
+          setError("Could not read the image. Try capturing again in better lighting.");
+        } else {
+          setError(serverError || "Scan failed. Please try again.");
+        }
+        setCapturedImage(null);
+        return;
       }
 
       const result = await res.json();
@@ -107,13 +128,14 @@ function AIScanContent() {
       }
 
       if (result.status === "unrecognized") {
-        setProductName("");
+        const detectedName = result.productName || "Unrecognized Brand";
+        setProductName(detectedName);
         setEligibility(result.isChildFriendly ? "eligible" : "ineligible");
         setAnalysisResult({
-          product_name: "Unrecognized Brand",
+          product_name: detectedName,
           is_child_friendly: result.isChildFriendly,
           flagged_ingredients: result.flaggedIngredients || [],
-          reasoning: result.reasoning || "Brand unrecognized. Please enter product details manually."
+          reasoning: result.reasoning || "Brand unrecognized. Please verify product details."
         });
         setPriceRangeMin(null);
         setPriceRangeMax(null);
@@ -138,7 +160,19 @@ function AIScanContent() {
         return;
       }
     } catch (err: any) {
-      setError("Failed to analyze image. Please try again under better lighting.");
+      // Try to get the real error from the server response body
+      let userMessage = "Something went wrong. Please try again.";
+      try {
+        const serverMsg: string = err?.message || "";
+        if (serverMsg.includes("rate_limit")) {
+          userMessage = "AI service is busy — please wait a moment and try again.";
+        } else if (serverMsg.includes("image_error")) {
+          userMessage = "Could not read the image. Try capturing again with better lighting.";
+        } else if (serverMsg.includes("scan_error")) {
+          userMessage = "Scan failed. Please try again.";
+        }
+      } catch { /* ignore */ }
+      setError(userMessage);
       setCapturedImage(null);
     } finally {
       setIsProcessing(false);
@@ -484,10 +518,10 @@ function AIScanContent() {
           {isUnrecognizedBrand && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" role="alert">
               <span className="block font-body text-sm font-bold text-amber-800">
-                ⚠ Brand Unrecognized
+                ⚠ Unconfirmed – detected from package text only.
               </span>
               <span className="mt-1 block font-body text-xs text-amber-700">
-                AI could not confidently identify this brand. Please manually type the product name below.
+                Please verify or edit before adding the item.
               </span>
             </div>
           )}

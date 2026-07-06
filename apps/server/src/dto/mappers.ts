@@ -92,6 +92,7 @@ export interface BalanceViewTransactionDTO {
  * mutating fields/actions and is scoped to a single beneficiary.
  */
 export interface BalanceViewDTO {
+  beneficiaryName: string
   balance: number
   transactions: BalanceViewTransactionDTO[]
 }

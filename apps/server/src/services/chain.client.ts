@@ -237,6 +237,47 @@ export class BlockchainClient {
       return err(new OnchainError('Wallet client not initialized: missing deployer key', 0))
     }
     try {
+      // Get the current nonce to avoid RPC lag issues
+      const nonce = await this.publicClient.getTransactionCount({ 
+        address: this.walletClient.account.address 
+      });
+
+      console.log(`[allocateCredits] Initiating transfer for ${beneficiaryId} with nonce ${nonce}`);
+
+      // 1. Transfer the required amount of PHPC from the LGU treasury to the Subsidy contract
+      const transferHash = await this.walletClient.writeContract({
+        address: this.config.phpcTokenAddress,
+        abi: PHPC_ABI,
+        functionName: 'transfer',
+        args: [this.config.phpcSubsidyAddress, amountWei],
+        account: this.walletClient.account,
+        chain: this.chain,
+        nonce: nonce,
+        gas: 100000n, // Skip simulation
+      }).catch(e => {
+         console.error("TRANSFER ERROR:", e);
+         throw e;
+      });
+      
+      console.log(`[allocateCredits] Transfer broadcast: ${transferHash}, awaiting receipt...`);
+
+      // Wait for the transfer to be confirmed before allocating
+      const receipt = await this.publicClient.waitForTransactionReceipt({ 
+        hash: transferHash, 
+        timeout: OPERATION_TIMEOUT_MS 
+      }).catch(e => {
+         console.error("RECEIPT ERROR:", e);
+         throw e;
+      });
+
+      if (receipt.status !== 'success') {
+         console.error("TRANSFER REVERTED:", receipt);
+         throw new Error("Transfer reverted on-chain");
+      }
+
+      console.log(`[allocateCredits] Transfer confirmed. Allocating credits with nonce ${nonce + 1}`);
+
+      // 2. Allocate the credits in the Subsidy contract
       const idHash = this.hashUuid(beneficiaryId)
       const hash = await this.walletClient.writeContract({
         address: this.config.phpcSubsidyAddress,
@@ -245,10 +286,19 @@ export class BlockchainClient {
         args: [idHash, amountWei],
         account: this.walletClient.account,
         chain: this.chain,
-      })
+        nonce: nonce + 1,
+        gas: 150000n, // Skip simulation
+      }).catch(e => {
+         console.error("ALLOCATE ERROR:", e);
+         throw e;
+      });
+
+      console.log(`[allocateCredits] Allocation broadcast: ${hash}`);
+
       return ok(hash)
-    } catch (e) {
-      return err(new OnchainError(`allocateCredits failed on ${NETWORK_NAME}`, toErrorCode(e)))
+    } catch (e: any) {
+      console.error("CAUGHT ONCHAIN ERROR:", e);
+      return err(new OnchainError(`allocateCredits failed: ${e.message || 'Unknown Error'}`, toErrorCode(e)))
     }
   }
 

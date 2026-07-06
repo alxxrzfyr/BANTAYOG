@@ -62,7 +62,7 @@ balanceRoutes.get('/view', async (c) => {
   try {
     const { data, error } = await (db as any)
       .from('beneficiaries')
-      .select('id, credit_balance')
+      .select('id, credit_balance, child_name')
       .eq('id', beneficiaryId)
       .single()
 
@@ -98,6 +98,7 @@ balanceRoutes.get('/view', async (c) => {
     }
 
     const body: BalanceViewDTO = {
+      beneficiaryName: beneficiary.child_name,
       balance: Number(beneficiary.credit_balance),
       transactions: (transactions ?? []).map(toBalanceViewTransactionDTO),
     }
