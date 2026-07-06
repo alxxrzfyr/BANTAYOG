@@ -10,7 +10,7 @@ import { app } from './app.js'
 const port = Number(process.env.PORT ?? 3001)
 
 // Start the Node.js HTTP server for Railway/local development
-serve({ fetch: app.fetch, port }, async (info) => {
+serve({ fetch: app.fetch, port, hostname: '0.0.0.0' }, async (info) => {
   console.log(`BANTAYOG server running on http://localhost:${info.port}`)
   
   // Start the on-chain event listener

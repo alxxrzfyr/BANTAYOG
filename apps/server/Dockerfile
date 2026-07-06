@@ -29,4 +29,4 @@ RUN pnpm build --filter=@bantayog/server
 EXPOSE 3001
 
 # Start the server
-CMD ["pnpm", "--filter=@bantayog/server", "dev"]
+CMD ["pnpm", "--filter=@bantayog/server", "start"]
