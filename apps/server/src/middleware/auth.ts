@@ -49,9 +49,16 @@ export const authMiddleware = createMiddleware<{
   // Verify the JWT via Supabase auth.getUser()
   // This delegates verification to Supabase's JWT validation
   try {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Auth Middleware Error: Missing Supabase environment variables in backend!");
+    }
+
     const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
+      supabaseUrl!,
+      supabaseKey!,
       {
         auth: { autoRefreshToken: false, persistSession: false },
         global: { headers: { Authorization: `Bearer ${token}` } },
@@ -60,7 +67,12 @@ export const authMiddleware = createMiddleware<{
 
     const {
       data: { user },
+      error
     } = await supabase.auth.getUser()
+
+    if (error) {
+      console.error("Supabase getUser error:", error.message)
+    }
 
     if (user) {
       c.set('user', {
@@ -71,7 +83,8 @@ export const authMiddleware = createMiddleware<{
     } else {
       c.set('user', null)
     }
-  } catch {
+  } catch (err) {
+    console.error("Auth Middleware Caught Exception:", err)
     c.set('user', null)
   }
 

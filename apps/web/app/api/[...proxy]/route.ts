@@ -13,10 +13,10 @@ async function proxyRequest(req: NextRequest) {
   // Construct the target URL. 
   // e.g. /api/beneficiaries -> https://bantayogserver.../api/beneficiaries
   const targetUrl = new URL(url.pathname + url.search, API_BASE_URL);
+  console.log("PROXYING TO:", targetUrl.href);
 
   // Forward essential headers
   const headers = new Headers();
-  headers.set('host', targetUrl.host);
   if (req.headers.has('authorization')) headers.set('authorization', req.headers.get('authorization')!);
   if (req.headers.has('content-type')) headers.set('content-type', req.headers.get('content-type')!);
   
