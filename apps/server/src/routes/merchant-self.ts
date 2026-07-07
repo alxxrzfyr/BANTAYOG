@@ -88,6 +88,13 @@ merchantSelfRoutes.get('/', async (c) => {
     )
   }
 
+  if (merchant.status === 'SUSPENDED') {
+    return c.json(
+      { error: 'forbidden', message: 'Merchant account has been suspended.' },
+      403,
+    )
+  }
+
   const dto: MerchantSelfDTO = {
     id: merchant.id,
     storeName: merchant.store_name,

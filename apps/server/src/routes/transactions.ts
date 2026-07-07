@@ -14,16 +14,15 @@ import type { Env } from '../types/env.js'
 const transactionRoutes = new Hono<{ Bindings: Env; Variables: AuthContext }>()
 
 const NutritionCategorySchema = z.enum([
-  'EGGS',
-  'FRESH_MILK',
-  'POWDERED_MILK',
+  'FRUITS',
   'VEGETABLES',
-  'LEAN_MEAT',
-  'FISH',
-  'BEANS_LENTILS',
-  'RICE_BROWN',
-  'FRUIT_FRESH',
-  'NUT_BUTTER',
+  'MEATS',
+  'BEVERAGES',
+  'DAIRY',
+  'GRAINS',
+  'CANNED_GOODS',
+  'SNACKS',
+  'OTHER',
 ])
 
 const TransactionItemSchema = z.object({
@@ -32,6 +31,7 @@ const TransactionItemSchema = z.object({
   quantity: z.number().positive(),
   unitPricePhp: z.number().nonnegative(),
   creditCost: z.number().nonnegative(),
+  imageUrl: z.string().optional(),
 })
 
 const createTransactionSchema = z.object({
@@ -89,6 +89,17 @@ transactionRoutes.post(
 
     const { beneficiaryId } = decodedToken
 
+    // Check if the QR token is expired in the database (status suspends it)
+    const { data: qrPass } = await (db as any)
+      .from('qr_passes')
+      .select('expires_at')
+      .eq('beneficiary_id', beneficiaryId)
+      .maybeSingle()
+
+    if (qrPass && qrPass.expires_at && new Date(qrPass.expires_at) <= new Date()) {
+      return c.json({ error: 'unauthorized', message: 'This pass is invalid or has expired.' }, 401)
+    }
+
     // 3. Fetch beneficiary and verify PIN
     const { data: beneficiary, error: beneficiaryErr } = await (db as any)
       .from('beneficiaries')
@@ -98,6 +109,10 @@ transactionRoutes.post(
 
     if (beneficiaryErr || !beneficiary) {
       return c.json({ error: 'not_found', message: 'Beneficiary not found' }, 404)
+    }
+
+    if (beneficiary.eligibility_status === 'SUSPENDED' || beneficiary.eligibility_status === 'INELIGIBLE') {
+      return c.json({ error: 'unauthorized', message: 'This beneficiary is currently suspended or ineligible.' }, 401)
     }
 
     const pinService = new PinService()

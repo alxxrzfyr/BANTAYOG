@@ -512,6 +512,25 @@ export class BeneficiaryService {
         return err(new PersistenceError(`Failed to update status for beneficiary: ${error?.message || beneficiaryId}`, 'beneficiaries'));
       }
 
+      // Automatically expire or un-expire beneficiary QR tokens based on the new status
+      if (status === 'SUSPENDED' || status === 'INELIGIBLE') {
+        const { error: qrError } = await (this.db as any)
+          .from('qr_passes')
+          .update({ expires_at: new Date().toISOString() })
+          .eq('beneficiary_id', beneficiaryId);
+        if (qrError) {
+          console.error("Failed to auto-expire beneficiary QR pass:", qrError.message);
+        }
+      } else if (status === 'ELIGIBLE') {
+        const { error: qrError } = await (this.db as any)
+          .from('qr_passes')
+          .update({ expires_at: null })
+          .eq('beneficiary_id', beneficiaryId);
+        if (qrError) {
+          console.error("Failed to auto-reactivate beneficiary QR pass:", qrError.message);
+        }
+      }
+
       return ok(data);
     } catch (error: any) {
       return err(new PersistenceError(`Update status operation failed: ${error.message}`, 'beneficiaries'));

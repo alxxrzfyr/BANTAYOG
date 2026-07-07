@@ -235,6 +235,7 @@ export default function CheckoutPage() {
         quantity: item.quantity,
         unitPricePhp: item.price,
         creditCost: Math.max(1, Math.round(item.price * item.quantity)),
+        imageUrl: item.imageDataUrl,
       }));
 
       // Frontend Validations

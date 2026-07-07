@@ -60,10 +60,20 @@ function makeTransactionsQuery(rows: any[]) {
   return builder
 }
 
+function makeQrPassesQuery() {
+  const builder: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  }
+  return builder
+}
+
 const mockSupabaseClient: any = {
   from: vi.fn().mockImplementation((table: string) => {
     if (table === 'beneficiaries') return makeBeneficiaryQuery(beneficiaryRow)
     if (table === 'transactions') return makeTransactionsQuery(transactionRows)
+    if (table === 'qr_passes') return makeQrPassesQuery()
     return makeBeneficiaryQuery(null)
   }),
 }

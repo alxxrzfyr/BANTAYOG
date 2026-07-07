@@ -13,6 +13,7 @@ export interface ValidationSuccessResult {
     category: string
     price_range_min: number
     price_range_max: number
+    image_url?: string | null
   }
 }
 
@@ -58,7 +59,8 @@ export class ProductsService {
           eligibility_status: matched.eligibility_status,
           category: matched.category,
           price_range_min: Number(matched.price_range_min),
-          price_range_max: Number(matched.price_range_max)
+          price_range_max: Number(matched.price_range_max),
+          image_url: matched.image_url
         }
       })
     } catch (error: any) {
@@ -70,7 +72,11 @@ export class ProductsService {
    * Validates a product by name. If it doesn't exist, researches it via Gemini,
    * creates a draft row with category='Draft' and ±₱10 price range, and returns it.
    */
-  async validateOrCreateProduct(name: string): Promise<AppResult<ValidationSuccessResult>> {
+  async validateOrCreateProduct(
+    name: string,
+    imageUrl?: string,
+    category?: string
+  ): Promise<AppResult<ValidationSuccessResult>> {
     const trimmedName = name.trim()
     
     try {
@@ -85,6 +91,30 @@ export class ProductsService {
 
       if (existing && existing.length > 0) {
         const matched = existing[0] as any
+        let needsUpdate = false
+        const updatePayload: any = {}
+
+        if (!matched.image_url && imageUrl) {
+          updatePayload.image_url = imageUrl
+          needsUpdate = true
+        }
+        if (matched.category === 'Draft' && category && category !== 'Draft') {
+          updatePayload.category = category
+          needsUpdate = true
+        }
+
+        if (needsUpdate) {
+          const { error: updateError } = await (this.db as any)
+            .from('products')
+            .update(updatePayload)
+            .eq('id', matched.id)
+          
+          if (!updateError) {
+            if (updatePayload.image_url) matched.image_url = updatePayload.image_url
+            if (updatePayload.category) matched.category = updatePayload.category
+          }
+        }
+
         return ok({
           matched: true,
           product: {
@@ -93,7 +123,8 @@ export class ProductsService {
             eligibility_status: matched.eligibility_status as 'eligible' | 'ineligible',
             category: matched.category,
             price_range_min: Number(matched.price_range_min),
-            price_range_max: Number(matched.price_range_max)
+            price_range_max: Number(matched.price_range_max),
+            image_url: matched.image_url
           }
         })
       }
@@ -145,11 +176,12 @@ Return JSON matching this schema:
       // 3. Insert new draft row
       const inserted = await this.productRepo.insert({
         name: trimmedName,
-        category: 'Draft', // Mark as draft category for admin review
+        category: category || 'Draft', // Mark as draft category for admin review or use AI category
         eligibility_status: isChildFriendly ? 'eligible' : 'ineligible',
         price_range_min: minPrice,
-        price_range_max: maxPrice
-      })
+        price_range_max: maxPrice,
+        image_url: imageUrl || null
+      } as any)
 
       return ok({
         matched: true,
@@ -159,7 +191,8 @@ Return JSON matching this schema:
           eligibility_status: inserted.eligibility_status as 'eligible' | 'ineligible',
           category: inserted.category,
           price_range_min: Number(inserted.price_range_min),
-          price_range_max: Number(inserted.price_range_max)
+          price_range_max: Number(inserted.price_range_max),
+          image_url: inserted.image_url
         }
       })
     } catch (errVal: any) {

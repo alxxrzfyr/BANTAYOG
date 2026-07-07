@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { createClient } from '@supabase/supabase-js'
 import { CreateBeneficiaryDto } from '@bantayog/schema'
 import { createServiceClient } from '../lib/supabase.js'
 import { BeneficiaryService } from '../services/beneficiary.service.js'
+import { type AuthContext } from '../middleware/auth.js'
 import { toBeneficiaryDTO } from '../dto/mappers.js'
 import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
-const beneficiaryRoutes = new Hono<{ Bindings: Env }>()
+const beneficiaryRoutes = new Hono<{ Bindings: Env; Variables: AuthContext }>()
 
 /**
  * POST /api/beneficiaries/register
@@ -129,9 +131,40 @@ beneficiaryRoutes.patch('/:id/status', async (c) => {
   const id = c.req.param('id')
   const body = await c.req.json()
   const status = body.status
+  const password = body.password
 
   if (!status || !['PENDING', 'ELIGIBLE', 'INELIGIBLE', 'SUSPENDED'].includes(status)) {
     return c.json({ error: 'validation_failed', message: 'Invalid status value' }, 400)
+  }
+
+  if (!password) {
+    return c.json({ error: 'forbidden', message: 'Admin password is required to change status' }, 403)
+  }
+
+  const adminUser = c.get('user')
+  if (!adminUser || !adminUser.email) {
+    return c.json({ error: 'forbidden', message: 'Admin session is required' }, 403)
+  }
+
+  // Verify the admin password
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return c.json({ error: 'internal_error', message: 'Supabase configuration is missing on server' }, 500)
+  }
+
+  const tempSupabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
+
+  const { error: authError } = await tempSupabase.auth.signInWithPassword({
+    email: adminUser.email,
+    password
+  })
+
+  if (authError) {
+    return c.json({ error: 'forbidden', message: 'Incorrect admin password' }, 403)
   }
 
   const db = createServiceClient()

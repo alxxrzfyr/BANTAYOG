@@ -49,6 +49,7 @@ export default function MerchantLoginPage() {
 
   // Two distinct error branches per spec
   const [credentialError, setCredentialError] = useState(false);
+  const [credentialErrorMessage, setCredentialErrorMessage] = useState("");
   const [networkError, setNetworkError] = useState(false);
 
   const updateField = (field: keyof LoginForm, value: string) => {
@@ -59,6 +60,7 @@ export default function MerchantLoginPage() {
     }
     // Clear server errors on any input change
     setCredentialError(false);
+    setCredentialErrorMessage("");
     setNetworkError(false);
   };
 
@@ -112,6 +114,8 @@ export default function MerchantLoginPage() {
       }
 
       if (res.status === 401 || res.status === 403) {
+        const body = await res.json().catch(() => null);
+        setCredentialErrorMessage(body?.message ?? "Invalid phone number or password. Please try again.");
         setCredentialError(true);
       } else {
         setNetworkError(true);
@@ -211,7 +215,7 @@ export default function MerchantLoginPage() {
         {credentialError && (
           <div className="rounded-lg bg-red-500/10 px-4 py-3 text-center" role="alert">
             <p className="font-body text-sm text-red-300">
-              Invalid phone number or password. Please try again.
+              {credentialErrorMessage}
             </p>
           </div>
         )}

@@ -181,7 +181,7 @@ For the reasoning, write a very concise, professional explanation (max 2 sentenc
 
 If the status is "identified", also research:
 1. A typical retail market price (base price) in Philippine Pesos (PHP) for this product in the Philippines.
-2. A matching nutrition category from this list: EGGS, FRESH_MILK, POWDERED_MILK, VEGETABLES, LEAN_MEAT, FISH, BEANS_LENTILS, RICE_BROWN, FRUIT_FRESH, NUT_BUTTER.
+2. A matching nutrition category from this list: FRUITS, VEGETABLES, MEATS, BEVERAGES, DAIRY, GRAINS, CANNED_GOODS, SNACKS, OTHER.
 
 Return JSON matching this schema:
 {
@@ -191,7 +191,7 @@ Return JSON matching this schema:
   "reasoning": "A concise explanation for child safety verdict (at most 2 sentences)",
   "flagged_ingredients": ["array of concerning ingredients"],
   "researched_base_price": number (typical price in PHP, or null if blurry/unrecognized),
-  "category": "EGGS" | "FRESH_MILK" | "POWDERED_MILK" | "VEGETABLES" | "LEAN_MEAT" | "FISH" | "BEANS_LENTILS" | "RICE_BROWN" | "FRUIT_FRESH" | "NUT_BUTTER" (or null if blurry/unrecognized)
+  "category": "FRUITS" | "VEGETABLES" | "MEATS" | "BEVERAGES" | "DAIRY" | "GRAINS" | "CANNED_GOODS" | "SNACKS" | "OTHER" (or null if blurry/unrecognized)
 }`
 
       const schema = {
@@ -209,7 +209,7 @@ Return JSON matching this schema:
           researched_base_price: { type: 'NUMBER', description: 'Typical price in PHP or null' },
           category: {
             type: 'STRING',
-            enum: ['EGGS', 'FRESH_MILK', 'POWDERED_MILK', 'VEGETABLES', 'LEAN_MEAT', 'FISH', 'BEANS_LENTILS', 'RICE_BROWN', 'FRUIT_FRESH', 'NUT_BUTTER'],
+            enum: ['FRUITS', 'VEGETABLES', 'MEATS', 'BEVERAGES', 'DAIRY', 'GRAINS', 'CANNED_GOODS', 'SNACKS', 'OTHER'],
             description: 'Nutrition category'
           }
         },
@@ -243,17 +243,29 @@ Return JSON matching this schema:
 
       if (result.status === 'identified') {
         const pName = result.product_name || 'Identified Product'
+        
+        // Call ProductsService to get/create product and save the scan image
+        const imageWithPrefix = cleanBase64.startsWith('data:') ? cleanBase64 : `data:image/jpeg;base64,${cleanBase64}`
+        const categoryVal = result.category || 'VEGETABLES'
+        
+        const dbProductResult = await this.productsService.validateOrCreateProduct(pName, imageWithPrefix, categoryVal)
+        let dbProduct: any = null
+        if (dbProductResult.isOk()) {
+          dbProduct = dbProductResult.value.product
+        }
+
         const basePrice = result.researched_base_price || 50
         return ok({
           status: 'identified',
-          productName: pName,
-          eligibilityStatus: result.is_child_friendly ? 'eligible' : 'ineligible',
-          isChildFriendly: result.is_child_friendly,
-          priceRangeMin: Math.max(0, basePrice - 10),
-          priceRangeMax: basePrice + 10,
+          productName: dbProduct ? dbProduct.name : pName,
+          eligibilityStatus: dbProduct ? dbProduct.eligibility_status : (result.is_child_friendly ? 'eligible' : 'ineligible'),
+          isChildFriendly: dbProduct ? dbProduct.eligibility_status === 'eligible' : result.is_child_friendly,
+          priceRangeMin: dbProduct ? Number(dbProduct.price_range_min) : Math.max(0, basePrice - 10),
+          priceRangeMax: dbProduct ? Number(dbProduct.price_range_max) : basePrice + 10,
           reasoning: result.reasoning,
           flaggedIngredients: result.flagged_ingredients,
-          category: result.category || 'VEGETABLES'
+          category: dbProduct ? dbProduct.category : categoryVal,
+          imageUrl: dbProduct ? dbProduct.image_url : imageWithPrefix
         })
       }
 

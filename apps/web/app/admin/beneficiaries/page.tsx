@@ -17,6 +17,7 @@ import { StatusBar } from "@/components/admin/status-bar";
 import { AddCreditsModal } from "@/components/admin/add-credits-modal";
 import { QrPassModal, type QrPassData } from "@/components/admin/qr-pass-modal";
 import { TransactionsModal } from "@/components/admin/transactions-modal";
+import { AdminPasswordModal } from "@/components/admin/admin-password-modal";
 
 /* ─────────────────────────────────────────────────────────
    Beneficiaries Page — mock 6.png. Default admin landing.
@@ -86,6 +87,13 @@ export default function BeneficiariesPage() {
     subtitle: "",
     beneficiaryId: "",
   });
+
+  const [sudoModal, setSudoModal] = useState<{
+    open: boolean;
+    beneficiaryId: string;
+    status: "ELIGIBLE" | "SUSPENDED";
+    childName: string;
+  }>({ open: false, beneficiaryId: "", status: "ELIGIBLE", childName: "" });
 
   /* Dropdown state */
   const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
@@ -164,22 +172,38 @@ export default function BeneficiariesPage() {
   }, []);
 
   /* ── Change Beneficiary Status ── */
-  const handleStatusChange = async (beneficiaryId: string, status: "ELIGIBLE" | "SUSPENDED") => {
+  const handleStatusChange = (beneficiaryId: string, status: "ELIGIBLE" | "SUSPENDED") => {
+    const b = beneficiaries.find(x => x.id === beneficiaryId);
+    if (!b) return;
+    setSudoModal({
+      open: true,
+      beneficiaryId,
+      status,
+      childName: b.childName
+    });
+  };
+
+  const executeStatusChange = async (password: string) => {
     try {
+      const { beneficiaryId, status } = sudoModal;
       const res = await authFetch(`/api/beneficiaries/${beneficiaryId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, password }),
       });
       if (res.ok) {
         setBeneficiaries((prev) =>
           prev.map((b) => (b.id === beneficiaryId ? { ...b, eligibilityStatus: status } : b))
         );
+        return true;
       } else {
-        alert("Failed to update beneficiary status.");
+        const body = await res.json().catch(() => ({}));
+        alert(body?.message ?? "Failed to update beneficiary status.");
+        return false;
       }
     } catch {
       alert("Failed to update status due to network error.");
+      return false;
     }
   };
 
@@ -637,6 +661,13 @@ export default function BeneficiariesPage() {
         title={txModalDetails.title}
         subtitle={txModalDetails.subtitle}
         beneficiaryId={txModalDetails.beneficiaryId}
+      />
+      <AdminPasswordModal
+        open={sudoModal.open}
+        onClose={() => setSudoModal((s) => ({ ...s, open: false }))}
+        onConfirm={executeStatusChange}
+        title="Verify Admin Action"
+        description={`Please enter your admin password to change ${sudoModal.childName}'s status to ${sudoModal.status === "ELIGIBLE" ? "ACTIVE" : "INACTIVE"}.`}
       />
     </>
   );

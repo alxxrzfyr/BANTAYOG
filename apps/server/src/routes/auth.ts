@@ -192,6 +192,11 @@ authRoutes.post('/merchant-login', zValidator('json', merchantLoginSchema), asyn
     return c.json({ error: 'forbidden', message: 'Merchant profile not found' }, 403)
   }
 
+  if (merchant.status === 'SUSPENDED') {
+    await db.auth.signOut()
+    return c.json({ error: 'forbidden', message: 'Your merchant account has been suspended. Please contact the administrator.' }, 403)
+  }
+
   return c.json({
     user: {
       id: data.user.id,
@@ -258,15 +263,32 @@ authRoutes.post('/verify-qr', zValidator('json', verifyQrSchema), async (c) => {
   const payload = payloadResult.value
 
   const db = createServiceClient()
+
+  // Check if the QR token is expired in the database
+  const { data: qrPass } = await (db as any)
+    .from('qr_passes')
+    .select('expires_at')
+    .eq('beneficiary_id', payload.beneficiaryId)
+    .maybeSingle()
+
+  if (qrPass && qrPass.expires_at && new Date(qrPass.expires_at) <= new Date()) {
+    return c.json({ error: 'unauthorized', message: 'This pass is invalid or has expired.' }, 401)
+  }
+
   const beneficiaryService = new BeneficiaryService(db)
 
   const result = await beneficiaryService.verifyAndReevaluateTier(payload.beneficiaryId)
   return result.match(
-    (res) => c.json({
-      status: 'success',
-      beneficiary: res.beneficiary,
-      currentTier: res.tier
-    }),
+    (res) => {
+      if (res.beneficiary.eligibility_status === 'SUSPENDED' || res.beneficiary.eligibility_status === 'INELIGIBLE') {
+        return c.json({ error: 'unauthorized', message: 'This pass is invalid or has expired.' }, 401)
+      }
+      return c.json({
+        status: 'success',
+        beneficiary: res.beneficiary,
+        currentTier: res.tier
+      })
+    },
     (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
   )
 })

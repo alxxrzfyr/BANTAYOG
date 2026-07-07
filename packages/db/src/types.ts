@@ -138,6 +138,7 @@ export interface ProductRow {
   eligibility_status: 'eligible' | 'ineligible'
   price_range_min: number
   price_range_max: number
+  image_url: string | null
   created_at: string
 }
 

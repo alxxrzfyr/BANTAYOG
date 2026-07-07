@@ -17,16 +17,15 @@ export type TransactionStatus = z.infer<typeof TransactionStatusSchema>
 
 /** Nutritional allowlist categories (must match domain/nutrition-policy.ts). */
 export const NutritionCategorySchema = z.enum([
-  'EGGS',
-  'FRESH_MILK',
-  'POWDERED_MILK',
+  'FRUITS',
   'VEGETABLES',
-  'LEAN_MEAT',
-  'FISH',
-  'BEANS_LENTILS',
-  'RICE_BROWN',
-  'FRUIT_FRESH',
-  'NUT_BUTTER',
+  'MEATS',
+  'BEVERAGES',
+  'DAIRY',
+  'GRAINS',
+  'CANNED_GOODS',
+  'SNACKS',
+  'OTHER',
 ])
 export type NutritionCategory = z.infer<typeof NutritionCategorySchema>
 

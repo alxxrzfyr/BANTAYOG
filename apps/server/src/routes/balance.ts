@@ -57,12 +57,23 @@ balanceRoutes.get('/view', async (c) => {
 
   const db = createServiceClient()
 
+  // Check if the QR token is expired in the database
+  const { data: qrPass } = await (db as any)
+    .from('qr_passes')
+    .select('expires_at')
+    .eq('beneficiary_id', beneficiaryId)
+    .maybeSingle()
+
+  if (qrPass && qrPass.expires_at && new Date(qrPass.expires_at) <= new Date()) {
+    return c.json({ error: 'invalid_pass', message: 'This pass is invalid or has expired.' }, 401)
+  }
+
   // 2. Resolve the single beneficiary encoded in the token (Requirement 8.7).
   let beneficiary: any
   try {
     const { data, error } = await (db as any)
       .from('beneficiaries')
-      .select('id, credit_balance, child_name')
+      .select('id, credit_balance, child_name, eligibility_status')
       .eq('id', beneficiaryId)
       .single()
 
@@ -73,6 +84,11 @@ balanceRoutes.get('/view', async (c) => {
         404,
       )
     }
+
+    if (data.eligibility_status === 'SUSPENDED' || data.eligibility_status === 'INELIGIBLE') {
+      return c.json({ error: 'invalid_pass', message: 'This pass is invalid or has expired.' }, 401)
+    }
+
     beneficiary = data
   } catch (error: any) {
     const notMatched = new ValidationError('This pass could not be matched to a beneficiary.')

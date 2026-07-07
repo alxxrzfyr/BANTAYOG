@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-table";
 import { StatusBar } from "@/components/admin/status-bar";
 import { TransactionsModal } from "@/components/admin/transactions-modal";
+import { AdminPasswordModal } from "@/components/admin/admin-password-modal";
 
 /* ─────────────────────────────────────────────────────────
    Merchants Page — mock 10.png. Read-only merchant directory.
@@ -61,6 +62,13 @@ export default function MerchantsPage() {
     merchantId: "",
   });
 
+  const [sudoModal, setSudoModal] = useState<{
+    open: boolean;
+    merchantId: string;
+    status: "APPROVED" | "SUSPENDED";
+    storeName: string;
+  }>({ open: false, merchantId: "", status: "APPROVED", storeName: "" });
+
   /* Dropdown state */
   const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
 
@@ -107,22 +115,38 @@ export default function MerchantsPage() {
   }, [fetchAll]);
 
   /* ── Change Merchant Status ── */
-  const handleStatusChange = async (merchantId: string, status: "APPROVED" | "SUSPENDED") => {
+  const handleStatusChange = (merchantId: string, status: "APPROVED" | "SUSPENDED") => {
+    const m = merchants.find(x => x.id === merchantId);
+    if (!m) return;
+    setSudoModal({
+      open: true,
+      merchantId,
+      status,
+      storeName: m.storeName
+    });
+  };
+
+  const executeStatusChange = async (password: string) => {
     try {
+      const { merchantId, status } = sudoModal;
       const res = await authFetch(`/api/merchants/${merchantId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, password }),
       });
       if (res.ok) {
         setMerchants((prev) =>
           prev.map((m) => (m.id === merchantId ? { ...m, status } : m))
         );
+        return true;
       } else {
-        alert("Failed to update merchant status.");
+        const body = await res.json().catch(() => ({}));
+        alert(body?.message ?? "Failed to update merchant status.");
+        return false;
       }
     } catch {
       alert("Failed to update status due to network error.");
+      return false;
     }
   };
 
@@ -457,6 +481,13 @@ export default function MerchantsPage() {
         title={modalDetails.title}
         subtitle={modalDetails.subtitle}
         merchantId={modalDetails.merchantId}
+      />
+      <AdminPasswordModal
+        open={sudoModal.open}
+        onClose={() => setSudoModal((s) => ({ ...s, open: false }))}
+        onConfirm={executeStatusChange}
+        title="Verify Admin Action"
+        description={`Please enter your admin password to change ${sudoModal.storeName}'s status to ${sudoModal.status === "APPROVED" ? "ACTIVE" : "INACTIVE"}.`}
       />
     </div>
   );

@@ -49,6 +49,7 @@ function AIScanContent() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [priceRangeMin, setPriceRangeMin] = useState<number | null>(null);
   const [priceRangeMax, setPriceRangeMax] = useState<number | null>(null);
@@ -149,6 +150,7 @@ function AIScanContent() {
         setProductName(result.productName);
         setEligibility(result.eligibilityStatus);
         setCategory(result.category);
+        setImageUrl(result.imageUrl || null);
         setAnalysisResult({
           product_name: result.productName,
           is_child_friendly: result.isChildFriendly,
@@ -230,7 +232,11 @@ function AIScanContent() {
         const res = await authFetch("/api/products/validate-or-create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: productName })
+          body: JSON.stringify({
+            name: productName,
+            imageUrl: capturedImage || undefined,
+            category: category || undefined
+          })
         });
         if (res.ok) {
           const data = await res.json();
@@ -240,6 +246,7 @@ function AIScanContent() {
             setPriceRangeMax(p.price_range_max);
             setEligibility(p.eligibility_status);
             setCategory(p.category);
+            setImageUrl(p.image_url || null);
             const val = parseFloat(price);
             if (val < p.price_range_min || val > p.price_range_max) {
               setError(`Price must be between ₱${p.price_range_min} and ₱${p.price_range_max}`);
@@ -269,7 +276,7 @@ function AIScanContent() {
       price: val,
       quantity,
       eligibility,
-      imageDataUrl: capturedImage || undefined,
+      imageDataUrl: imageUrl || capturedImage || undefined,
       category,
     });
     setInputSource("ai");
@@ -280,6 +287,7 @@ function AIScanContent() {
   const handleAddAnother = () => {
     setStage(1);
     setCapturedImage(null);
+    setImageUrl(null);
     setProductName("");
     setPrice("");
     setQuantity(1);

@@ -9,16 +9,13 @@ import type { NutritionCategory } from "@bantayog/schema";
 
 /** Categories considered nutritious (eligible for subsidy). */
 const ELIGIBLE_CATEGORIES: readonly NutritionCategory[] = [
-  "EGGS",
-  "FRESH_MILK",
-  "POWDERED_MILK",
+  "FRUITS",
   "VEGETABLES",
-  "LEAN_MEAT",
-  "FISH",
-  "BEANS_LENTILS",
-  "RICE_BROWN",
-  "FRUIT_FRESH",
-  "NUT_BUTTER",
+  "MEATS",
+  "BEVERAGES",
+  "DAIRY",
+  "GRAINS",
+  "CANNED_GOODS",
 ];
 
 /** Subsidy multiplier per tier (Tier 1 gets higher subsidy). */

@@ -9,7 +9,9 @@ import type { Env } from '../types/env.js'
 const productRoutes = new Hono<{ Bindings: Env }>()
 
 const validateSchema = z.object({
-  name: z.string().min(1)
+  name: z.string().min(1),
+  imageUrl: z.string().optional(),
+  category: z.string().optional()
 })
 
 /**
@@ -43,11 +45,11 @@ productRoutes.post('/validate', zValidator('json', validateSchema), async (c) =>
  * inserts a draft product row, and returns it.
  */
 productRoutes.post('/validate-or-create', zValidator('json', validateSchema), async (c) => {
-  const { name } = c.req.valid('json')
+  const { name, imageUrl, category } = c.req.valid('json')
   const db = createServiceClient()
   const productsService = new ProductsService(db)
 
-  const result = await productsService.validateOrCreateProduct(name)
+  const result = await productsService.validateOrCreateProduct(name, imageUrl, category)
 
   return result.match(
     (val) => c.json(val),

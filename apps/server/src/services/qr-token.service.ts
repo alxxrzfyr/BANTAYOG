@@ -10,7 +10,11 @@ import { type AppResult, ok, err, JwtError } from '../lib/errors.js'
  * QR passes are now permanent pointers to the wallet address and do not expire.
  */
 export class QrTokenService {
-  constructor(_ttlSeconds?: number) {}
+  private ttlSeconds: number
+
+  constructor(ttlSeconds?: number) {
+    this.ttlSeconds = ttlSeconds !== undefined ? ttlSeconds : 300
+  }
 
   private getSecretKey(): Uint8Array {
     const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SIGNING_SECRET || process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
@@ -38,6 +42,7 @@ export class QrTokenService {
     const secret = this.getSecretKey();
 
     try {
+      const now = Math.floor(Date.now() / 1000);
       const token = await new SignJWT({
         beneficiaryId: payload.beneficiaryId,
         childName: payload.childName,
@@ -47,7 +52,8 @@ export class QrTokenService {
         walletRef: payload.walletRef,
       })
         .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
+        .setIssuedAt(now)
+        .setExpirationTime(now + this.ttlSeconds)
         .sign(secret);
 
       return ok(token);

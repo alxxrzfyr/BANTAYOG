@@ -58,6 +58,7 @@ exports[`DTO Mappers Snapshot Tests > should correctly map a product classificat
 
 exports[`DTO Mappers Snapshot Tests > should correctly map a transaction record 1`] = `
 {
+  "beneficiary": undefined,
   "beneficiaryId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "confirmedAt": "2026-07-01T12:05:00.000Z",
   "createdAt": "2026-07-01T12:00:00.000Z",
@@ -72,6 +73,7 @@ exports[`DTO Mappers Snapshot Tests > should correctly map a transaction record 
       "unitPricePhp": 95,
     },
   ],
+  "merchant": undefined,
   "merchantId": "e47ac10b-58cc-4372-a567-0e02b2c3d478",
   "onchainTxHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
   "stablecoinAmountWei": "190000000000000000000",

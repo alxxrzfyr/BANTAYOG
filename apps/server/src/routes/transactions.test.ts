@@ -198,6 +198,18 @@ function makeOutboxBuilder() {
   }
 }
 
+function makeQrPassesBuilder() {
+  const builder: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({
+      data: null,
+      error: null
+    })
+  }
+  return builder
+}
+
 const mockSupabaseClient: any = {
   rpc: vi.fn().mockImplementation(async (fn: string, args: any) => {
     rpcCalls.push({ fn, args })
@@ -243,6 +255,7 @@ const mockSupabaseClient: any = {
     if (table === 'beneficiaries') return makeBeneficiariesBuilder(beneficiaryRow)
     if (table === 'transactions') return makeTransactionsBuilder()
     if (table === 'outbox') return makeOutboxBuilder()
+    if (table === 'qr_passes') return makeQrPassesBuilder()
     return makeSingleQuery(null)
   }),
 }
@@ -265,7 +278,7 @@ function baseBody(overrides: Partial<Record<string, unknown>> = {}) {
     pin: '123456',
     items: [
       {
-        category: 'EGGS',
+        category: 'VEGETABLES',
         name: 'Fresh Eggs (dozen)',
         quantity: 1,
         unitPricePhp: 90,
@@ -376,7 +389,7 @@ describe('POST /api/transactions — HTTP response codes', () => {
       baseBody({
         items: [
           {
-            category: 'EGGS',
+            category: 'VEGETABLES',
             name: 'Free Sample',
             quantity: 1,
             unitPricePhp: 0,
@@ -432,7 +445,7 @@ describe('Property 18: authorized in-balance purchase deducts and transfers the 
             idempotencyKey,
             items: [
               {
-                category: 'EGGS',
+                category: 'VEGETABLES',
                 name: 'X',
                 quantity: 1,
                 unitPricePhp: creditCost,
@@ -502,7 +515,7 @@ describe('Property 19: invalid-amount and over-balance purchases are rejected wi
               idempotencyKey,
               items: [
                 {
-                  category: 'EGGS',
+                  category: 'VEGETABLES',
                   name: 'X',
                   quantity: 1,
                   unitPricePhp: creditCost,

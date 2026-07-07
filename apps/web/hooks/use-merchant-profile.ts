@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { authFetch } from "@/lib/api";
+import { authFetch, MERCHANT_TOKEN_KEY } from "@/lib/api";
 
 /**
  * Shape returned by GET /api/merchants/me
@@ -46,9 +46,12 @@ async function fetchMerchantProfile(): Promise<MerchantProfile> {
  * Validates: Requirements 7.4, 7.5, 8.5, 17.3, 17.4
  */
 export function useMerchantProfile() {
+  const tokenExists = typeof window !== "undefined" && !!window.localStorage.getItem(MERCHANT_TOKEN_KEY);
+
   const { data, isLoading, isError, refetch } = useQuery<MerchantProfile>({
     queryKey: ["merchant-profile"],
     queryFn: fetchMerchantProfile,
+    enabled: tokenExists,
   });
 
   return { data, isLoading, isError, refetch };

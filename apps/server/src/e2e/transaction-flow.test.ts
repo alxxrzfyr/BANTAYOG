@@ -8,6 +8,8 @@ import { BeneficiaryService } from '../services/beneficiary.service.js'
 import { MerchantService } from '../services/merchant.service.js'
 import { ChainClient } from '../services/chain.client.js'
 
+process.env.GEMINI_API_KEY = 'fake-gemini-key-for-tests'
+
 // ── Dynamic Gemini response (tests mutate this before calling vision service) ──
 let geminiMockResponse = {
   candidates: [{ name: 'Cerelac Rice', confidence: 0.95 }]
@@ -610,7 +612,7 @@ describe('End-to-End Transaction Flow Integration', () => {
     const transactionService = new TransactionService(db)
     const idempotencyKey = 'c75f7823-3dbd-426c-8ab5-3e284b39e6c2'
     const items = [{
-      category: 'EGGS',
+      category: 'DAIRY',
       name: 'Fresh Eggs (dozen)',
       quantity: 1,
       unitPricePhp: 90.0,

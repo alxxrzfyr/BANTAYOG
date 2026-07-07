@@ -33,18 +33,17 @@ describe('TransactionStatusSchema', () => {
 })
 
 describe('NutritionCategorySchema', () => {
-  it('accepts all 10 allowlist categories', () => {
+  it('accepts all allowlist categories', () => {
     const valid = [
-      'EGGS',
-      'FRESH_MILK',
-      'POWDERED_MILK',
+      'FRUITS',
       'VEGETABLES',
-      'LEAN_MEAT',
-      'FISH',
-      'BEANS_LENTILS',
-      'RICE_BROWN',
-      'FRUIT_FRESH',
-      'NUT_BUTTER',
+      'MEATS',
+      'BEVERAGES',
+      'DAIRY',
+      'GRAINS',
+      'CANNED_GOODS',
+      'SNACKS',
+      'OTHER',
     ]
     for (const c of valid) {
       expect(NutritionCategorySchema.parse(c)).toBe(c)
@@ -58,7 +57,7 @@ describe('NutritionCategorySchema', () => {
 
 describe('TransactionItemDto', () => {
   const validItem = {
-    category: 'EGGS',
+    category: 'VEGETABLES',
     name: 'Farm Fresh Eggs (dozen)',
     quantity: 1,
     unitPricePhp: 120,
@@ -94,14 +93,14 @@ describe('CreateTransactionDto', () => {
     pin: '1234',
     items: [
       {
-        category: 'EGGS',
+        category: 'DAIRY',
         name: 'Farm Fresh Eggs (dozen)',
         quantity: 1,
         unitPricePhp: 120,
         creditCost: 120,
       },
       {
-        category: 'FRESH_MILK',
+        category: 'BEVERAGES',
         name: 'Bear Brand Milk 200ml',
         quantity: 2,
         unitPricePhp: 25,
@@ -150,7 +149,7 @@ describe('TransactionDto', () => {
     merchantId: 'b47ac10b-58cc-4372-a567-0e02b2c3d481',
     items: [
       {
-        category: 'EGGS',
+        category: 'DAIRY',
         name: 'Farm Fresh Eggs (dozen)',
         quantity: 1,
         unitPricePhp: 120,
@@ -207,7 +206,7 @@ describe('Vision DTOs', () => {
   it('VisionItemDto accepts valid item with confidence', () => {
     expect(
       VisionItemDto.safeParse({
-        category: 'EGGS',
+        category: 'DAIRY',
         name: 'Eggs',
         confidence: 0.95,
       }).success,
@@ -217,7 +216,7 @@ describe('Vision DTOs', () => {
   it('VisionItemDto rejects confidence > 1', () => {
     expect(
       VisionItemDto.safeParse({
-        category: 'EGGS',
+        category: 'DAIRY',
         name: 'Eggs',
         confidence: 1.5,
       }).success,
@@ -228,8 +227,8 @@ describe('Vision DTOs', () => {
     expect(
       VisionResultDto.safeParse({
         items: [
-          { category: 'EGGS', name: 'Eggs', confidence: 0.95 },
-          { category: 'FRESH_MILK', name: 'Milk', confidence: 0.88 },
+          { category: 'DAIRY', name: 'Eggs', confidence: 0.95 },
+          { category: 'BEVERAGES', name: 'Milk', confidence: 0.88 },
         ],
         processingTimeMs: 1500,
       }).success,
