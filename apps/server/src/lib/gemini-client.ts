@@ -42,9 +42,7 @@ export async function callGeminiWithFallback(
     throw new Error('GEMINI_API_KEYS environment variable is not set.')
   }
 
-  if (options.useGoogleSearch && options.responseSchema) {
-    throw new Error('Gemini API constraint: cannot use googleSearch and responseSchema in the same call.')
-  }
+
 
   let cleanBase64 = ''
   let mimeType = 'image/jpeg'

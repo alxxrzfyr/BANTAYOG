@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai'
-import pRetry from 'p-retry'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { ProductsService } from './products.service.js'
@@ -31,16 +29,9 @@ export type VisionClassificationResult = VisionClassificationSuccess | VisionCla
 
 export class VisionService {
   private productsService: ProductsService
-  private ai: GoogleGenAI
 
   constructor(db: SupabaseClient<Database>) {
     this.productsService = new ProductsService(db)
-    
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      console.warn('WARNING: GEMINI_API_KEY environment variable is not set.')
-    }
-    this.ai = new GoogleGenAI({ apiKey })
   }
 
   /**
@@ -52,81 +43,34 @@ export class VisionService {
       return ok({ identified: false, reason: 'Empty image data provided' })
     }
 
-    let cleanBase64 = imageBase64
-    let mimeType = 'image/jpeg'
-    if (imageBase64.startsWith('data:')) {
-      const match = imageBase64.match(/^data:([^;]+);base64,(.*)$/)
-      if (match) {
-        mimeType = match[1]
-        cleanBase64 = match[2]
-      }
-    }
-
     try {
-      const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash'
       const confidenceThreshold = parseFloat(process.env.GEMINI_CONFIDENCE_THRESHOLD || '0.7')
 
-      const apiResponse = await pRetry(
-        async () => {
-          return await this.ai.models.generateContent({
-            model,
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    inlineData: {
-                      data: cleanBase64,
-                      mimeType
-                    }
-                  },
-                  {
-                    text: 'Analyze the product shown in this image. Identify the brand and product name. Return a list of candidates sorted by likelihood.'
-                  }
-                ]
-              }
-            ],
-            config: {
-              temperature: 0.1,
-              tools: [{ googleSearch: {} }],
-              responseMimeType: 'application/json',
-              responseSchema: {
+      const responseObj = await callGeminiWithFallback({
+        prompt: 'Analyze the product shown in this image. Identify the brand and product name. Return a list of candidates sorted by likelihood.',
+        imageBase64: imageBase64,
+        useGoogleSearch: true,
+        temperature: 0.1,
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            candidates: {
+              type: 'ARRAY',
+              items: {
                 type: 'OBJECT',
                 properties: {
-                  candidates: {
-                    type: 'ARRAY',
-                    items: {
-                      type: 'OBJECT',
-                      properties: {
-                        name: { type: 'STRING', description: 'Identified name of the product' },
-                        confidence: { type: 'NUMBER', description: 'Confidence score from 0.0 to 1.0' }
-                      },
-                      required: ['name', 'confidence']
-                    }
-                  }
+                  name: { type: 'STRING', description: 'Identified name of the product' },
+                  confidence: { type: 'NUMBER', description: 'Confidence score from 0.0 to 1.0' }
                 },
-                required: ['candidates']
+                required: ['name', 'confidence']
               }
             }
-          })
-        },
-        {
-          retries: 3,
-          minTimeout: 1000,
-          maxTimeout: 3000,
-          onFailedAttempt: (error: any) => {
-            console.warn(`Gemini Vision API call failed (attempt ${error.attemptNumber}): ${error.message}`)
-          }
+          },
+          required: ['candidates']
         }
-      )
+      })
 
-      const text = apiResponse.text
-      if (!text) {
-        return ok({ identified: false, reason: 'Gemini returned empty response text' })
-      }
-
-      const responseObj = JSON.parse(text)
-      const rawCandidates = responseObj.candidates || []
+      const rawCandidates = responseObj?.candidates || []
 
       const filteredCandidates = rawCandidates.filter(
         (c: any) => c && typeof c.name === 'string' && typeof c.confidence === 'number' && c.confidence >= confidenceThreshold
@@ -175,76 +119,28 @@ export class VisionService {
       return err(new ValidationError('Empty image data provided'))
     }
 
-    let cleanBase64 = imageBase64
-    let mimeType = 'image/jpeg'
-    if (imageBase64.startsWith('data:')) {
-      const match = imageBase64.match(/^data:([^;]+);base64,(.*)$/)
-      if (match) {
-        mimeType = match[1]
-        cleanBase64 = match[2]
-      }
-    }
-
     try {
-      const model = process.env.GEMINI_VISION_MODEL || 'gemini-1.5-flash'
-
-      const apiResponse = await pRetry(
-        async () => {
-          return await this.ai.models.generateContent({
-            model,
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    inlineData: {
-                      data: cleanBase64,
-                      mimeType
-                    }
-                  },
-                  {
-                    text: 'Identify the product brand and name in this image. Grounding instruction: Search the web/internet to verify the exact ingredients, sugar content, chemical additives, common allergens, and child-suitability guidelines for this product. Base your analysis only on verified web sources and what is visibly identifiable in the image. If the product, brand, or ingredients cannot be confidently identified (due to dark image, poor lighting, or blur), return "Unrecognizable" as the product_name and false for is_child_friendly.'
-                  }
-                ]
-              }
-            ],
-            config: {
-              temperature: 0.1,
-              tools: [{ googleSearch: {} }],
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: 'OBJECT',
-                properties: {
-                  product_name: { type: 'STRING', description: 'Name of the identified product' },
-                  is_child_friendly: { type: 'BOOLEAN', description: 'Whether the product is child-friendly / suitable for children' },
-                  flagged_ingredients: { 
-                    type: 'ARRAY', 
-                    items: { type: 'STRING' },
-                    description: 'List of ingredients that are concerning or flagged (empty if none)'
-                  },
-                  reasoning: { type: 'STRING', description: 'Explanation or reasoning for the child-safety verdict' }
-                },
-                required: ['product_name', 'is_child_friendly', 'flagged_ingredients', 'reasoning']
-              }
-            }
-          })
-        },
-        {
-          retries: 3,
-          minTimeout: 1000,
-          maxTimeout: 3000,
-          onFailedAttempt: (error: any) => {
-            console.warn(`Gemini Child Safety Vision API call failed (attempt ${error.attemptNumber}): ${error.message}`)
-          }
+      const responseObj = await callGeminiWithFallback({
+        prompt: 'Identify the product brand and name in this image. Grounding instruction: Search the web/internet to verify the exact ingredients, sugar content, chemical additives, common allergens, and child-suitability guidelines for this product. Base your analysis only on verified web sources and what is visibly identifiable in the image. If the product, brand, or ingredients cannot be confidently identified (due to dark image, poor lighting, or blur), return "Unrecognizable" as the product_name and false for is_child_friendly.',
+        imageBase64: imageBase64,
+        useGoogleSearch: true,
+        temperature: 0.1,
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            product_name: { type: 'STRING', description: 'Name of the identified product' },
+            is_child_friendly: { type: 'BOOLEAN', description: 'Whether the product is child-friendly / suitable for children' },
+            flagged_ingredients: { 
+              type: 'ARRAY', 
+              items: { type: 'STRING' },
+              description: 'List of ingredients that are concerning or flagged (empty if none)'
+            },
+            reasoning: { type: 'STRING', description: 'Explanation or reasoning for the child-safety verdict' }
+          },
+          required: ['product_name', 'is_child_friendly', 'flagged_ingredients', 'reasoning']
         }
-      )
+      })
 
-      const text = apiResponse.text
-      if (!text) {
-        return err(new ValidationError('Gemini returned empty response text'))
-      }
-
-      const responseObj = JSON.parse(text)
       return ok(responseObj)
 
     } catch (error: any) {
