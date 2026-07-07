@@ -53,7 +53,6 @@ function AIScanContent() {
   const [priceRangeMin, setPriceRangeMin] = useState<number | null>(null);
   const [priceRangeMax, setPriceRangeMax] = useState<number | null>(null);
   const [isUnrecognizedBrand, setIsUnrecognizedBrand] = useState(false);
-  const [isProcessingPrice, setIsProcessingPrice] = useState(false);
 
   interface ChildSafetyAnalysis {
     product_name: string;
@@ -577,11 +576,6 @@ function AIScanContent() {
                       Allowed range: ₱{priceRangeMin} - ₱{priceRangeMax}
                     </span>
                   )}
-                  {isProcessingPrice && (
-                    <span className="mt-1 block font-body text-[10px] text-[#034C52] animate-pulse">
-                      Updating price range...
-                    </span>
-                  )}
                 </div>
                 <QuantitySelector
                   value={quantity}
@@ -615,8 +609,8 @@ function AIScanContent() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={!isFormValid || isProcessingPrice || isProcessing}
-              aria-disabled={!isFormValid || isProcessingPrice || isProcessing}
+              disabled={!isFormValid || isProcessing}
+              aria-disabled={!isFormValid || isProcessing}
               aria-describedby="add-to-cart-hint"
               className="mt-5 w-full rounded-2xl bg-[#f48d79] py-4 font-body text-base font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
