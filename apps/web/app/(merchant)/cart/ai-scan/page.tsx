@@ -212,39 +212,6 @@ function AIScanContent() {
     runAIScan(dataUrl);
   }, [stopCamera]);
 
-  // ── Validate product name & lookup pricing dynamically on blur ──
-  const handleProductNameBlur = async () => {
-    if (!productName.trim()) return;
-    setIsProcessingPrice(true);
-    setError(null);
-    try {
-      const res = await authFetch("/api/products/validate-or-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: productName })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.matched) {
-          setPriceRangeMin(data.product.price_range_min);
-          setPriceRangeMax(data.product.price_range_max);
-          setEligibility(data.product.eligibility_status);
-          setCategory(data.product.category);
-          
-          setAnalysisResult(prev => prev ? {
-            ...prev,
-            product_name: data.product.name,
-            is_child_friendly: data.product.eligibility_status === 'eligible'
-          } : null);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessingPrice(false);
-    }
-  };
-
   // ── Validate price ──
   const priceValue = parseFloat(price);
   const isPriceRangeValid = priceRangeMin !== null && priceRangeMax !== null
