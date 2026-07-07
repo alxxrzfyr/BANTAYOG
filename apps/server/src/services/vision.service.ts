@@ -272,16 +272,16 @@ export class VisionService {
     try {
       console.log('[VisionService] Running optimized single-step scan...')
       const prompt = `Analyze the product shown in this image.
-Grounding instruction: Only assert a product identification or nutritional judgment you are confident in from what's visible in the image.
-Inspect not just the largest printed text, but also logos, circular seals, badges, and small emblem marks — brand names are often embedded inside these.
+Grounding instruction: Only assert a product identification or nutritional judgment you are confident in from what's visible in the image. 
+Focus strictly on the main subject (ignore background items). Inspect not just the largest printed text, but also logos, circular seals, badges, and small emblem marks — brand names are often embedded inside these. Be mindful of local Philippine brands.
 
 Classify the outcome into exactly one of three statuses:
-- "blurry": Use this ONLY if the image is too blurry, too dark, or too low quality to analyze.
-- "unrecognized": Use this if you cannot confidently identify the exact brand or product name, but the image is not blurry (e.g. local brand without an internet match, or obscure label).
+- "blurry": Use this ONLY if the image is too blurry, too dark, or too low quality to analyze the main product.
+- "unrecognized": Use this if you cannot confidently identify the exact brand or product name, but the image is not blurry (e.g. generic packaging without labels, or obscure local product).
 - "identified": Use this if you are confident in the product name and brand.
 
-If the status is "unrecognized" or "identified", perform a child safety gate evaluation: is it good/safe for children? (is_child_friendly). List any flagged ingredients (e.g. high sugar, high sodium, artificial preservatives, common allergens) and explain your reasoning.
-Keep the reasoning extremely concise, at most 2 sentences.
+If the status is "unrecognized" or "identified", perform a child safety gate evaluation: is it good/safe for children? (is_child_friendly). List any flagged ingredients (e.g. high sugar, high sodium, artificial preservatives, common allergens). 
+For the reasoning, write a very concise, professional explanation (max 2 sentences) written for a merchant. E.g., "Contains excessive sugar and artificial colors, which are restricted under local child nutrition guidelines."
 
 If the status is "identified", also research:
 1. A typical retail market price (base price) in Philippine Pesos (PHP) for this product in the Philippines.
