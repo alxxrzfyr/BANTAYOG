@@ -168,6 +168,16 @@ export default function CheckoutPage() {
   // ── Handle QR Scan Result ──
   const handleQRScanResult = useCallback(
     (scanned: string) => {
+      if (scanned.startsWith("http://") || scanned.startsWith("https://")) {
+        setCameraError("Invalid QR Code: Please scan the 'Merchant Scan' QR code.");
+        setScanCooldown(true);
+        setTimeout(() => {
+          setScanCooldown(false);
+          setCameraError(null);
+        }, 3000);
+        return;
+      }
+
       // Stop scanner after successful scan
       scannerRef.current?.stop();
 
