@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const inputSource = useCartStore((s) => s.inputSource);
+  const removeItem = useCartStore((s) => s.removeItem);
 
   const { data: profile } = useMerchantProfile();
   const storeName = profile?.storeName || "Unnamed Store";
@@ -412,14 +413,36 @@ export default function CheckoutPage() {
             </h3>
             <ul className="space-y-3 list-none p-0 m-0">
               {eligibleItems.map((item) => (
-                <li key={item.id}>
-                  <ItemCard
-                    name={item.name}
-                    price={item.price}
-                    quantity={item.quantity}
-                    eligibility={item.eligibility}
-                    imageDataUrl={item.imageDataUrl}
-                  />
+                <li key={item.id} className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ItemCard
+                      name={item.name}
+                      price={item.price}
+                      quantity={item.quantity}
+                      eligibility={item.eligibility}
+                      imageDataUrl={item.imageDataUrl}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.id)}
+                    className="mt-4 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                    aria-label={`Remove ${item.name}`}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
                 </li>
               ))}
             </ul>

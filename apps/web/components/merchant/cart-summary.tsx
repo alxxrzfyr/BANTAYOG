@@ -7,6 +7,7 @@ import { useCartStore } from "@/stores/cart-store";
 
 export function CartSummary() {
   const items = useCartStore((s) => s.items);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const eligibleItems = items.filter((i) => i.eligibility === "eligible");
   const ineligibleItems = items.filter((i) => i.eligibility === "ineligible");
@@ -62,6 +63,16 @@ export function CartSummary() {
           ₱{subtotal.toFixed(2)}
         </span>
       </div>
+
+      {items.length > 0 && (
+        <button
+          type="button"
+          onClick={clearCart}
+          className="mt-4 w-full rounded-xl border border-gray-200 py-2.5 font-body text-sm font-medium text-gray-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+        >
+          Clear Cart
+        </button>
+      )}
     </div>
   );
 }
