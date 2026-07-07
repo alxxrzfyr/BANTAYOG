@@ -53,6 +53,7 @@ export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
   const inputSource = useCartStore((s) => s.inputSource);
   const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const { data: profile } = useMerchantProfile();
   const storeName = profile?.storeName || "Unnamed Store";
@@ -285,6 +286,13 @@ export default function CheckoutPage() {
             beneficiary: beneficiaryData.guardianName,
           });
           if (remaining !== "") params.set("remaining", remaining);
+
+          // Clear cart and checkout state as a guardrail for the next transaction
+          clearCart();
+          setQrToken(null);
+          setBeneficiaryData(null);
+          setModalState("none");
+
           router.push(`/checkout/complete?${params.toString()}`);
           return;
         }

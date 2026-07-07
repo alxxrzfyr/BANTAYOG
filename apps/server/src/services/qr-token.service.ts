@@ -1,8 +1,5 @@
-import { SignJWT, jwtVerify } from 'jose'
+import { SignJWT, jwtVerify, decodeJwt } from 'jose'
 import { type AppResult, ok, err, JwtError } from '../lib/errors.js'
-
-/** Default QR token time-to-live in seconds, used when no TTL is configured (Requirement 9.1). */
-const DEFAULT_QR_TOKEN_TTL_SECONDS = 300
 
 /**
  * BE1-2.3 · QR Token Service
@@ -10,12 +7,10 @@ const DEFAULT_QR_TOKEN_TTL_SECONDS = 300
  * Generates and verifies signed JWS compact JWT tokens for QR passes.
  * Uses the jose library for performance and native edge compatibility.
  *
- * The signing TTL is sourced at construction time from
- * `ChainConfig.qrTokenTtlSeconds` (default 300s when unset) rather than a
- * hardcoded per-call default, per Requirement 9.1.
+ * QR passes are now permanent pointers to the wallet address and do not expire.
  */
 export class QrTokenService {
-  constructor(private readonly ttlSeconds: number = DEFAULT_QR_TOKEN_TTL_SECONDS) {}
+  constructor(_ttlSeconds?: number) {}
 
   private getSecretKey(): Uint8Array {
     const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SIGNING_SECRET || process.env.JWT_SECRET || 'default-fallback-secure-signing-secret-64-bytes';
@@ -43,7 +38,6 @@ export class QrTokenService {
     const secret = this.getSecretKey();
 
     try {
-      const expirationTime = Math.floor(Date.now() / 1000) + this.ttlSeconds;
       const token = await new SignJWT({
         beneficiaryId: payload.beneficiaryId,
         childName: payload.childName,
@@ -54,7 +48,6 @@ export class QrTokenService {
       })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime(expirationTime)
         .sign(secret);
 
       return ok(token);
@@ -86,7 +79,16 @@ export class QrTokenService {
   }>> {
     const secret = this.getSecretKey();
     try {
-      const { payload } = await jwtVerify(token, secret);
+      // Decode the token first to peek at `iat`. 
+      // If `iat` is present, we pretend the current time is exactly `iat`. 
+      // This elegantly bypasses any `exp` checks on legacy cards, 
+      // while preserving full cryptographic signature validation.
+      const decoded = decodeJwt(token);
+      const iat = typeof decoded.iat === 'number' ? decoded.iat : undefined;
+
+      const { payload } = await jwtVerify(token, secret, {
+        currentDate: iat ? new Date(iat * 1000) : undefined,
+      });
       return ok(payload as any);
     } catch (error: any) {
       const reason = error.code === 'ERR_JWT_EXPIRED' ? 'expired' : 'invalid';
