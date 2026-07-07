@@ -2,7 +2,10 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "https://bantayogserver-production.up.railway.app";
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "https://bantayogserver-production.up.railway.app";
+if (!API_BASE_URL.startsWith("http://") && !API_BASE_URL.startsWith("https://")) {
+  API_BASE_URL = "https://" + API_BASE_URL;
+}
 
 async function proxyRequest(req: NextRequest) {
   const url = new URL(req.url);
@@ -11,18 +14,26 @@ async function proxyRequest(req: NextRequest) {
   // e.g. /api/beneficiaries -> https://bantayogserver.../api/beneficiaries
   const targetUrl = new URL(url.pathname + url.search, API_BASE_URL);
 
-  // Copy headers
-  const headers = new Headers(req.headers);
-  // Forward the host header to the target
+  // Forward essential headers
+  const headers = new Headers();
   headers.set('host', targetUrl.host);
+  if (req.headers.has('authorization')) headers.set('authorization', req.headers.get('authorization')!);
+  if (req.headers.has('content-type')) headers.set('content-type', req.headers.get('content-type')!);
   
   // Forward the request
-  const response = await fetch(targetUrl, {
+  const fetchOptions: RequestInit = {
     method: req.method,
     headers,
-    body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.blob() : undefined,
     redirect: 'manual',
-  });
+  };
+
+  if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+    fetchOptions.body = req.body;
+    // Next.js edge runtime requires duplex: 'half' when forwarding streams
+    (fetchOptions as any).duplex = 'half';
+  }
+
+  const response = await fetch(targetUrl, fetchOptions);
 
   // Return the response
   const responseHeaders = new Headers(response.headers);
