@@ -164,7 +164,7 @@ export class BeneficiaryService {
       // Fetch from Supabase directly for paginated query
       const { data, count, error } = await (this.db as any)
         .from('beneficiaries')
-        .select('*', { count: 'exact' })
+        .select('*, qr_passes(token_payload)', { count: 'exact' })
         .range(from, to)
         .order('created_at', { ascending: false });
 
@@ -174,9 +174,16 @@ export class BeneficiaryService {
 
       const listWithTiers = ((data || []) as any[]).map(b => {
         const tier = computeTier(b.created_at, b.child_age_months);
+        let jwsCompact = b.jwsCompact || b.jws_compact;
+        
+        if (b.qr_passes && Array.isArray(b.qr_passes) && b.qr_passes.length > 0) {
+          jwsCompact = b.qr_passes[0].token_payload;
+        }
+
         return {
           ...b,
-          tier
+          tier,
+          jwsCompact
         };
       });
 
