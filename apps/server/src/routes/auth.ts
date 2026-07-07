@@ -264,12 +264,16 @@ authRoutes.post('/verify-qr', zValidator('json', verifyQrSchema), async (c) => {
 
   const db = createServiceClient()
 
-  // Check if the QR token is expired in the database
+  // Check if the QR token is expired or revoked in the database
   const { data: qrPass } = await (db as any)
     .from('qr_passes')
-    .select('expires_at')
+    .select('expires_at, revoked')
     .eq('beneficiary_id', payload.beneficiaryId)
     .maybeSingle()
+
+  if (qrPass && qrPass.revoked) {
+    return c.json({ error: 'unauthorized', message: 'This pass has been revoked.' }, 401)
+  }
 
   if (qrPass && qrPass.expires_at && new Date(qrPass.expires_at) <= new Date()) {
     return c.json({ error: 'unauthorized', message: 'This pass is invalid or has expired.' }, 401)

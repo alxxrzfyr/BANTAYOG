@@ -95,16 +95,7 @@ export async function verifyQrToken(
   const secret = getSecret();
 
   try {
-    // Decode the token first to peek at `iat`. 
-    // If `iat` is present, we pretend the current time is exactly `iat`. 
-    // This elegantly bypasses any `exp` checks on legacy cards, 
-    // while preserving full cryptographic signature validation.
-    const decoded = decodeJwt(jwsCompact);
-    const iat = typeof decoded.iat === 'number' ? decoded.iat : undefined;
-
-    const { payload } = await jwtVerify(jwsCompact, secret, {
-      currentDate: iat ? new Date(iat * 1000) : undefined,
-    });
+    const { payload } = await jwtVerify(jwsCompact, secret);
 
     const result: QrVerifyResult = {
       valid: true,

@@ -132,7 +132,7 @@ export class BeneficiaryService {
       const { error: qrPassError } = await (this.db as any).from('qr_passes').insert({
         beneficiary_id: record.id,
         token_payload: qrToken,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        expires_at: null // Tokens are permanent until suspended
       });
 
       if (qrPassError) {
@@ -516,7 +516,7 @@ export class BeneficiaryService {
       if (status === 'SUSPENDED' || status === 'INELIGIBLE') {
         const { error: qrError } = await (this.db as any)
           .from('qr_passes')
-          .update({ expires_at: new Date().toISOString() })
+          .update({ revoked: true, expires_at: new Date().toISOString() })
           .eq('beneficiary_id', beneficiaryId);
         if (qrError) {
           console.error("Failed to auto-expire beneficiary QR pass:", qrError.message);
@@ -524,7 +524,7 @@ export class BeneficiaryService {
       } else if (status === 'ELIGIBLE') {
         const { error: qrError } = await (this.db as any)
           .from('qr_passes')
-          .update({ expires_at: null })
+          .update({ revoked: false, expires_at: null })
           .eq('beneficiary_id', beneficiaryId);
         if (qrError) {
           console.error("Failed to auto-reactivate beneficiary QR pass:", qrError.message);

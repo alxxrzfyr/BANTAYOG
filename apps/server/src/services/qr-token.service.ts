@@ -53,7 +53,6 @@ export class QrTokenService {
       })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt(now)
-        .setExpirationTime(now + this.ttlSeconds)
         .sign(secret);
 
       return ok(token);
@@ -85,16 +84,7 @@ export class QrTokenService {
   }>> {
     const secret = this.getSecretKey();
     try {
-      // Decode the token first to peek at `iat`. 
-      // If `iat` is present, we pretend the current time is exactly `iat`. 
-      // This elegantly bypasses any `exp` checks on legacy cards, 
-      // while preserving full cryptographic signature validation.
-      const decoded = decodeJwt(token);
-      const iat = typeof decoded.iat === 'number' ? decoded.iat : undefined;
-
-      const { payload } = await jwtVerify(token, secret, {
-        currentDate: iat ? new Date(iat * 1000) : undefined,
-      });
+      const { payload } = await jwtVerify(token, secret);
       return ok(payload as any);
     } catch (error: any) {
       const reason = error.code === 'ERR_JWT_EXPIRED' ? 'expired' : 'invalid';
