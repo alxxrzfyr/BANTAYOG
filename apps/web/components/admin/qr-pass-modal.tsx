@@ -222,53 +222,74 @@ function QrPassCard({
       {/* Divider */}
       <div className="mx-5 h-px bg-white/15" />
 
-      {/* Card body: QR left, info right */}
-      <div className="px-5 py-4 flex gap-5 items-center">
-        {/* QR code block */}
+      {/* Card body: 2 QRs and info */}
+      <div className="px-5 py-4 flex gap-4 items-center">
+        {/* QR 1: Payment (Raw JWT) */}
         <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
-          <div className="bg-white p-2.5 rounded-xl">
+          <p className="text-white font-bold text-[8px] tracking-wider uppercase bg-brand-coral/20 text-brand-coral px-2 py-0.5 rounded-full mb-0.5">
+            MERCHANT SCAN
+          </p>
+          <div className="bg-white p-2 rounded-xl">
+            <QRCode
+              value={data.jwsCompact}
+              size={90}
+              fgColor="#034c52"
+              bgColor="#ffffff"
+            />
+          </div>
+          <p className="text-white/50 text-[8px] font-mono font-semibold tracking-wider">
+            {data.cardSerial}
+          </p>
+        </div>
+
+        {/* Info block */}
+        <div className="flex-1 space-y-2 border-l border-white/10 pl-4 border-r pr-4">
+          <div>
+            <p className="text-white/40 text-[7px] font-semibold uppercase tracking-widest">
+              Child Beneficiary
+            </p>
+            <p className="text-white font-bold text-sm leading-tight mt-0.5">
+              {data.childName}
+            </p>
+          </div>
+          <div>
+            <p className="text-white/40 text-[7px] font-semibold uppercase tracking-widest">
+              Guardian
+            </p>
+            <p className="text-white font-bold text-xs leading-tight mt-0.5">
+              {data.guardianName}
+            </p>
+          </div>
+          <div>
+            <p className="text-white/40 text-[7px] font-semibold uppercase tracking-widest">
+              Age (Birthdate)
+            </p>
+            <p className="text-white font-bold text-xs leading-tight mt-0.5">
+              {birthdateDisplay}
+            </p>
+          </div>
+        </div>
+
+        {/* QR 2: Balance (URL) */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
+          <p className="text-white font-bold text-[8px] tracking-wider uppercase bg-white/10 text-white/90 px-2 py-0.5 rounded-full mb-0.5">
+            CHECK BALANCE
+          </p>
+          <div className="bg-white p-2 rounded-xl">
             <QRCode
               value={
                 typeof window !== "undefined"
                   ? `${window.location.origin}/balance?token=${encodeURIComponent(data.jwsCompact)}`
                   : `/balance?token=${encodeURIComponent(data.jwsCompact)}`
               }
-              size={120}
+              size={90}
               fgColor="#034c52"
               bgColor="#ffffff"
             />
           </div>
-          <p className="text-white/50 text-[9px] font-mono font-semibold tracking-wider">
-            {data.cardSerial}
+          <p className="text-white/50 text-[8px] font-mono font-semibold tracking-wider">
+            PUBLIC PORTAL
           </p>
-        </div>
-
-        {/* Info block */}
-        <div className="flex-1 space-y-3">
-          <div>
-            <p className="text-white/40 text-[8px] font-semibold uppercase tracking-widest">
-              Child Beneficiary
-            </p>
-            <p className="text-white font-bold text-base leading-tight mt-0.5">
-              {data.childName}
-            </p>
-          </div>
-          <div>
-            <p className="text-white/40 text-[8px] font-semibold uppercase tracking-widest">
-              Guardian
-            </p>
-            <p className="text-white font-bold text-sm leading-tight mt-0.5">
-              {data.guardianName}
-            </p>
-          </div>
-          <div>
-            <p className="text-white/40 text-[8px] font-semibold uppercase tracking-widest">
-              Age (Birthdate)
-            </p>
-            <p className="text-white font-bold text-sm leading-tight mt-0.5">
-              {birthdateDisplay}
-            </p>
-          </div>
         </div>
       </div>
 
