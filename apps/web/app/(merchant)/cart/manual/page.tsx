@@ -36,15 +36,6 @@ export default function ManualInputPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
-  interface ChildSafetyAnalysis {
-    product_name: string;
-    is_child_friendly: boolean;
-    flagged_ingredients: string[];
-    reasoning: string;
-  }
-  const [analysisResult, setAnalysisResult] = useState<ChildSafetyAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   const {
     status: cameraStatus,
     errorMsg: cameraErrorMsg,
@@ -53,41 +44,6 @@ export default function ManualInputPage() {
     stopCamera,
     retry: handleRetryCamera,
   } = useCameraPreview(videoRef);
-
-  const runNutritionalAnalysis = useCallback(async (image: string) => {
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-    try {
-      const res = await fetch("/api/vision/analyze-nutrition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: image }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAnalysisResult(data);
-        if (data.product_name && data.product_name !== "Unknown" && data.product_name !== "Unknown Product") {
-          setProductName(data.product_name);
-        }
-      } else {
-        setAnalysisResult({
-          product_name: "Captured Product",
-          is_child_friendly: true,
-          flagged_ingredients: [],
-          reasoning: "Failed to load detailed AI safety check. Use caution."
-        });
-      }
-    } catch {
-      setAnalysisResult({
-        product_name: "Captured Product",
-        is_child_friendly: true,
-        flagged_ingredients: [],
-        reasoning: "Offline simulation mode: assuming child-friendly."
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
 
   // ── Start/stop camera based on state ──
   useEffect(() => {
@@ -103,7 +59,6 @@ export default function ManualInputPage() {
     if (!videoRef.current || !canvasRef.current) {
       setCapturedImage(MOCK_FOOD_IMAGE);
       stopCamera();
-      runNutritionalAnalysis(MOCK_FOOD_IMAGE);
       return;
     }
 
@@ -116,7 +71,6 @@ export default function ManualInputPage() {
     if (!ctx) {
       setCapturedImage(MOCK_FOOD_IMAGE);
       stopCamera();
-      runNutritionalAnalysis(MOCK_FOOD_IMAGE);
       return;
     }
 
@@ -124,8 +78,7 @@ export default function ManualInputPage() {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setCapturedImage(dataUrl);
     stopCamera();
-    runNutritionalAnalysis(dataUrl);
-  }, [stopCamera, runNutritionalAnalysis]);
+  }, [stopCamera]);
 
   // ── Handle eligibility selection ──
   const handleEligibilityChange = (value: "eligible" | "ineligible") => {
@@ -139,8 +92,7 @@ export default function ManualInputPage() {
   const isQuantityValid = quantity >= 1;
   const isNameValid = productName.trim().length > 0;
   const hasImage = capturedImage !== null;
-  const isImageUnrecognizable = analysisResult?.product_name === "Unrecognizable";
-  const isFormComplete = hasImage && isNameValid && isPriceValid && isQuantityValid && eligibility !== null && !isImageUnrecognizable;
+  const isFormComplete = hasImage && isNameValid && isPriceValid && isQuantityValid && eligibility !== null;
 
   // ── Add Another Item ──
   const handleAddAnother = () => {
@@ -163,8 +115,6 @@ export default function ManualInputPage() {
     setEligibility(null);
     setVisualState("blank");
     setCapturedImage(null);
-    setAnalysisResult(null);
-    setIsAnalyzing(false);
   };
 
   // ── Proceed to Checkout ──
@@ -193,7 +143,7 @@ export default function ManualInputPage() {
   };
 
   const hasAnyItemInCart = items.length > 0;
-  const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null)) && !isImageUnrecognizable;
+  const canProceed = hasImage && isNameValid && isPriceValid && isQuantityValid && (hasAnyItemInCart || (eligibility !== null));
 
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
@@ -236,29 +186,17 @@ export default function ManualInputPage() {
                   alt="Captured product"
                   className="h-full w-full object-cover"
                 />
-                {!isAnalyzing && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCapturedImage(null);
-                      setAnalysisResult(null);
-                      setEligibility(null);
-                      setVisualState("blank");
-                    }}
-                    className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1.5 font-body text-xs font-bold text-white transition-colors hover:bg-black/80"
-                  >
-                    Retake
-                  </button>
-                )}
-                {isAnalyzing && (
-                  <>
-                    <div className="absolute inset-x-0 top-0 h-1.5 bg-[#80cbc4] shadow-[0_0_12px_#80cbc4] scanner-animation-bar" />
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
-                      <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>
-                    </div>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCapturedImage(null);
+                    setEligibility(null);
+                    setVisualState("blank");
+                  }}
+                  className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1.5 font-body text-xs font-bold text-white transition-colors hover:bg-black/80"
+                >
+                  Retake
+                </button>
               </div>
             ) : (cameraStatus === "ready" || cameraStatus === "loading") ? (
               <>
@@ -324,54 +262,6 @@ export default function ManualInputPage() {
           </div>
         </div>
 
-        {/* AI Analysis Loading / Results */}
-        {isAnalyzing ? (
-          <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#b2dfdb] bg-white p-6 shadow-sm">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#034C52] border-t-transparent" />
-            <p className="mt-2 font-body text-xs font-semibold text-[#034C52]/60">AI Nutritional Safety Check in progress...</p>
-          </div>
-        ) : analysisResult ? (
-          isImageUnrecognizable ? (
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-center shadow-sm" role="alert">
-              <span className="block font-body text-sm font-bold text-red-800">
-                ⚠ Poor lighting or unrecognizable product.
-              </span>
-              <span className="mt-1 block font-body text-xs text-red-700">
-                Please retake the photo under better lighting. You cannot enter amount or quantity.
-              </span>
-            </div>
-          ) : (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#b2dfdb] bg-white shadow-sm">
-              <div className={`px-4 py-3 flex items-center justify-between border-b ${analysisResult.is_child_friendly ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"}`}>
-                <span className="font-body text-xs font-bold uppercase tracking-wider text-[#034C52]">
-                  Nutritional Safety Scan
-                </span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-body text-xs font-semibold ${analysisResult.is_child_friendly ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
-                  {analysisResult.is_child_friendly ? "✓ Child Friendly" : "⚠ Not Child Friendly"}
-                </span>
-              </div>
-              <div className="px-4 py-4 space-y-3">
-                <div>
-                  <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Reasoning</h4>
-                  <p className="mt-1 font-body text-sm text-gray-700 leading-relaxed">{analysisResult.reasoning}</p>
-                </div>
-                {analysisResult.flagged_ingredients.length > 0 && (
-                  <div>
-                    <h4 className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">Flagged Ingredients</h4>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {analysisResult.flagged_ingredients.map((ing, idx) => (
-                        <span key={idx} className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 font-body text-xs font-medium text-amber-800">
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        ) : null}
-
         {/* Form Card */}
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-5 py-5">
           {/* Product Name */}
@@ -385,7 +275,6 @@ export default function ManualInputPage() {
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Enter product name"
-              disabled={isImageUnrecognizable || isAnalyzing}
               className="w-full font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
@@ -396,7 +285,7 @@ export default function ManualInputPage() {
               <label htmlFor="price-manual" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
                 Price (PHP)
               </label>
-              <div className={`flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075] ${(isImageUnrecognizable || isAnalyzing) ? "bg-gray-100 opacity-50" : "bg-gray-50"}`}>
+              <div className="flex w-full items-center gap-2 overflow-hidden rounded-xl border border-gray-200 px-3 py-2 transition-colors focus-within:border-[#017075] focus-within:ring-1 focus-within:ring-[#017075] bg-gray-50">
                 <span className="flex-shrink-0 font-body text-sm text-gray-500">
                   ₱
                 </span>
@@ -409,7 +298,6 @@ export default function ManualInputPage() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0.00"
-                    disabled={isImageUnrecognizable || isAnalyzing}
                     className="w-full rounded-lg border border-[#017075] bg-white px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-300 focus:border-[#017075] focus:ring-1 focus:ring-[#017075] disabled:cursor-not-allowed"
                   />
                 </div>
@@ -419,7 +307,6 @@ export default function ManualInputPage() {
               value={quantity}
               onChange={setQuantity}
               min={1}
-              disabled={isImageUnrecognizable || isAnalyzing}
             />
           </div>
 
@@ -428,7 +315,6 @@ export default function ManualInputPage() {
             <EligibilityToggle
               value={eligibility}
               onChange={handleEligibilityChange}
-              disabled={isImageUnrecognizable || isAnalyzing}
             />
           </div>
         </div>
