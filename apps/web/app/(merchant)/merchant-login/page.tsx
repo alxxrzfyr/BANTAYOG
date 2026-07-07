@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MERCHANT_TOKEN_KEY } from "@/lib/api";
+import { useCartStore } from "@/stores/cart-store";
 
 // ---------------------------------------------------------------------------
 // Inline validation schema (zod not available in web app dependencies)
@@ -40,6 +41,7 @@ function validate(form: LoginForm): FormErrors {
 
 export default function MerchantLoginPage() {
   const router = useRouter();
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const [form, setForm] = useState<LoginForm>({ phoneNumber: "", password: "" });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -104,6 +106,7 @@ export default function MerchantLoginPage() {
             window.localStorage.setItem(MERCHANT_TOKEN_KEY + "_expires", String(expiresAt));
           }
         }
+        clearCart();
         router.push("/dashboard");
         return;
       }
