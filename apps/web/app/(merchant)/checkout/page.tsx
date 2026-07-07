@@ -70,13 +70,20 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraLoading, setCameraLoading] = useState(true);
+  /**
+   * Bug 3 fix — back-button loop:
+   * After the user presses Back on the PIN modal, we re-open the QR scanner.
+   * Without a cooldown the camera instantly re-scans the card still in front
+   * of the lens and jumps straight back to the PIN modal. The cooldown
+   * suppresses scan results for 2 seconds, giving the user time to move the card.
+   */
+  const [scanCooldown, setScanCooldown] = useState(false);
   const checkoutButtonRef = useRef<HTMLButtonElement>(null);
   const qrCloseButtonRef = useRef<HTMLButtonElement>(null);
 
-  // QR Scanner ref
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // QR Scanner ref — html5-qrcode uses a container div ID, not a video ref
   const scannerRef = useRef<QRScanner | null>(null);
+  const QR_CONTAINER_ID = "bantayog-qr-reader";
 
   // Filter to eligible items only
   const eligibleItems = items.filter((i) => i.eligibility === "eligible");
@@ -91,8 +98,9 @@ export default function CheckoutPage() {
 
   // ── Handle QR Scanner Close ──
   const handleCloseQRScanner = useCallback(() => {
-    scannerRef.current?.stop();
+    scannerRef.current?.stop().catch(() => {});
     setCameraError(null);
+    setScanCooldown(false);
     setModalState("none");
     // Return focus to the trigger element
     setTimeout(() => checkoutButtonRef.current?.focus(), 0);
@@ -100,29 +108,41 @@ export default function CheckoutPage() {
 
   // ── Start QR Scanner when modal opens ──
   useEffect(() => {
-    if (modalState !== "qr-scan" || !videoRef.current) return;
+    if (modalState !== "qr-scan") return;
 
-    setCameraLoading(true);
-    const scanner = new QRScanner();
-    scannerRef.current = scanner;
+    // html5-qrcode needs the container div to exist in the DOM before we
+    // call start(). A short timeout lets React finish rendering the modal.
+    const timeout = setTimeout(() => {
+      const scanner = new QRScanner();
+      scannerRef.current = scanner;
 
-    scanner
-      .start(videoRef.current, (result) => {
-        // On successful scan, decode the JWT and extract beneficiary data
-        handleQRScanResult(result.text);
-      })
-      .then(() => {
-        setCameraLoading(false);
-      })
-      .catch((err) => {
-        setCameraLoading(false);
-        setCameraError(
-          err.message || "Camera access denied. Please allow camera access.",
-        );
-      });
+      scanner
+        .start(
+          QR_CONTAINER_ID,
+          (result) => {
+            // Bug 3 fix: ignore scan results during the cooldown window so
+            // pressing Back on the PIN modal doesn't instantly re-trigger it.
+            if (scanCooldown) return;
+            handleQRScanResult(result.text);
+          },
+          (err) => {
+            setCameraError(
+              err.message || "Camera access denied. Please allow camera access.",
+            );
+          },
+        )
+        .catch((err) => {
+          setCameraError(
+            err instanceof Error
+              ? err.message
+              : "Camera access denied. Please allow camera access.",
+          );
+        });
+    }, 100);
 
     return () => {
-      scanner.stop();
+      clearTimeout(timeout);
+      scannerRef.current?.stop().catch(() => {});
       scannerRef.current = null;
     };
   }, [modalState]);
@@ -555,22 +575,20 @@ export default function CheckoutPage() {
                 {/* Black background */}
                 <div className="absolute inset-0 rounded-3xl bg-black" />
 
-                {/* Video element for camera */}
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="absolute inset-0 h-full w-full rounded-3xl object-cover"
+                {/* html5-qrcode injects its own <video> into this div.
+                    It must be empty and have a stable ID. */}
+                <div
+                  id={QR_CONTAINER_ID}
+                  className="absolute inset-0 h-full w-full rounded-3xl overflow-hidden"
                   aria-label="Camera viewfinder for scanning QR codes"
                 />
 
-                {/* Camera loading indicator */}
-                {cameraLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 rounded-3xl gap-2 p-4 text-center z-10" aria-live="polite">
+                {/* Cooldown overlay — shown briefly after Back is pressed */}
+                {scanCooldown && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-3xl gap-2 p-4 text-center z-10" aria-live="polite">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#f48d79] border-t-transparent" />
                     <p className="font-body text-sm font-semibold text-white/80">
-                      Starting camera...
+                      Please remove the QR card…
                     </p>
                   </div>
                 )}
@@ -617,9 +635,14 @@ export default function CheckoutPage() {
           submitError={submitError}
           busy={submitting}
           onBack={() => {
+            // Bug 3 fix: activate cooldown before reopening the scanner so
+            // the card still in frame isn't instantly re-scanned.
+            setScanCooldown(true);
             setModalState("qr-scan");
             setPinError(false);
             setSubmitError(null);
+            // Lift the cooldown after 2 seconds — enough time to remove the card.
+            setTimeout(() => setScanCooldown(false), 2000);
           }}
           onComplete={handlePinComplete}
           onEscapeToNone={() => {
