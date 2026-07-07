@@ -373,7 +373,6 @@ function AIScanContent() {
                 />
                 {isProcessing && (
                   <>
-                    <div className="absolute inset-x-0 top-0 h-1.5 bg-[#80cbc4] shadow-[0_0_12px_#80cbc4] scanner-animation-bar" />
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
                       <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>

@@ -277,11 +277,7 @@ function QrPassCard({
           </p>
           <div className="bg-white p-2 rounded-xl">
             <QRCode
-              value={
-                typeof window !== "undefined"
-                  ? `${window.location.origin}/balance?token=${encodeURIComponent(data.jwsCompact)}`
-                  : `/balance?token=${encodeURIComponent(data.jwsCompact)}`
-              }
+              value={`${process.env.NEXT_PUBLIC_BALANCE_APP_URL ?? "https://credits-balance-bantayog.vercel.app"}/balance?token=${encodeURIComponent(data.jwsCompact)}`}
               size={90}
               fgColor="#034c52"
               bgColor="#ffffff"

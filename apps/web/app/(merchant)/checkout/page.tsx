@@ -265,27 +265,16 @@ export default function CheckoutPage() {
         });
 
         if (res.ok) {
+          const txData = await res.json();
           const totalDeducted = txItems.reduce((s, i) => s + i.creditCost, 0);
-
-          // Fetch the updated balance for the receipt's "remaining" figure.
-          let remaining = "";
-          try {
-            const balRes = await fetch(
-              `/api/balance/view?token=${encodeURIComponent(qrToken)}`,
-            );
-            if (balRes.ok) {
-              const bal = await balRes.json();
-              remaining = String(bal?.balance ?? "");
-            }
-          } catch {
-            /* remaining is optional on the receipt */
-          }
 
           const params = new URLSearchParams({
             amount: totalDeducted.toFixed(2),
-            beneficiary: beneficiaryData.guardianName,
+            beneficiary: maskName(beneficiaryData.name),
           });
-          if (remaining !== "") params.set("remaining", remaining);
+          if (typeof txData?.remainingBalance === 'number') {
+            params.set("remaining", txData.remainingBalance.toFixed(2));
+          }
 
           // Clear cart and checkout state as a guardrail for the next transaction
           clearCart();

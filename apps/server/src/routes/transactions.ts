@@ -157,7 +157,9 @@ transactionRoutes.post(
       confirmed_at: confirmedAt
     }
 
-    return c.json(toTransactionDTO(txRow), 201)
+    const remainingBalance = currentBalance - totalCreditDeducted
+
+    return c.json({ ...toTransactionDTO(txRow), remainingBalance }, 201)
   }
 )
 

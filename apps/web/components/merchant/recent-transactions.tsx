@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authFetch } from "@/lib/api";
+import Link from "next/link";
 
 // ---------------------------------------------------------------------------
 // Recent Transactions List — embedded in dashboard (ref: 13.png)
@@ -34,31 +36,42 @@ interface TransactionsResponse {
   count: number;
 }
 
-async function fetchRecentTransactions(): Promise<Transaction[]> {
-  // Removed status=CONFIRMED filter so we see both successful and failed transactions
-  const res = await authFetch("/api/transactions?limit=5");
+interface RecentTransactionsProps {
+  /** How many transactions to show. Defaults to 3 for the dashboard. */
+  limit?: number;
+  /** When true, shows a "View All Transactions" link if there are more records. */
+  showViewAll?: boolean;
+}
+
+async function fetchTransactions(limit: number): Promise<{ data: Transaction[]; count: number }> {
+  const res = await authFetch(`/api/transactions?limit=${limit + 1}`); // fetch +1 to detect "has more"
   if (!res.ok) {
     throw new Error("Failed to fetch transactions");
   }
   const result: TransactionsResponse = await res.json();
-  return result.data || [];
+  return { data: result.data || [], count: result.count ?? 0 };
 }
 
-export function RecentTransactions() {
+export function RecentTransactions({ limit = 3, showViewAll = true }: RecentTransactionsProps) {
   const {
-    data: transactions,
+    data: response,
     isLoading,
     error,
-  } = useQuery<Transaction[]>({
-    queryKey: ["merchant-transactions"],
-    queryFn: fetchRecentTransactions,
-    refetchInterval: 5000, // Poll every 5 seconds for near-real-time
+  } = useQuery<{ data: Transaction[]; count: number }>({
+    queryKey: ["merchant-transactions", limit],
+    queryFn: () => fetchTransactions(limit),
+    refetchInterval: 5000,
     staleTime: 3000,
     placeholderData: (prev) => prev,
   });
 
+  const transactions = response?.data ?? [];
+  // If we fetched limit+1 and got limit+1 back, there are more
+  const hasMore = transactions.length > limit;
+  const visible = hasMore ? transactions.slice(0, limit) : transactions;
+
   // Loading state
-  if (isLoading && !transactions) {
+  if (isLoading && !response) {
     return (
       <section aria-live="polite" aria-busy="true">
         <h2 className="mb-3 font-body text-xs font-semibold uppercase tracking-widest text-gray-400">
@@ -83,7 +96,7 @@ export function RecentTransactions() {
   }
 
   // Error state
-  if (error && !transactions) {
+  if (error && !response) {
     return (
       <section>
         <h2 className="mb-3 font-body text-xs font-semibold uppercase tracking-widest text-gray-400">
@@ -99,7 +112,7 @@ export function RecentTransactions() {
   }
 
   // Empty state
-  if (!transactions || transactions.length === 0) {
+  if (!visible || visible.length === 0) {
     return (
       <section>
         <h2 className="mb-3 font-body text-xs font-semibold uppercase tracking-widest text-gray-400">
@@ -121,11 +134,11 @@ export function RecentTransactions() {
       </h2>
 
       <div className="space-y-4">
-        {transactions.map((txn) => {
+        {visible.map((txn) => {
           const formattedTotal = txn.totalCreditDeducted.toFixed(2);
           const isFailed = txn.status === "FAILED";
           const isPending = txn.status === "PENDING";
-          
+
           return (
             <div
               key={txn.id}
@@ -136,7 +149,7 @@ export function RecentTransactions() {
               {/* Header: Transaction ID + Status */}
               <div className="mb-3 flex items-center justify-between">
                 <span className="rounded bg-gray-100 px-2 py-0.5 font-body text-[10px] font-semibold text-gray-500">
-                  {txn.id}
+                  {txn.id.slice(0, 8)}…
                 </span>
                 {isFailed && (
                   <span className="rounded-full bg-red-100 px-2 py-0.5 font-body text-[10px] font-bold text-red-600">
@@ -190,6 +203,19 @@ export function RecentTransactions() {
           );
         })}
       </div>
+
+      {/* View All link */}
+      {showViewAll && hasMore && (
+        <Link
+          href="/dashboard/transactions"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#034C52]/20 bg-white py-3.5 font-body text-sm font-semibold text-[#034C52] transition-colors hover:bg-[#034C52]/5 active:brightness-95"
+        >
+          View All Transactions
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      )}
     </section>
   );
 }
