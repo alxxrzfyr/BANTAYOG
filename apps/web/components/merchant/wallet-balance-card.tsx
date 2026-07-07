@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { TransferModal } from "./transfer-modal";
 import { pickWallet } from "@/lib/chain/wallet-adapter";
 import { authFetch } from "@/lib/api";
 
@@ -33,8 +32,6 @@ export function WalletBalanceCard({
   isLoading,
   refetch,
 }: WalletBalanceCardProps) {
-  const [modalOpen, setModalOpen] = useState(false);
-
   // ── Wallet connection state ──
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("idle");
   const [walletError, setWalletError] = useState<string | null>(null);
@@ -204,7 +201,7 @@ export function WalletBalanceCard({
           </span>
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => alert("This feature is coming soon!")}
             disabled={!connected || balance <= 0}
             className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#f48d79]/40"
           >
@@ -212,19 +209,6 @@ export function WalletBalanceCard({
           </button>
         </div>
       </div>
-
-      {/* Transfer Modal */}
-      <TransferModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        balance={formattedBalance}
-        phpEquivalent={phpEquivalent}
-        walletAddress={walletAddress}
-        onTransferSuccess={() => {
-          setModalOpen(false);
-          refetch();
-        }}
-      />
     </>
   );
 }
