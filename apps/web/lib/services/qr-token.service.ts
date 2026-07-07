@@ -10,7 +10,7 @@
  * the intended 30-day lifecycle from `iat`. No re-issuing required.
  */
 
-import { SignJWT, jwtVerify, decodeJwt } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { getQrTokenSecret } from "@/lib/env";
 import { computeTier, type Tier } from "@/lib/domain/eligibility";
 

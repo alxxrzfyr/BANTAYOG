@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, decodeJwt } from 'jose'
+import { SignJWT, jwtVerify } from 'jose'
 import { type AppResult, ok, err, JwtError } from '../lib/errors.js'
 
 /**
@@ -10,10 +10,8 @@ import { type AppResult, ok, err, JwtError } from '../lib/errors.js'
  * QR passes are now permanent pointers to the wallet address and do not expire.
  */
 export class QrTokenService {
-  private ttlSeconds: number
-
-  constructor(ttlSeconds?: number) {
-    this.ttlSeconds = ttlSeconds !== undefined ? ttlSeconds : 300
+  constructor(_ttlSeconds?: number) {
+    // TTL is no longer used for generation, kept in signature for compatibility
   }
 
   private getSecretKey(): Uint8Array {
