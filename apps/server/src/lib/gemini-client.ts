@@ -15,6 +15,7 @@ const VISION_FALLBACK_CHAIN = [
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-2.0-flash-exp', // highly available on free tier testing
 ]
 
 const TEXT_FALLBACK_CHAIN = [
@@ -22,6 +23,7 @@ const TEXT_FALLBACK_CHAIN = [
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-2.0-flash-exp',
 ]
 
 export async function callGeminiWithFallback(
