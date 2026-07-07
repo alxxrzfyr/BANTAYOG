@@ -373,18 +373,10 @@ function AIScanContent() {
                 />
                 {isProcessing && (
                   <>
-                    <div className="absolute inset-x-0 h-1.5 bg-[#80cbc4] shadow-[0_0_15px_3px_#80cbc4] scanner-animation-bar z-20" />
-                    <div className="absolute inset-0 bg-[#034C52]/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 z-10">
-                      <div className="relative flex items-center justify-center">
-                        <div className="absolute h-16 w-16 animate-ping rounded-full bg-[#80cbc4]/30" />
-                        <div className="h-12 w-12 rounded-full border-4 border-white border-t-[#80cbc4] animate-spin" />
-                        <img src="/merchantLogos/camera2.png" className="absolute h-6 w-6 opacity-80" alt="Scanning" />
-                      </div>
-                      <div className="rounded-full bg-black/40 px-4 py-2 backdrop-blur-md border border-white/20">
-                        <span className="font-body text-[10px] font-extrabold text-[#b2dfdb] tracking-widest uppercase animate-pulse">
-                          Bantayog AI Scanning
-                        </span>
-                      </div>
+                    <div className="absolute inset-x-0 top-0 h-1.5 bg-[#80cbc4] shadow-[0_0_12px_#80cbc4] scanner-animation-bar" />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
+                      <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>
                     </div>
                   </>
                 )}

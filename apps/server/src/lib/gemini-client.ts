@@ -11,16 +11,17 @@ import { GoogleGenAI } from '@google/genai'
  *   - gemini-2.5-pro          → permanent 429 on free tier (quota = 0)
  */
 const VISION_FALLBACK_CHAIN = [
-  'gemini-2.5-flash',  // Primary: confirmed vision-capable, free tier
-  'gemini-2.0-flash',  // Fallback: confirmed vision-capable, free tier
-  'gemini-1.5-flash',  // Ultimate Fallback: highly stable, vision-capable
-]
-
-/** Text-only fallback chain (used by Step 2 — no image, just structured extraction). */
-const TEXT_FALLBACK_CHAIN = [
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
+]
+
+const TEXT_FALLBACK_CHAIN = [
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
 ]
 
 export async function callGeminiWithFallback(
@@ -107,22 +108,9 @@ export async function callGeminiWithFallback(
       const errMsg = err.message || ''
       const statusCode = err.status || err.statusCode || 0
 
-      // On 400 Bad Request: this is a real API/payload error — do not try other models
-      if (statusCode === 400 || errMsg.includes('"code":400') || errMsg.includes('INVALID_ARGUMENT')) {
-        console.error(`[Gemini SDK fallback] Model ${model} rejected request (400): ${errMsg.slice(0, 200)}`)
-        throw err
-      }
-
-      // On 429 / RESOURCE_EXHAUSTED: rate limited — try next model in chain
-      if (statusCode === 429 || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-        console.warn(`[Gemini SDK fallback] Model ${model} rate-limited (429) — trying next model...`)
-        lastError = err
-        continue
-      }
-
-      // On other errors (5xx, network): log and try next model
-      console.warn(`[Gemini SDK fallback] Model ${model} failed (${statusCode}): ${errMsg.slice(0, 100)}`)
+      console.warn(`[Gemini SDK fallback] Model ${model} failed (${statusCode}): ${errMsg.slice(0, 200)}`)
       lastError = err
+      continue
     }
   }
 
