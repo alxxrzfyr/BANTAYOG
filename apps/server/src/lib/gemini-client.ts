@@ -13,6 +13,7 @@ import { GoogleGenAI } from '@google/genai'
 const VISION_FALLBACK_CHAIN = [
   'gemini-2.5-flash',  // Primary: confirmed vision-capable, free tier
   'gemini-2.0-flash',  // Fallback: confirmed vision-capable, free tier
+  'gemini-1.5-flash',  // Ultimate Fallback: highly stable, vision-capable
 ]
 
 /** Text-only fallback chain (used by Step 2 — no image, just structured extraction). */

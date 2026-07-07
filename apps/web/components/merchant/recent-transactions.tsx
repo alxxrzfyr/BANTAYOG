@@ -35,7 +35,8 @@ interface TransactionsResponse {
 }
 
 async function fetchRecentTransactions(): Promise<Transaction[]> {
-  const res = await authFetch("/api/transactions?status=CONFIRMED&limit=3");
+  // Removed status=CONFIRMED filter so we see both successful and failed transactions
+  const res = await authFetch("/api/transactions?limit=5");
   if (!res.ok) {
     throw new Error("Failed to fetch transactions");
   }
@@ -122,16 +123,36 @@ export function RecentTransactions() {
       <div className="space-y-4">
         {transactions.map((txn) => {
           const formattedTotal = txn.totalCreditDeducted.toFixed(2);
+          const isFailed = txn.status === "FAILED";
+          const isPending = txn.status === "PENDING";
+          
           return (
             <div
               key={txn.id}
-              className="rounded-2xl border border-gray-200 bg-white px-5 py-4"
+              className={`rounded-2xl border bg-white px-5 py-4 ${
+                isFailed ? "border-red-200" : "border-gray-200"
+              }`}
             >
-              {/* Header: Transaction ID only (no beneficiary/guardian names) */}
-              <div className="mb-3 flex items-center gap-2">
+              {/* Header: Transaction ID + Status */}
+              <div className="mb-3 flex items-center justify-between">
                 <span className="rounded bg-gray-100 px-2 py-0.5 font-body text-[10px] font-semibold text-gray-500">
                   {txn.id}
                 </span>
+                {isFailed && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 font-body text-[10px] font-bold text-red-600">
+                    FAILED
+                  </span>
+                )}
+                {isPending && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 font-body text-[10px] font-bold text-amber-600">
+                    PENDING
+                  </span>
+                )}
+                {txn.status === "CONFIRMED" && (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 font-body text-[10px] font-bold text-green-700">
+                    SUCCESS
+                  </span>
+                )}
               </div>
 
               {/* Items */}
@@ -142,14 +163,14 @@ export function RecentTransactions() {
                     className="flex items-baseline justify-between"
                   >
                     <div>
-                      <span className="font-body text-sm text-gray-700">
+                      <span className={`font-body text-sm ${isFailed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                         {item.name}
                       </span>
                       <span className="ml-2 font-body text-xs text-gray-400">
                         Qty: {item.quantity}
                       </span>
                     </div>
-                    <span className="font-body text-sm text-gray-500">
+                    <span className={`font-body text-sm ${isFailed ? 'text-gray-400' : 'text-gray-500'}`}>
                       ₱{item.creditCost.toFixed(2)}
                     </span>
                   </div>
@@ -157,9 +178,12 @@ export function RecentTransactions() {
               </div>
 
               {/* Total */}
-              <div className="mt-3 border-t border-gray-100 pt-2 text-right">
-                <span className="font-body text-lg font-extrabold text-[#034C52]">
-                  +{formattedTotal} PHPC
+              <div className="mt-3 border-t border-gray-100 pt-2 flex items-center justify-between">
+                <span className="font-body text-xs text-gray-400">
+                  {new Date(txn.createdAt).toLocaleDateString()}
+                </span>
+                <span className={`font-body text-lg font-extrabold ${isFailed ? 'text-red-400 line-through' : 'text-[#034C52]'}`}>
+                  {isFailed ? '' : '+'}{formattedTotal} PHPC
                 </span>
               </div>
             </div>
