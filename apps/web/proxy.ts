@@ -5,16 +5,47 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get("host") || "";
 
-  // 1. Subdomain routing: intercept requests to the root homepage (/)
-  if (url.pathname === "/") {
-    if (hostname.includes("merchant-bantayog") || hostname.includes("merchant")) {
+  const pathname = url.pathname;
+
+  const isMerchantDomain = hostname.includes("merchant-bantayog") || hostname.includes("merchant");
+  const isBalanceDomain = hostname.includes("credits-balance-bantayog") || hostname.includes("balance");
+  const isAdminDomain = hostname.includes("admin-bantayog");
+  
+  const isLocalhost = hostname.includes("localhost") || hostname.includes("127.0.0.1") || hostname.includes("0.0.0.0");
+
+  // Group our UI routes
+  const adminRoutes = ["/admin", "/login"];
+  const merchantRoutes = ["/merchant-login", "/dashboard", "/cart", "/checkout"];
+  const balanceRoutes = ["/balance"];
+
+  const matchesAny = (path: string, routes: string[]) => 
+    routes.some(r => path === r || path.startsWith(`${r}/`));
+
+  // 1. Strict Subdomain Sandboxing
+  if (isMerchantDomain) {
+    if (pathname === "/") {
       url.pathname = "/merchant-login";
       return NextResponse.redirect(url);
     }
-    
-    if (hostname.includes("credits-balance-bantayog") || hostname.includes("balance")) {
+    if (!isLocalhost && (matchesAny(pathname, adminRoutes) || matchesAny(pathname, balanceRoutes))) {
+      return new NextResponse("Not Found - This route is not available on the Merchant domain.", { status: 404 });
+    }
+  } else if (isBalanceDomain) {
+    if (pathname === "/") {
       url.pathname = "/balance";
       return NextResponse.redirect(url);
+    }
+    if (!isLocalhost && (matchesAny(pathname, adminRoutes) || matchesAny(pathname, merchantRoutes))) {
+      return new NextResponse("Not Found - This route is not available on the Balance domain.", { status: 404 });
+    }
+  } else {
+    // Admin / Default Domain (including localhost)
+    if (pathname === "/") {
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+    if (!isLocalhost && (matchesAny(pathname, merchantRoutes) || matchesAny(pathname, balanceRoutes))) {
+      return new NextResponse("Not Found - This route is not available on the Admin domain.", { status: 404 });
     }
   }
 
