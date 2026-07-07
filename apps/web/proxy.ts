@@ -2,6 +2,23 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  const hostname = request.headers.get("host") || "";
+
+  // 1. Subdomain routing: intercept requests to the root homepage (/)
+  if (url.pathname === "/") {
+    if (hostname.includes("merchant-bantayog") || hostname.includes("merchant")) {
+      url.pathname = "/merchant-login";
+      return NextResponse.redirect(url);
+    }
+    
+    if (hostname.includes("credits-balance-bantayog") || hostname.includes("balance")) {
+      url.pathname = "/balance";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // 2. Supabase Auth logic
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
