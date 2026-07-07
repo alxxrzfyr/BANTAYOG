@@ -121,5 +121,29 @@ beneficiaryRoutes.get('/metrics', async (c) => {
   )
 })
 
+/**
+ * PATCH /api/beneficiaries/:id/status
+ * Updates eligibility status of a beneficiary (admin only).
+ */
+beneficiaryRoutes.patch('/:id/status', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const status = body.status
+
+  if (!status || !['PENDING', 'ELIGIBLE', 'INELIGIBLE', 'SUSPENDED'].includes(status)) {
+    return c.json({ error: 'validation_failed', message: 'Invalid status value' }, 400)
+  }
+
+  const db = createServiceClient()
+  const service = new BeneficiaryService(db)
+
+  const result = await service.updateStatus(id, status)
+
+  return result.match(
+    (record) => c.json(toBeneficiaryDTO(record)),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
+})
+
 export default beneficiaryRoutes
 

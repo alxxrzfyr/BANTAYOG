@@ -13,6 +13,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { StatusBar } from "@/components/admin/status-bar";
+import { TransactionsModal } from "@/components/admin/transactions-modal";
 
 /* ─────────────────────────────────────────────────────────
    Merchants Page — mock 10.png. Read-only merchant directory.
@@ -21,9 +22,8 @@ import { StatusBar } from "@/components/admin/status-bar";
    1. StatusBar (same as beneficiaries page)
    2. Four metric cards (same shell — from API)
    3. TanStack Table — "Merchant Directory"
-      Columns: Name of the Store | Store Owner | Phone Number | Status
+      Columns: Name of the Store | Store Owner | Phone Number | Status | Action
       Status pill: ACTIVE (coral outline) / INACTIVE (teal outline)
-      NO action buttons — view-only.
    4. Dot-indicator pagination
    ───────────────────────────────────────────────────────── */
 
@@ -52,6 +52,25 @@ export default function MerchantsPage() {
   const [loading, setLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+
+  /* Modal state */
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDetails, setModalDetails] = useState({
+    title: "",
+    subtitle: "",
+    merchantId: "",
+  });
+
+  /* Dropdown state */
+  const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setOpenMenuRowId(null);
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   /* ── Data fetching ── */
   const fetchAll = useCallback(async () => {
@@ -86,6 +105,26 @@ export default function MerchantsPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  /* ── Change Merchant Status ── */
+  const handleStatusChange = async (merchantId: string, status: "APPROVED" | "SUSPENDED") => {
+    try {
+      const res = await authFetch(`/api/merchants/${merchantId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setMerchants((prev) =>
+          prev.map((m) => (m.id === merchantId ? { ...m, status } : m))
+        );
+      } else {
+        alert("Failed to update merchant status.");
+      }
+    } catch {
+      alert("Failed to update status due to network error.");
+    }
+  };
 
   /* ── TanStack Table columns ── */
   const columns = useMemo<ColumnDef<MerchantRow>[]>(
@@ -145,8 +184,68 @@ export default function MerchantsPage() {
           );
         },
       },
+      {
+        id: "action",
+        header: "ACTION",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const m = row.original;
+          const isDropdownOpen = openMenuRowId === m.id;
+          const formattedPhone = m.mobileNumberE164.startsWith("+63") ? m.mobileNumberE164.slice(3).replace(/(\d{4})(\d{4})(\d+)/, "$1 - $2 - $3") : m.mobileNumberE164;
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setModalDetails({
+                    title: m.storeName,
+                    subtitle: `Owner's Name: ${m.ownerName} | Phone: ${formattedPhone}`,
+                    merchantId: m.id,
+                  });
+                  setModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-darkTeal/50 text-brand-darkTeal text-xs font-semibold hover:bg-brand-darkTeal hover:text-white transition-all cursor-pointer"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                View Transactions
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuRowId(isDropdownOpen ? null : m.id);
+                  }}
+                  className="w-8 h-8 rounded-full border border-brand-sageBorder/40 hover:bg-brand-peachBg/30 flex items-center justify-center text-brand-darkTeal/60 hover:text-brand-darkTeal transition-all cursor-pointer font-bold text-xs"
+                >
+                  •••
+                </button>
+                
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-1 z-10 w-28 bg-white border border-brand-sageBorder/30 rounded-xl shadow-lg py-1 animate-scale-in">
+                    <button
+                      onClick={() => handleStatusChange(m.id, "APPROVED")}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-brand-darkTeal hover:bg-brand-peachBg/40"
+                    >
+                      Set Active
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(m.id, "SUSPENDED")}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-brand-peachBg/40"
+                    >
+                      Set Inactive
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        },
+      },
     ],
-    []
+    [openMenuRowId]
   );
 
   /* ── TanStack Table instance ── */
@@ -351,6 +450,14 @@ export default function MerchantsPage() {
           </div>
         )}
       </div>
+
+      <TransactionsModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalDetails.title}
+        subtitle={modalDetails.subtitle}
+        merchantId={modalDetails.merchantId}
+      />
     </div>
   );
 }

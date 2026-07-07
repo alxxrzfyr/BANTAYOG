@@ -45,6 +45,16 @@ export interface TransactionDTO {
   status: string
   createdAt: string
   confirmedAt: string | null
+  beneficiary?: {
+    childName: string
+    guardianName: string
+    cardSerial: string
+  }
+  merchant?: {
+    storeName: string
+    ownerName: string
+    mobileNumberE164: string
+  }
 }
 
 export interface VisionCandidateDTO {
@@ -170,7 +180,17 @@ export function toTransactionDTO(row: any): TransactionDTO {
     idempotencyKey: row.idempotency_key || '',
     status: row.status,
     createdAt: row.created_at,
-    confirmedAt: row.confirmed_at || null
+    confirmedAt: row.confirmed_at || null,
+    beneficiary: row.beneficiaries ? {
+      childName: row.beneficiaries.child_name,
+      guardianName: row.beneficiaries.guardian_name,
+      cardSerial: row.beneficiaries.card_serial,
+    } : undefined,
+    merchant: row.merchants ? {
+      storeName: row.merchants.store_name,
+      ownerName: row.merchants.owner_name,
+      mobileNumberE164: row.merchants.mobile_number_e164,
+    } : undefined
   }
 }
 

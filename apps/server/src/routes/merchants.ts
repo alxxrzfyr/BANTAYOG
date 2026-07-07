@@ -77,5 +77,29 @@ merchantRoutes.patch('/:id/approve', async (c) => {
   )
 })
 
+/**
+ * PATCH /api/merchants/:id/status
+ * Updates a merchant's status (admin only).
+ */
+merchantRoutes.patch('/:id/status', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const status = body.status
+
+  if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'].includes(status)) {
+    return c.json({ error: 'validation_failed', message: 'Invalid status value' }, 400)
+  }
+
+  const db = createServiceClient()
+  const service = new MerchantService(db)
+
+  const result = await service.updateStatus(id, status)
+
+  return result.match(
+    (record) => c.json(toMerchantDTO(record)),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
+})
+
 export default merchantRoutes
 

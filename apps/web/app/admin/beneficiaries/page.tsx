@@ -16,6 +16,7 @@ import {
 import { StatusBar } from "@/components/admin/status-bar";
 import { AddCreditsModal } from "@/components/admin/add-credits-modal";
 import { QrPassModal, type QrPassData } from "@/components/admin/qr-pass-modal";
+import { TransactionsModal } from "@/components/admin/transactions-modal";
 
 /* ─────────────────────────────────────────────────────────
    Beneficiaries Page — mock 6.png. Default admin landing.
@@ -25,7 +26,7 @@ import { QrPassModal, type QrPassData } from "@/components/admin/qr-pass-modal";
    2. Four metric cards (from API — never computed client-side)
    3. TanStack Table — "Active Beneficiary Directory"
       Columns: ID | Child Name | Guardian Name | Age Details |
-               Remaining Balance | Add Credits | Intervention Tier | Action
+               Remaining Balance | Add Credits | Intervention Tier | Status | Action
    4. Dot-indicator pagination
    ───────────────────────────────────────────────────────── */
 
@@ -44,6 +45,7 @@ interface BeneficiaryRow {
   birthdate: string;
   /** The signed JWT for QR encoding — included in list response */
   jwsCompact?: string;
+  eligibilityStatus: "PENDING" | "ELIGIBLE" | "INELIGIBLE" | "SUSPENDED";
 }
 
 /* ── Metrics card shape from GET /api/beneficiaries/metrics ── */
@@ -77,6 +79,24 @@ export default function BeneficiariesPage() {
     open: false,
     data: null,
   });
+  
+  const [txModalOpen, setTxModalOpen] = useState(false);
+  const [txModalDetails, setTxModalDetails] = useState({
+    title: "",
+    subtitle: "",
+    beneficiaryId: "",
+  });
+
+  /* Dropdown state */
+  const [openMenuRowId, setOpenMenuRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setOpenMenuRowId(null);
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   /* ── Data fetching ── */
   const fetchAll = useCallback(async () => {
@@ -142,6 +162,26 @@ export default function BeneficiariesPage() {
       },
     });
   }, []);
+
+  /* ── Change Beneficiary Status ── */
+  const handleStatusChange = async (beneficiaryId: string, status: "ELIGIBLE" | "SUSPENDED") => {
+    try {
+      const res = await authFetch(`/api/beneficiaries/${beneficiaryId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setBeneficiaries((prev) =>
+          prev.map((b) => (b.id === beneficiaryId ? { ...b, eligibilityStatus: status } : b))
+        );
+      } else {
+        alert("Failed to update beneficiary status.");
+      }
+    } catch {
+      alert("Failed to update status due to network error.");
+    }
+  };
 
   /* ── TanStack Table columns ── */
   const columns = useMemo<ColumnDef<BeneficiaryRow>[]>(
@@ -264,25 +304,100 @@ export default function BeneficiariesPage() {
         },
       },
       {
+        id: "eligibilityStatus",
+        accessorKey: "eligibilityStatus",
+        header: "STATUS",
+        cell: ({ getValue }) => {
+          const raw = getValue() as BeneficiaryRow["eligibilityStatus"];
+          const isActive = raw === "ELIGIBLE";
+          return (
+            <span
+              className={`
+                inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold
+                border select-none tracking-wide
+                ${isActive
+                  ? "border-brand-coral text-brand-coral bg-brand-coral/5"
+                  : "border-brand-activeTeal text-brand-activeTeal bg-brand-activeTeal/5"
+                }
+              `}
+            >
+              {isActive ? "ACTIVE" : "INACTIVE"}
+            </span>
+          );
+        },
+      },
+      {
         id: "action",
         header: "ACTION",
         enableSorting: false,
-        cell: ({ row }) => (
-          <button
-            onClick={() => openQrPass(row.original)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-brand-darkTeal/30 text-brand-darkTeal text-xs font-semibold hover:bg-brand-darkTeal hover:text-white transition-all duration-150 cursor-pointer"
-          >
-            {/* QR icon */}
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-              <line x1="14" y1="14" x2="14" y2="14" /><line x1="17" y1="14" x2="21" y2="14" /><line x1="14" y1="17" x2="14" y2="21" /><line x1="17" y1="17" x2="17" y2="17" /><line x1="21" y1="17" x2="21" y2="17" /><line x1="21" y1="21" x2="21" y2="21" />
-            </svg>
-            QR Pass
-          </button>
-        ),
+        cell: ({ row }) => {
+          const b = row.original;
+          const isDropdownOpen = openMenuRowId === b.id;
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openQrPass(b)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-darkTeal/30 text-brand-darkTeal text-xs font-semibold hover:bg-brand-darkTeal hover:text-white transition-all cursor-pointer"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                  <line x1="14" y1="14" x2="14" y2="14" /><line x1="17" y1="14" x2="21" y2="14" /><line x1="14" y1="17" x2="14" y2="21" /><line x1="17" y1="17" x2="17" y2="17" /><line x1="21" y1="17" x2="21" y2="17" /><line x1="21" y1="21" x2="21" y2="21" />
+                </svg>
+                QR Pass
+              </button>
+
+              <button
+                onClick={() => {
+                  setTxModalDetails({
+                    title: b.childName,
+                    subtitle: `Guardian's Name: ${b.guardianName} | ID: ${b.cardSerial}`,
+                    beneficiaryId: b.id,
+                  });
+                  setTxModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-darkTeal/50 text-brand-darkTeal text-xs font-semibold hover:bg-brand-darkTeal hover:text-white transition-all cursor-pointer"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                View Transactions
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuRowId(isDropdownOpen ? null : b.id);
+                  }}
+                  className="w-8 h-8 rounded-full border border-brand-sageBorder/40 hover:bg-brand-peachBg/30 flex items-center justify-center text-brand-darkTeal/60 hover:text-brand-darkTeal transition-all cursor-pointer font-bold text-xs"
+                >
+                  •••
+                </button>
+                
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-1 z-10 w-28 bg-white border border-brand-sageBorder/30 rounded-xl shadow-lg py-1 animate-scale-in">
+                    <button
+                      onClick={() => handleStatusChange(b.id, "ELIGIBLE")}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-brand-darkTeal hover:bg-brand-peachBg/40"
+                    >
+                      Set Active
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(b.id, "SUSPENDED")}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-brand-peachBg/40"
+                    >
+                      Set Inactive
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        },
       },
     ],
-    [canAddCredits, openCredits, openQrPass]
+    [canAddCredits, openCredits, openQrPass, openMenuRowId]
   );
 
   /* ── TanStack Table instance ── */
@@ -515,6 +630,13 @@ export default function BeneficiariesPage() {
         open={qrModal.open}
         onClose={() => setQrModal((s) => ({ ...s, open: false }))}
         data={qrModal.data}
+      />
+      <TransactionsModal
+        open={txModalOpen}
+        onClose={() => setTxModalOpen(false)}
+        title={txModalDetails.title}
+        subtitle={txModalDetails.subtitle}
+        beneficiaryId={txModalDetails.beneficiaryId}
       />
     </>
   );

@@ -125,5 +125,27 @@ export class MerchantService {
       return err(new PersistenceError(`Approve operation failed: ${error.message}`, 'merchants'));
     }
   }
+
+  /**
+   * Updates status of a merchant.
+   */
+  async updateStatus(merchantId: string, status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'): Promise<AppResult<any>> {
+    try {
+      const { data, error } = await (this.db as any)
+        .from('merchants')
+        .update({ status })
+        .eq('id', merchantId)
+        .select('*')
+        .single();
+
+      if (error || !data) {
+        return err(new PersistenceError(`Failed to update status for merchant: ${error?.message || merchantId}`, 'merchants'));
+      }
+
+      return ok(data);
+    } catch (error: any) {
+      return err(new PersistenceError(`Update status operation failed: ${error.message}`, 'merchants'));
+    }
+  }
 }
 

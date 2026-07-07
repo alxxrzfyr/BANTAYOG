@@ -495,5 +495,27 @@ export class BeneficiaryService {
       return err(new PersistenceError(`Metrics computation failed: ${error.message}`));
     }
   }
+
+  /**
+   * Updates eligibility status of a beneficiary.
+   */
+  async updateStatus(beneficiaryId: string, status: 'PENDING' | 'ELIGIBLE' | 'INELIGIBLE' | 'SUSPENDED'): Promise<AppResult<any>> {
+    try {
+      const { data, error } = await (this.db as any)
+        .from('beneficiaries')
+        .update({ eligibility_status: status })
+        .eq('id', beneficiaryId)
+        .select('*')
+        .single();
+
+      if (error || !data) {
+        return err(new PersistenceError(`Failed to update status for beneficiary: ${error?.message || beneficiaryId}`, 'beneficiaries'));
+      }
+
+      return ok(data);
+    } catch (error: any) {
+      return err(new PersistenceError(`Update status operation failed: ${error.message}`, 'beneficiaries'));
+    }
+  }
 }
 

@@ -118,7 +118,7 @@ export class TransactionService {
     try {
       let query = this.db
         .from('transactions')
-        .select('*', { count: 'exact' })
+        .select('*, beneficiaries(child_name, guardian_name, card_serial), merchants(store_name, owner_name, mobile_number_e164)', { count: 'exact' })
 
       if (filters.merchantId) {
         query = query.eq('merchant_id', filters.merchantId)
