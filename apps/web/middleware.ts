@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     }
     
     // If the custom domain is the balance checker domain
-    if (hostname.includes('balance-bantayog') || hostname.includes('balance')) {
+    if (hostname.includes('credits-balance-bantayog') || hostname.includes('balance')) {
       url.pathname = '/balance';
       return NextResponse.redirect(url);
     }
