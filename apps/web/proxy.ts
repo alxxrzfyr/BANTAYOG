@@ -9,7 +9,6 @@ export async function proxy(request: NextRequest) {
 
   const isMerchantDomain = hostname.includes("merchant-bantayog") || hostname.includes("merchant");
   const isBalanceDomain = hostname.includes("credits-balance-bantayog") || hostname.includes("balance");
-  const isAdminDomain = hostname.includes("admin-bantayog");
   
   const isLocalhost = hostname.includes("localhost") || hostname.includes("127.0.0.1") || hostname.includes("0.0.0.0");
 
