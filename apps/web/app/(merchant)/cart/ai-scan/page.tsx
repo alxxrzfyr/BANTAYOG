@@ -573,30 +573,11 @@ function AIScanContent() {
                 id="product-name"
                 type="text"
                 value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                onBlur={handleProductNameBlur}
-                className="min-w-0 flex-1 font-body text-xl font-bold text-gray-900 outline-none placeholder:text-gray-300 focus:border-b focus:border-[#017075]"
-                placeholder="Type Product Name..."
+                readOnly
+                disabled
+                className="min-w-0 flex-1 font-body text-xl font-bold text-gray-500 outline-none placeholder:text-gray-300 cursor-not-allowed bg-transparent"
+                placeholder="Product Name..."
               />
-              <button
-                type="button"
-                className="ml-2 flex h-11 w-11 flex-shrink-0 items-center justify-center"
-                aria-label="Edit product name"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#9e8e82"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
             </div>
 
             {/* Price & Quantity - ONLY if child friendly */}
