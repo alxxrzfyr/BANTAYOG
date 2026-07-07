@@ -11,6 +11,12 @@ import { createMiddleware } from 'hono/factory'
 import { createClient } from '@supabase/supabase-js'
 import type { Env } from '../types/env.js'
 
+// Polyfill WebSocket for Node.js < 22 to prevent Supabase createClient from crashing
+// since we only use auth.getUser() and do not need Realtime connections.
+if (typeof globalThis.WebSocket === 'undefined') {
+  globalThis.WebSocket = class DummyWebSocket {} as any
+}
+
 // ---------------------------------------------------------------------------
 // Context augmentation
 // ---------------------------------------------------------------------------
