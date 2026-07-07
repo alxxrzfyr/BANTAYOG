@@ -7,20 +7,20 @@ export function middleware(request: NextRequest) {
 
   // Only intercept requests to the root homepage (/)
   if (url.pathname === '/') {
-    // If the custom domain contains "merchant" (e.g., merchant.bantayog.com)
-    if (hostname.includes('merchant')) {
+    // If the custom domain is the merchant domain
+    if (hostname.includes('merchant-bantayog') || hostname.includes('merchant')) {
       url.pathname = '/merchant-login';
       return NextResponse.redirect(url);
     }
     
-    // If the custom domain contains "balance" (e.g., balance.bantayog.com)
-    if (hostname.includes('balance')) {
+    // If the custom domain is the balance checker domain
+    if (hostname.includes('balance-bantayog') || hostname.includes('balance')) {
       url.pathname = '/balance';
       return NextResponse.redirect(url);
     }
 
-    // Otherwise (admin.bantayog.com or localhost), let it fall through to the default 
-    // page.tsx which automatically redirects to the Admin /login
+    // Otherwise (admin-bantayog.vercel.app or localhost), let it fall through
+    // to the default page.tsx which automatically redirects to the Admin /login
   }
   
   return NextResponse.next();
