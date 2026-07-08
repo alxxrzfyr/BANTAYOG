@@ -290,7 +290,8 @@ export default function MerchantsPage() {
   const pageCount = table.getPageCount();
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <>
+      <div className="space-y-5 animate-fade-in">
       {/* Status bar */}
       <StatusBar />
 
@@ -474,7 +475,9 @@ export default function MerchantsPage() {
           </div>
         )}
       </div>
+      </div>
 
+      {/* ── Modals (rendered outside animation wrapper to avoid stacking context trap) ── */}
       <TransactionsModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -489,7 +492,7 @@ export default function MerchantsPage() {
         title="Verify Admin Action"
         description={`Please enter your admin password to change ${sudoModal.storeName}'s status to ${sudoModal.status === "APPROVED" ? "ACTIVE" : "INACTIVE"}.`}
       />
-    </div>
+    </>
   );
 }
 
