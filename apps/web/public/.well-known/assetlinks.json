@@ -1,10 +1,14 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.bantayog.merchant",
-    "sha256_cert_fingerprints": [
-      "YOUR_SHA256_FINGERPRINT_HERE"
-    ]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.merchant_bantayog.twa",
+      "sha256_cert_fingerprints": [
+        "54:94:C9:A5:E0:96:9C:99:92:6B:DB:83:FA:B9:39:03:CD:FE:32:4E:5A:98:DE:52:0E:3F:2C:70:98:02:04:24"
+      ]
+    }
   }
-}]
+]
