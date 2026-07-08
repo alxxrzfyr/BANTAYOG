@@ -1,0 +1,21 @@
+{
+  "name": "BANTAYOG Merchant",
+  "short_name": "BANTAYOG",
+  "description": "BANTAYOG Merchant App",
+  "start_url": "/merchant-login",
+  "display": "standalone",
+  "background_color": "#034C52",
+  "theme_color": "#0b6e6e",
+  "icons": [
+    {
+      "src": "/merchantLogos/darkTitle.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/merchantLogos/darkTitle.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

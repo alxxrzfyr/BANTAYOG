@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { WalletBalanceCard } from "@/components/merchant/wallet-balance-card";
 import { RecentTransactions } from "@/components/merchant/recent-transactions";
 import { useMerchantProfile } from "@/hooks/use-merchant-profile";
+import { LogoutConfirmationModal } from "@/components/merchant/logout-confirmation-modal";
 
 // ---------------------------------------------------------------------------
 // Merchant Dashboard — matches merchantPages/13.png
@@ -11,6 +13,8 @@ import { useMerchantProfile } from "@/hooks/use-merchant-profile";
 
 export default function MerchantDashboard() {
   const { data: profile, isLoading, isError, refetch } = useMerchantProfile();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -41,14 +45,20 @@ export default function MerchantDashboard() {
   return (
     <div className="min-h-dvh bg-[#fdf2ed]">
       {/* ── Header ── */}
-      <header className="flex items-center justify-between border-b border-gray-200 bg-[#fdf2ed] px-5 py-4">
+      <header className="relative flex items-center justify-between border-b border-gray-200 bg-[#fdf2ed] px-5 py-4 z-40">
         {/* Left: profile icon + store info */}
         <div className="flex items-center gap-3">
-          <img
-            src="/merchantLogos/profile.png"
-            alt="Store profile"
-            className="h-11 w-11 rounded-full border-2 border-[#034C52]/20 bg-[#034C52]"
-          />
+          <button 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="relative h-11 w-11 rounded-full border-2 border-[#034C52]/20 bg-[#034C52] transition-transform active:scale-95"
+            aria-label="Profile menu"
+          >
+            <img
+              src="/merchantLogos/profile.png"
+              alt="Store profile"
+              className="h-full w-full rounded-full object-cover"
+            />
+          </button>
           <div>
             <h1 className="font-body text-sm font-bold text-[#034C52]">
               {storeName}
@@ -65,6 +75,31 @@ export default function MerchantDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-30" 
+              onClick={() => setIsDropdownOpen(false)} 
+            />
+            <div className="absolute left-5 top-[72px] z-40 w-64 rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
+              <div className="mb-4">
+                <p className="font-body text-sm font-bold text-[#034C52]">{storeName}</p>
+                <p className="font-body text-xs text-gray-500">{profile.ownerName}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  setIsLogoutModalOpen(true);
+                }}
+                className="w-full rounded-xl bg-red-50 py-2.5 font-body text-sm font-bold text-red-600 transition-colors hover:bg-red-100 active:bg-red-200"
+              >
+                Logout
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Right: BANTAYOG logo */}
         <img
@@ -128,6 +163,12 @@ export default function MerchantDashboard() {
         {/* 3. Recent Transactions */}
         <RecentTransactions />
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmationModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+      />
     </div>
   );
 }

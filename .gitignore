@@ -72,3 +72,9 @@ npm-debug.log*
 pnpm-debug.log*
 
 apps/web/public/adminAssets/nul
+
+# Android APK / TWA outputs
+*.apk
+*.aab
+*.jks
+*.keystore

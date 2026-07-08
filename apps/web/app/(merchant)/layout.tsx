@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useMerchantProfile } from "@/hooks/use-merchant-profile";
 import { MERCHANT_TOKEN_KEY } from "@/lib/api";
+import { PinLockProvider } from "@/providers/pin-lock-provider";
 
 export default function MerchantLayout({
   children,
@@ -42,7 +43,9 @@ export default function MerchantLayout({
 
   return (
     <div className="min-h-dvh">
-      <main>{children}</main>
+      <PinLockProvider>
+        <main>{children}</main>
+      </PinLockProvider>
     </div>
   );
 }
