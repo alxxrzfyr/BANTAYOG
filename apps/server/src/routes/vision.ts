@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { createServiceClient } from '../lib/supabase.js'
 import { VisionService } from '../services/vision.service.js'
+import { PricingValidationService } from '../services/pricing-validation.service.js'
 import { toClassificationDTO } from '../dto/mappers.js'
 import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
@@ -81,10 +82,9 @@ visionRoutes.post('/analyze-scan', zValidator('json', classifySchema), async (c)
  */
 visionRoutes.post('/validate-non-branded', zValidator('json', validateNonBrandedSchema), async (c) => {
   const { imageBase64, productName, price, unit } = c.req.valid('json')
-  const db = createServiceClient()
-  const visionService = new VisionService(db)
+  const pricingValidationService = new PricingValidationService()
 
-  const result = await visionService.validateNonBranded(imageBase64, productName, price, unit)
+  const result = await pricingValidationService.validateNonBranded(imageBase64, productName, price, unit)
 
   return result.match(
     (res) => c.json(res),
