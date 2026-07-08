@@ -207,7 +207,37 @@ authRoutes.post('/merchant-login', zValidator('json', merchantLoginSchema), asyn
     },
     session: {
       accessToken: data.session?.access_token,
+      refreshToken: data.session?.refresh_token,
       expiresAt: data.session?.expires_at
+    }
+  })
+})
+
+const merchantRefreshSchema = z.object({
+  refreshToken: z.string().min(1)
+})
+
+/**
+ * POST /api/auth/merchant-refresh
+ * Refresh merchant session using refresh token
+ */
+authRoutes.post('/merchant-refresh', zValidator('json', merchantRefreshSchema), async (c) => {
+  const { refreshToken } = c.req.valid('json')
+  const db = createServiceClient()
+
+  const { data, error } = await db.auth.refreshSession({
+    refresh_token: refreshToken
+  })
+
+  if (error || !data.session) {
+    return c.json({ error: 'unauthorized', message: error?.message || 'Failed to refresh session' }, 401)
+  }
+
+  return c.json({
+    session: {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at
     }
   })
 })

@@ -19,6 +19,7 @@ const supabase = createBrowserClient(
  * admin sessions from leaking into merchant-only endpoints (e.g. /api/vision).
  */
 export const MERCHANT_TOKEN_KEY = "bantayog_merchant_access_token";
+export const MERCHANT_REFRESH_TOKEN_KEY = "bantayog_merchant_refresh_token";
 
 /** Returns true if the stored merchant token has expired. */
 function isMerchantTokenExpired(): boolean {
@@ -34,7 +35,38 @@ export function clearMerchantToken(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(MERCHANT_TOKEN_KEY);
   window.localStorage.removeItem(MERCHANT_TOKEN_KEY + "_expires");
+  window.localStorage.removeItem(MERCHANT_REFRESH_TOKEN_KEY);
   clearPinHash();
+}
+
+async function refreshMerchantToken(refreshToken: string): Promise<string | null> {
+  try {
+    const res = await fetch("/api/auth/merchant-refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken })
+    });
+    if (!res.ok) return null;
+
+    const body = await res.json().catch(() => null);
+    const newAccessToken = body?.session?.accessToken;
+    const newRefreshToken = body?.session?.refreshToken;
+    const expiresAt = body?.session?.expiresAt;
+
+    if (newAccessToken) {
+      window.localStorage.setItem(MERCHANT_TOKEN_KEY, newAccessToken);
+      if (newRefreshToken) {
+        window.localStorage.setItem(MERCHANT_REFRESH_TOKEN_KEY, newRefreshToken);
+      }
+      if (expiresAt) {
+        window.localStorage.setItem(MERCHANT_TOKEN_KEY + "_expires", String(expiresAt));
+      }
+      return newAccessToken;
+    }
+  } catch (err) {
+    console.error("Failed to refresh merchant token:", err);
+  }
+  return null;
 }
 
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -45,10 +77,18 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
   //    This applies to ALL merchant-facing endpoints (vision, transactions, products, etc.)
   if (typeof window !== "undefined") {
     const storedToken = window.localStorage.getItem(MERCHANT_TOKEN_KEY);
+    const refreshToken = window.localStorage.getItem(MERCHANT_REFRESH_TOKEN_KEY);
+
     if (storedToken && !isMerchantTokenExpired()) {
       token = storedToken;
-    } else if (storedToken && isMerchantTokenExpired()) {
-      // Token expired — clear it so the user gets redirected to login
+    } else if (storedToken && isMerchantTokenExpired() && refreshToken) {
+      const refreshedToken = await refreshMerchantToken(refreshToken);
+      if (refreshedToken) {
+        token = refreshedToken;
+      } else {
+        clearMerchantToken();
+      }
+    } else if (storedToken && isMerchantTokenExpired() && !refreshToken) {
       clearMerchantToken();
     }
   }
