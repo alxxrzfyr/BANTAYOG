@@ -317,8 +317,8 @@ The merchant has taken a photo of a product and manually entered the following d
 
 Perform the following validation:
 1. Compare the entered Product Name against the provided image. Do they match? If not, flag it.
-2. Research a reasonable Philippine wet market price range for this product and unit combination (e.g. 1 kilo of rice, 1 piece of mango).
-3. Check if the entered Price is within or reasonably close to this researched price range. Palengke prices fluctuate, so allow a reasonable tolerance (e.g., ±20% or ±₱20, whichever is larger).
+2. Estimate a reasonable Philippine wet market price range for this product and unit combination based on your internal knowledge (e.g. 1 kilo of rice, 1 piece of mango).
+3. Check if the entered Price is within or reasonably close to this researched price range. Palengke prices fluctuate, so allow a very wide tolerance (e.g., ±50% or ±₱30, whichever is larger) to prevent falsely blocking legitimate prices.
 4. Evaluate child safety/nutritional suitability (is_child_friendly). List any flagged ingredients. Most fresh wet market goods (fruits, veg, meat) are highly nutritious and child-friendly unless they are processed goods.
 5. Determine a category from: FRUITS, VEGETABLES, MEATS, BEVERAGES, DAIRY, GRAINS, CANNED_GOODS, SNACKS, OTHER.
 
@@ -370,7 +370,7 @@ Return JSON matching this schema:
         imageBase64: cleanBase64,
         temperature: 0.1,
         responseSchema: schema,
-        useGoogleSearch: true // Needed for price research
+        useGoogleSearch: false // Disabled because it causes 429 Quota Exhausted on Search Service
       })
 
       return ok({
