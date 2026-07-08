@@ -55,6 +55,25 @@ export class PricingValidationService {
       }
 
       const data = marketPriceResult.value
+
+      // STRICT PRICE CHECK (FAIL FAST): +/- 20% tolerance
+      const minAllowedPrice = data.price_min * 0.8
+      const maxAllowedPrice = data.price_max * 1.2
+
+      if (price < minAllowedPrice || price > maxAllowedPrice) {
+        console.warn(`[PricingValidationService] Strict Price Fail: Entered ₱${price}, Allowed: ₱${minAllowedPrice} - ₱${maxAllowedPrice}`)
+        return ok({
+          isJustified: false,
+          isChildFriendly: false,
+          reasoning: `The entered price of ₱${price} is outside the allowed market range (₱${minAllowedPrice.toFixed(2)} - ₱${maxAllowedPrice.toFixed(2)}).`,
+          flaggedIngredients: [],
+          researchedPriceMin: data.price_min,
+          researchedPriceMax: data.price_max,
+          suggestedCategory: data.category || 'OTHER',
+          mismatchReason: `Price ₱${price} is severely out of bounds based on the official DA-AMAS range of ₱${data.price_min} - ₱${data.price_max}.`
+        })
+      }
+
       const contextText = `\n[SYSTEM CONTEXT - LATEST OFFICIAL PRICES]\nAccording to official data (Source: ${data.source}) as of ${data.as_of_date}:\n- "${data.commodity_name}": ₱${data.price_min} - ₱${data.price_max} ${data.unit}\nUse this as your strict baseline for price evaluation.\n`
 
       const prompt = `You are an AI assistant helping validate wet market (palengke) transactions in the Philippines.
@@ -65,10 +84,8 @@ The merchant has taken a photo of a product and manually entered the following d
 ${contextText}
 Perform the following validation:
 1. Compare the entered Product Name against the provided image. Do they match? If not, flag it.
-2. Use the [SYSTEM CONTEXT] provided above as your exact price range.
-3. Check if the entered Price is within or reasonably close to this official price range. Palengke prices fluctuate, so allow a reasonable tolerance (e.g., ±20%).
-4. Evaluate child safety/nutritional suitability (is_child_friendly). List any flagged ingredients. Most fresh wet market goods (fruits, veg, meat) are highly nutritious and child-friendly unless they are processed goods.
-5. Determine a category from: FRUITS, VEGETABLES, MEATS, BEVERAGES, DAIRY, GRAINS, CANNED_GOODS, SNACKS, OTHER.
+2. Evaluate child safety/nutritional suitability (is_child_friendly). List any flagged ingredients. Most fresh wet market goods (fruits, veg, meat) are highly nutritious and child-friendly unless they are processed goods.
+3. Determine a category from: FRUITS, VEGETABLES, MEATS, BEVERAGES, DAIRY, GRAINS, CANNED_GOODS, SNACKS, OTHER.
 
 Return JSON matching this schema:
 {

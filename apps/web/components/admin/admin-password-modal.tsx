@@ -65,7 +65,7 @@ export function AdminPasswordModal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-all duration-200"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-all duration-200"
         onClick={onClose}
       />
 

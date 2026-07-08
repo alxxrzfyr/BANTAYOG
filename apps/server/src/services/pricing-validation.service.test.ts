@@ -83,4 +83,58 @@ describe('PricingValidationService', () => {
     // Ensure Gemini WAS called
     expect(mockCallGeminiWithFallback).toHaveBeenCalledTimes(1)
   })
+
+  it('fails fast if price is severely below the DA-AMAS minimum (e.g. 1 peso)', async () => {
+    mockSearchMarketPrice.mockResolvedValueOnce({
+      isOk: () => true,
+      value: {
+        commodity_name: 'Banana (Lakatan)',
+        price_min: 70,
+        price_max: 110,
+        unit: 'per kilo',
+        source: 'DA-AMAS',
+        as_of_date: '2026-07-07'
+      }
+    })
+
+    const result = await service.validateNonBranded('data:image/jpeg;base64,fake', 'Banana (Lakatan)', 1, 'per kilo')
+    
+    expect(result.isOk()).toBe(true)
+    if (result.isOk()) {
+      const data = result.value
+      expect(data.isJustified).toBe(false)
+      expect(data.isChildFriendly).toBe(false)
+      expect(data.reasoning).toContain('outside the allowed market range')
+    }
+
+    // Ensure Gemini is NOT called because of strict bounds
+    expect(mockCallGeminiWithFallback).not.toHaveBeenCalled()
+  })
+
+  it('fails fast if price is severely above the DA-AMAS maximum', async () => {
+    mockSearchMarketPrice.mockResolvedValueOnce({
+      isOk: () => true,
+      value: {
+        commodity_name: 'Banana (Lakatan)',
+        price_min: 70,
+        price_max: 110,
+        unit: 'per kilo',
+        source: 'DA-AMAS',
+        as_of_date: '2026-07-07'
+      }
+    })
+
+    const result = await service.validateNonBranded('data:image/jpeg;base64,fake', 'Banana (Lakatan)', 200, 'per kilo')
+    
+    expect(result.isOk()).toBe(true)
+    if (result.isOk()) {
+      const data = result.value
+      expect(data.isJustified).toBe(false)
+      expect(data.isChildFriendly).toBe(false)
+      expect(data.reasoning).toContain('outside the allowed market range')
+    }
+
+    // Ensure Gemini is NOT called because of strict bounds
+    expect(mockCallGeminiWithFallback).not.toHaveBeenCalled()
+  })
 })
