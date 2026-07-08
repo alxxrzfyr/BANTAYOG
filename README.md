@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/bgNGANI.png" alt="Bantayog Logo" width="100%" />
+  <img src="./assets/logo.png" alt="Bantayog Logo" width="100%" />
 </div>
 
 ## Team Information
