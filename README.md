@@ -1,6 +1,8 @@
 <div align="center">
-  <img src="./assets/logo.png" alt="Bantayog Logo" width="100%" />
+  <img src="./assets/logo.png" alt="Bantayog Logo" width="500" />
 </div>
+
+<br />
 
 ## Team Information
 
@@ -56,5 +58,5 @@ This project was developed as part of **SparkFest 2026**, the flagship hackathon
 
 ## Repository Information
 
-* **Live Demo:** *(https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)*
-* **APK Download:** *(https://drive.google.com/file/d/18q8w3sBZ_LTyUhZUgBFY5QM1DU8yiZrz/view?usp=sharing)*
+* **Live Demo:** [Watch Demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
+* **APK Download:** [Download APK](https://drive.google.com/file/d/18q8w3sBZ_LTyUhZUgBFY5QM1DU8yiZrz/view?usp=sharing)
