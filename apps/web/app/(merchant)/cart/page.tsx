@@ -50,11 +50,11 @@ export default function ScanCartItemsPage() {
 
         {/* Option Cards */}
         <div className="mt-8 space-y-5">
-          {/* AI Image Scan */}
+          {/* Branded Products */}
           <Link
-            href="/cart/ai-scan"
+            href="/cart/branded"
             className="flex items-center gap-4 rounded-2xl bg-[#fde8e6] px-4 py-4 transition-colors hover:bg-[#f9d8d4] active:brightness-95"
-            aria-label="AI Image Scan - Take a photo of the item and let AI identify and validate it"
+            aria-label="Branded Products - Scan branded/packaged items and let AI identify and validate them"
           >
             <img
               src="/merchantLogos/aiCam.png"
@@ -63,12 +63,10 @@ export default function ScanCartItemsPage() {
             />
             <div className="flex-1">
               <p className="font-body text-base font-bold text-[#034C52]">
-                AI Image Scan
+                Branded Products
               </p>
               <p className="mt-0.5 font-body text-sm leading-snug text-gray-600">
-                Take a photo of the item and let
-                <br />
-                AI identify and validate it.
+                Scan branded/packaged items and let AI identify and validate them.
               </p>
             </div>
             <svg
@@ -86,11 +84,11 @@ export default function ScanCartItemsPage() {
             </svg>
           </Link>
 
-          {/* Manual Input */}
+          {/* Non-Branded Products */}
           <Link
-            href="/cart/manual"
+            href="/cart/non-branded"
             className="flex items-center gap-4 rounded-2xl bg-[#e8f5e9] px-4 py-4 transition-colors hover:bg-[#dceee0] active:brightness-95"
-            aria-label="Manual Input - Enter the item details manually including name, quantity, price, and validation"
+            aria-label="Non-Branded Products - For wet market items (fruits, vegetables, rice, meat, etc.). Enter details manually and AI validates."
           >
             <img
               src="/merchantLogos/manualInput.png"
@@ -99,14 +97,10 @@ export default function ScanCartItemsPage() {
             />
             <div className="flex-1">
               <p className="font-body text-base font-bold text-[#034C52]">
-                Manual Input
+                Non-Branded Products
               </p>
               <p className="mt-0.5 font-body text-sm leading-snug text-gray-600">
-                Enter the item details manually
-                <br />
-                including name, quantity,
-                <br />
-                price, and validation.
+                For wet market items (fruits, veg, meat). Enter details manually and AI validates.
               </p>
             </div>
             <svg
@@ -133,8 +127,7 @@ export default function ScanCartItemsPage() {
             className="h-6 w-6 flex-shrink-0"
           />
           <p className="font-body text-sm leading-snug text-[#034C52]">
-            <span className="font-semibold">Tip:</span> For best results, take a
-            clear photo of one item at a time with good lighting.
+            <span className="font-semibold">Tip:</span> Choose Branded for packaged goods and Non-Branded for wet market items.
           </p>
         </div>
       </div>

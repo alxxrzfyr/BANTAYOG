@@ -95,7 +95,7 @@ export default function CheckoutPage() {
 
   // Back navigation based on input source
   const backHref =
-    inputSource === "ai" ? "/cart/ai-scan?resume=result" : "/cart/manual";
+    inputSource === "branded" ? "/cart/branded?resume=result" : "/cart/non-branded?resume=result";
 
   // ── Handle QR Scanner Close ──
   const handleCloseQRScanner = useCallback(() => {

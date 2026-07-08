@@ -16,6 +16,13 @@ const classifySchema = z.object({
   imageBase64: z.string().min(1).max(MAX_BASE64_LENGTH, 'Image base64 payload exceeds size limit')
 })
 
+const validateNonBrandedSchema = z.object({
+  imageBase64: z.string().min(1).max(MAX_BASE64_LENGTH, 'Image base64 payload exceeds size limit'),
+  productName: z.string().min(1),
+  price: z.number().positive(),
+  unit: z.string().min(1)
+})
+
 /**
  * POST /api/vision/classify
  * Accepts inline base64 image data and returns candidate products from the catalog.
@@ -61,6 +68,23 @@ visionRoutes.post('/analyze-scan', zValidator('json', classifySchema), async (c)
   const visionService = new VisionService(db)
 
   const result = await visionService.analyzeScan(imageBase64)
+
+  return result.match(
+    (res) => c.json(res),
+    (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
+  )
+})
+
+/**
+ * POST /api/vision/validate-non-branded
+ * Validates a non-branded palengke item with image and manual inputs.
+ */
+visionRoutes.post('/validate-non-branded', zValidator('json', validateNonBrandedSchema), async (c) => {
+  const { imageBase64, productName, price, unit } = c.req.valid('json')
+  const db = createServiceClient()
+  const visionService = new VisionService(db)
+
+  const result = await visionService.validateNonBranded(imageBase64, productName, price, unit)
 
   return result.match(
     (res) => c.json(res),

@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { z } from "zod";
 
 const STORAGE_KEY = "bantayog-cart";
-const PERSIST_VERSION = 1;
+const PERSIST_VERSION = 2;
 
 export interface CartItem {
   id: string;
@@ -13,15 +13,16 @@ export interface CartItem {
   eligibility: "eligible" | "ineligible";
   imageDataUrl?: string;
   category?: string;
+  unit?: string;
 }
 
 interface CartState {
   items: CartItem[];
-  inputSource: "ai" | "manual" | null;
+  inputSource: "branded" | "non-branded" | null;
   restoreError: string | null;
   addItem: (item: Omit<CartItem, "id">) => void;
   removeItem: (id: string) => void;
-  setInputSource: (source: "ai" | "manual") => void;
+  setInputSource: (source: "branded" | "non-branded") => void;
   clearCart: () => void;
 }
 
@@ -34,6 +35,7 @@ const CartItemSchema = z.object({
   eligibility: z.enum(["eligible", "ineligible"]),
   imageDataUrl: z.string().optional(),
   category: z.string().optional(),
+  unit: z.string().optional(),
 });
 
 const PersistedStateSchema = z.object({
@@ -75,7 +77,7 @@ export const useCartStore = create<CartState>()(
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
-        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl, category }) => ({
+        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl, category, unit }) => ({
           id,
           name,
           price,
@@ -83,6 +85,7 @@ export const useCartStore = create<CartState>()(
           eligibility,
           imageDataUrl,
           category,
+          unit,
         })),
       }),
       onRehydrateStorage: () => {

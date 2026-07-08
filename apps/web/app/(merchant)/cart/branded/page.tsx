@@ -279,7 +279,7 @@ function AIScanContent() {
       imageDataUrl: imageUrl || capturedImage || undefined,
       category,
     });
-    setInputSource("ai");
+    setInputSource("branded");
     setStage(3);
   };
 
@@ -325,7 +325,7 @@ function AIScanContent() {
             </svg>
           </Link>
           <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
-            AI Image Scan
+            Branded Scan
           </h1>
           <div className="w-9" />
         </header>
@@ -460,7 +460,7 @@ function AIScanContent() {
             </svg>
           </Link>
           <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
-            AI Image Scan
+            Branded Scan
           </h1>
           <div className="w-9" />
         </header>
@@ -660,7 +660,7 @@ function AIScanContent() {
           </svg>
         </Link>
         <h1 className="flex-1 text-center font-title text-[1.35rem] font-black text-[#034C52]">
-          AI Image Scan
+          Branded Scan
         </h1>
         <div className="w-9" />
       </header>
