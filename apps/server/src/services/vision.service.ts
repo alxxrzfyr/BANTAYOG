@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
 import { ProductsService } from './products.service.js'
-import { PricingValidationService } from './pricing-validation.service.js'
+
 import { type AppResult, ok, err, ValidationError } from '../lib/errors.js'
 import { callGeminiWithFallback } from '../lib/gemini-client.js'
 
@@ -30,11 +30,9 @@ export type VisionClassificationResult = VisionClassificationSuccess | VisionCla
 
 export class VisionService {
   private productsService: ProductsService
-  private pricingValidationService: PricingValidationService
 
   constructor(db: SupabaseClient<Database>) {
     this.productsService = new ProductsService(db)
-    this.pricingValidationService = new PricingValidationService()
   }
 
   /**

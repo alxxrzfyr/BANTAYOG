@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { MarketPricesService } from '../services/market-prices.service.js'
 import * as dotenv from 'dotenv'
 import path from 'path'
@@ -14,8 +13,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1)
 }
 
-const db = createClient(supabaseUrl, supabaseKey)
-const service = new MarketPricesService(db as any)
+const service = new MarketPricesService()
 
 async function run() {
   console.log('--- Testing Ingestion ---')
