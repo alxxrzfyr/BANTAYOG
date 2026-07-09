@@ -104,7 +104,7 @@ balanceRoutes.get('/view', async (c) => {
   try {
     const { data: transactions, error: txError } = await (db as any)
       .from('transactions')
-      .select('total_credit_deducted, onchain_tx_hash, status, created_at, confirmed_at')
+      .select('total_amount, status, created_at')
       .eq('beneficiary_id', beneficiaryId)
       .order('created_at', { ascending: false })
       .limit(MAX_TRANSACTION_HISTORY)
@@ -120,7 +120,8 @@ balanceRoutes.get('/view', async (c) => {
     }
 
     return c.json(body, 200)
-  } catch {
+  } catch (e) {
+    console.error("Balance view error:", e);
     return c.json(
       { error: 'temporarily_unavailable', message: 'Balance information is temporarily unavailable. Please try again later.' },
       503,

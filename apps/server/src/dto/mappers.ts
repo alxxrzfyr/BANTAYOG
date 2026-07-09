@@ -109,7 +109,7 @@ export interface BalanceViewDTO {
 
 export function toBalanceViewTransactionDTO(row: any): BalanceViewTransactionDTO {
   return {
-    amount: Number(row.total_credit_deducted ?? 0),
+    amount: Number(row.total_credit_deducted ?? row.total_amount ?? 0),
     status: row.status,
     onchainTxHash: row.onchain_tx_hash ?? null,
     createdAt: row.created_at,
