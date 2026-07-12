@@ -11,8 +11,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 /* ── Supabase browser client ── */
 const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key",
 );
 
 /* ── Zod schema ── */
@@ -88,53 +88,53 @@ export default function LoginPage() {
           {/* Branding block — tightly grouped */}
           <div className="flex flex-col items-start gap-y-3 sm:gap-y-4">
 
-          {/* DOH Badge */}
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 select-none"
-            style={{ border: "1px solid rgba(3,62,57,0.25)", backgroundColor: "rgba(255,255,255,0.35)" }}
-          >
-            <svg
-              className="w-3.5 h-3.5 flex-shrink-0 text-[#003E39]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            {/* DOH Badge */}
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 select-none"
+              style={{ border: "1px solid rgba(3,62,57,0.25)", backgroundColor: "rgba(255,255,255,0.35)" }}
             >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span
-              className="text-[10px] font-bold uppercase tracking-widest text-[#003E39]"
+              <svg
+                className="w-3.5 h-3.5 flex-shrink-0 text-[#003E39]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest text-[#003E39]"
+              >
+                DOH Supported Social Initiative
+              </span>
+            </div>
+
+            {/* BANTAYOG Logo / Title — cropped to remove transparent padding baked into the PNG */}
+            <div className="w-full overflow-hidden" style={{ aspectRatio: '1920 / 338' }}>
+              <Image
+                src="/adminAssets/title.png"
+                alt="BANTAYOG"
+                width={1920}
+                height={1080}
+                className="w-full h-auto"
+                style={{ marginTop: '-18.9%' }}
+                priority
+              />
+            </div>
+
+            {/* Hero Paragraph */}
+            <p
+              className="text-sm sm:text-base leading-relaxed max-w-2xl font-medium text-[#003E39]"
             >
-              DOH Supported Social Initiative
-            </span>
-          </div>
-
-          {/* BANTAYOG Logo / Title — cropped to remove transparent padding baked into the PNG */}
-          <div className="w-full overflow-hidden" style={{ aspectRatio: '1920 / 338' }}>
-            <Image
-              src="/adminAssets/title.png"
-              alt="BANTAYOG"
-              width={1920}
-              height={1080}
-              className="w-full h-auto"
-              style={{ marginTop: '-18.9%' }}
-              priority
-            />
-          </div>
-
-          {/* Hero Paragraph */}
-          <p
-            className="text-sm sm:text-base leading-relaxed max-w-2xl font-medium text-[#003E39]"
-          >
-            Breaking the cycle of childhood stunting at the grassroots level.
-            Bantayog leverages smart digital cards and automated AI receipt
-            tracking to ensure that community health subsidies are spent
-            exclusively on nutrient-dense foods—safeguarding a child&apos;s
-            critical early development while instantly settling balances with
-            local micro-merchants.
-          </p>
+              Breaking the cycle of childhood stunting at the grassroots level.
+              Bantayog leverages smart digital cards and automated AI receipt
+              tracking to ensure that community health subsidies are spent
+              exclusively on nutrient-dense foods—safeguarding a child&apos;s
+              critical early development while instantly settling balances with
+              local micro-merchants.
+            </p>
 
           </div>{/* / Branding block */}
 
