@@ -1,80 +1,68 @@
-# Dependencies
+# ==============================================================================
+# BANTAYOG - Workspace Git Ignore Configuration
+# ==============================================================================
+
+# --- Node & Package Managers ---
 node_modules/
 .pnpm-store/
+package-lock.json
+yarn.lock
+bun.lockb
 
-# Build outputs
-dist/
+# --- Build & Compiled Outputs ---
 build/
+dist/
+out/
 .next/
 .turbo/
-out/
 tsconfig.tsbuildinfo
 
-# Environment
+# --- Environment & Secrets ---
 .env
 .env.local
 .env.*.local
 .env.supabase
-
-# Keep the .example files tracked
 !.env.example
 
-# Testing
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Testing & Coverage ---
 coverage/
 *.lcov
 
-# Supabase local
-supabase/.branches
-supabase/.temp
+# --- Supabase Local Development ---
+supabase/.branches/
+supabase/.temp/
 
-# Hardhat / contracts
-cache/
+# --- Hardhat & Smart Contracts ---
 artifacts/
+cache/
 typechain-types/
 
-# Editor / OS
+# --- Mobile Apps (Android / TWA) ---
+*.aab
+*.apk
+*.jks
+*.keystore
+
+# --- IDEs & Editors ---
+.idea/
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
-.idea/
-.kiro/
-kiro/
-*.swp
-*.swo
+
+# --- OS-specific ---
 .DS_Store
 Thumbs.db
+desktop.ini
+*.swo
+*.swp
 
-# Local / generated artifacts
-1.svg
-2.svg
-3.svg
-4.svg
-2026-06-29-bantayog-team-roles-per-phase.md
-2026-06-29-bantayog-team-roles-per-phase (1).md
-graphify-out/
-.mimocode/
-BANTAYOG_PROJECT_PLAN.md
-BANTAYOG_ROADMAP_TASKS.md
-BANTAYOG_PROJECT_PLAN.md
-BANTAYOG_ROADMAP_TASKS.md
-IMPLEMENTATION_PLAN_PHASES_2-4.md
-auth-fix-spec.md
-dashboard-fix-spec.md
-login-refactor-spec.md
-logout-feature-spec.md
-registration-form-bugfix-spec.md
-merchantPages/
-plan.md
-
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-apps/web/public/adminAssets/nul
-
-# Android APK / TWA outputs
-*.apk
-*.aab
-*.jks
-*.keystore
+# --- Legacy & Internal Tooling ---
+.kiro/
+kiro/
