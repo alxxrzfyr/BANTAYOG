@@ -20,7 +20,6 @@ import { PinService } from './pin.service.js'
 // previously-untested path (this file had no lockout test before).
 vi.mock('../lib/redis.js', () => {
   const store = new Map<string, string>()
-  const ttls = new Map<string, number>()
   return {
     getRedisClient: () => ({
       exists: vi.fn(async (key: string) => (store.has(key) ? 1 : 0)),
@@ -35,7 +34,7 @@ vi.mock('../lib/redis.js', () => {
       del: vi.fn(async (...keys: string[]) => {
         keys.forEach((k) => store.delete(k))
       }),
-      expire: vi.fn(async () => {}),
+      expire: vi.fn(async () => { }),
     }),
   }
 })

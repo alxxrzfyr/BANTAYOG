@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { VisionService } from './vision.service.js'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Mock the Gemini Client and GoogleGenAI
 const mockCallGeminiWithFallback = vi.fn()

@@ -63,8 +63,8 @@ let dbUpdateError: any = null
 let dbSelectError: any = null
 
 const mockSupabaseClient = {
-  from: vi.fn().mockImplementation((table: string) => {
-    let eqFilters: { col: string; val: any }[] = []
+  from: vi.fn().mockImplementation((_table: string) => {
+    const eqFilters: { col: string; val: any }[] = []
     let isUpdate = false
     let updateValues: any = null
 
@@ -150,7 +150,7 @@ vi.mock('viem', async (importOriginal) => {
 })
 
 // Mock BlockchainClient
-let mockBlockchainClient = {
+const mockBlockchainClient = {
   transferPHPC: vi.fn().mockResolvedValue({ isErr: () => false, isOk: () => true, value: '0xhash' }),
   waitForConfirmation: vi.fn().mockResolvedValue({ isErr: () => false, isOk: () => true, value: {} }),
 }

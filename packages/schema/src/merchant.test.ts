@@ -32,7 +32,8 @@ describe('CreateMerchantDto', () => {
   })
 
   it('accepts a valid input without walletAddress (optional)', () => {
-    const { walletAddress, ...inputWithoutWallet } = validInput
+    const inputWithoutWallet = { ...validInput }
+    delete (inputWithoutWallet as Partial<typeof validInput>).walletAddress
     expect(CreateMerchantDto.safeParse(inputWithoutWallet).success).toBe(true)
   })
 

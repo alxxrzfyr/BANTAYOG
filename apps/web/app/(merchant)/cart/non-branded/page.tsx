@@ -42,7 +42,7 @@ function NonBrandedContent() {
     searchParams.get("resume") === "result" ? 3 : 1
   );
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  
+
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -136,7 +136,7 @@ function NonBrandedContent() {
 
       const result = await res.json();
       setValidationResult(result);
-    } catch (err) {
+    } catch {
       setError("Something went wrong during validation. Please try again.");
     } finally {
       setIsValidating(false);
@@ -145,7 +145,7 @@ function NonBrandedContent() {
 
   const handleAddToCart = () => {
     if (!validationResult || !validationResult.isJustified || !validationResult.isChildFriendly) return;
-    
+
     addItem({
       name: productName.trim(),
       price: parseFloat(price),
@@ -258,7 +258,7 @@ function NonBrandedContent() {
   // ── Stage 2: Details & Validation ──
   if (stage === 2) {
     const isFormComplete = productName.trim().length > 0 && parseFloat(price) > 0;
-    
+
     return (
       <div className="min-h-dvh bg-[#fdf2ed]">
         <header className="flex items-center px-4 pt-5 pb-3">
@@ -366,10 +366,10 @@ function NonBrandedContent() {
             </div>
 
             <div className="mt-5">
-              <EligibilityToggle 
-                value={validationResult ? (validationResult.isChildFriendly ? "eligible" : "ineligible") : null} 
-                onChange={() => {}} 
-                disabled={true} 
+              <EligibilityToggle
+                value={validationResult ? (validationResult.isChildFriendly ? "eligible" : "ineligible") : null}
+                onChange={() => { }}
+                disabled={true}
               />
             </div>
           </div>
@@ -436,11 +436,11 @@ function NonBrandedContent() {
           )}
 
           {validationResult && !validationResult.isChildFriendly && (
-             <div className="mt-4 rounded-xl bg-red-50 p-4 border border-red-100">
-               <p className="font-body text-xs text-red-700 font-semibold leading-relaxed">
-                 ⚠ Purchase Blocked: This product is flagged as "Not Good for Children". In compliance with local nutritional health policies, it cannot be sold to beneficiaries.
-               </p>
-             </div>
+            <div className="mt-4 rounded-xl bg-red-50 p-4 border border-red-100">
+              <p className="font-body text-xs text-red-700 font-semibold leading-relaxed">
+                ⚠ Purchase Blocked: This product is flagged as "Not Good for Children". In compliance with local nutritional health policies, it cannot be sold to beneficiaries.
+              </p>
+            </div>
           )}
 
           {validationResult && (

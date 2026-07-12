@@ -90,7 +90,7 @@ balanceRoutes.get('/view', async (c) => {
     }
 
     beneficiary = data
-  } catch (error: any) {
+  } catch {
     const notMatched = new ValidationError('This pass could not be matched to a beneficiary.')
     return c.json(
       { error: 'not_matched', message: notMatched.message },
