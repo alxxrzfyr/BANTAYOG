@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bantayog — Accountable Child Nutrition Subsidies</title>
+  <meta name="description"
+    content="Bantayog transforms cash grants into targeted, accountable nutrition wallets for Filipino children. Powered by AI Vision & Polygon Blockchain.">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- Ambient Background Spot Highlights Wrapper to prevent overflow -->
+  <div class="ambient-glow-container">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+  </div>
+
+  <!-- Sticky Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo">
+        <div class="brand-logo-icon"><i class="ph ph-shield-check"></i></div>
+        <span>BANTAYOG</span>
+      </a>
+
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="#overview" class="nav-link">Overview</a></li>
+        <li><a href="#simulator" class="nav-link">Tiering</a></li>
+        <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+        <li><a href="#roles" class="nav-link">Ecosystem</a></li>
+      </ul>
+
+      <div class="nav-ctas">
+        <a href="https://merchant-bantayog.vercel.app/" target="_blank" rel="noopener noreferrer"
+          class="btn btn-outline" id="navMerchantBtn">
+          <i class="ph ph-storefront"></i> Merchant App
+        </a>
+        <a href="https://admin-bantayog.vercel.app/login" target="_blank" rel="noopener noreferrer"
+          class="btn btn-primary" id="navAdminBtn">
+          <i class="ph ph-user-gear"></i> Admin Portal
+        </a>
+      </div>
+
+      <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+        <i class="ph ph-list"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="overview">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="badge badge-peach">
+          <span class="pulse-dot"></span> RA 11148 • First 1,000 Days Protection Anchor
+        </div>
+        <h1 class="hero-title">
+          Transforming Grants into <span>Guaranteed Child Nutrition</span>
+        </h1>
+        <p class="hero-subtitle">
+          Bantayog locks government subsidies into tracked, nutrient-dense food purchases at local sari-sari stores
+          using AI product recognition and Polygon blockchain settlement.
+        </p>
+        <div class="hero-actions">
+          <a href="https://merchant-bantayog.vercel.app/" target="_blank" rel="noopener noreferrer"
+            class="btn btn-primary btn-glow" id="heroMerchantCta">
+            <i class="ph ph-storefront"></i> Launch Merchant App <i class="ph ph-arrow-up-right"></i>
+          </a>
+          <a href="https://admin-bantayog.vercel.app/login" target="_blank" rel="noopener noreferrer"
+            class="btn btn-secondary" id="heroAdminCta">
+            <i class="ph ph-shield-check"></i> LGU Admin Login
+          </a>
+        </div>
+        <div class="hero-trust-strip">
+          <span class="hero-trust-item">Guardians use a QR Nutri-Pass — no phone needed</span>
+          <span class="hero-trust-pipe" aria-hidden="true">|</span>
+          <span class="hero-trust-item">Merchants use a low-cost Android app</span>
+          <span class="hero-trust-pipe" aria-hidden="true">|</span>
+          <span class="hero-trust-item">Real-time Polygon Amoy ledger</span>
+        </div>
+      </div>
+
+      <!-- Hero Visual Preview Card -->
+      <div class="hero-visual">
+        <div class="pass-card-mock" id="heroPassCard">
+          <div class="pass-header">
+            <div class="pass-brand">
+              <i class="ph ph-shield-check"></i> NUTRI-PASS
+            </div>
+            <div class="pass-tier-badge" id="heroPassTierBadge">TIER 1 CRITICAL</div>
+          </div>
+
+          <div class="pass-qr-box">
+            <div class="scan-line"></div>
+            <svg viewBox="0 0 100 100" fill="#004B49">
+              <rect x="10" y="10" width="25" height="25" />
+              <rect x="65" y="10" width="25" height="25" />
+              <rect x="10" y="65" width="25" height="25" />
+              <rect x="15" y="15" width="15" height="15" fill="#FFF" />
+              <rect x="70" y="15" width="15" height="15" fill="#FFF" />
+              <rect x="15" y="70" width="15" height="15" fill="#FFF" />
+              <rect x="42" y="10" width="15" height="15" />
+              <rect x="42" y="42" width="16" height="16" />
+              <rect x="10" y="42" width="15" height="15" />
+              <rect x="65" y="42" width="25" height="15" />
+              <rect x="42" y="65" width="15" height="25" />
+              <rect x="65" y="65" width="25" height="25" />
+            </svg>
+          </div>
+
+          <div class="pass-info">
+            <div>
+              <div class="pass-balance-label">Beneficiary Pass</div>
+              <strong id="heroBeneficiaryId">PH-2026-88192</strong>
+            </div>
+            <div style="text-align: right;">
+              <div class="pass-balance-label">Monthly Nutri-Credits</div>
+              <div class="pass-balance-value" id="heroPassBalance">₱5,000</div>
+            </div>
+          </div>
+
+          <!-- Live Scan Status Floating Pill -->
+          <div class="hero-floating-pill">
+            <div class="ai-icon"><i class="ph ph-sparkle"></i></div>
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #004B49;">Gemini AI Counter Verification</div>
+              <div style="font-size: 0.8rem; color: #374151;" id="heroAiScanStatus">Fortified Eggs &amp; Milk — APPROVED
+                ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key National Malnutrition Data -->
+  <section class="stats-section">
+    <div class="container stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" data-target="25.3%">25.3%</div>
+        <div class="stat-label">Filipino Child Stunting Rate</div>
+        <div class="stat-desc">1 in 4 Filipino children under age five suffers permanent, irreversible cognitive and
+          physical stunting.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="65%">65%</div>
+        <div class="stat-label">Households Buying Food on Credit</div>
+        <div class="stat-desc">Nearly 65% of low-income families rely on sari-sari store credit between government
+          assistance cycles.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="₱74.6B">₱74.6B</div>
+        <div class="stat-label">Annual Food Assistance Budget</div>
+        <div class="stat-desc">Government funding exists—Bantayog ensures 100% of disbursed subsidies actually reach the
+          child's plate.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Breakthroughs Bento Section -->
+  <section class="breakthroughs-section" id="breakthroughs">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Zero Diversion — Zero Paperwork</h2>
+        <p class="section-subtitle">
+          With traditional unrestricted cash, there is no way to know where funds ultimately go — they may pay off store
+          debt or purchase items that provide little nutritional value. Bantayog enforces food eligibility item-by-item
+          at the counter and settles every transaction on Polygon Amoy in real time.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        <div class="bento-card">
+          <div class="bento-icon"><i class="ph ph-eye"></i></div>
+          <h3 class="bento-title">AI-Powered Product Recognition</h3>
+          <p class="bento-desc">Google Gemini Vision identifies product brand and name — including both branded and
+            non-branded items — from a photo. The Approved Food List then decides eligibility, locking funds strictly to
+            nutrient-dense, government-approved items.</p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-icon"><i class="ph ph-link-simple-horizontal"></i></div>
+          <h3 class="bento-title">Polygon Blockchain Settlement</h3>
+          <p class="bento-desc">Every transaction is recorded as an immutable, itemized receipt on Polygon Amoy —
+            creating full item-by-item transparency for government nutrition subsidies.</p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-icon"><i class="ph ph-paper-plane-tilt"></i></div>
+          <h3 class="bento-title">Zero Paperwork for Merchants</h3>
+          <p class="bento-desc">Sari-sari stores receive instant digital settlement and reconciled receipts. No voucher
+            bundles, no manual audits, and no expensive POS hardware required.</p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-icon"><i class="ph ph-device-mobile-slash"></i></div>
+          <h3 class="bento-title">Zero Smartphone for Guardians</h3>
+          <p class="bento-desc">Guardians only need their QR Nutri-Pass — no phone or data plan required. The merchant
+            handles all scanning on a low-cost Android phone at the counter.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Grant & Subsidy Tiering Simulator Widget -->
+  <section class="simulator-section" id="simulator">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-peach">Automated Tiering Engine</div>
+        <h2 class="section-title">Age-Based Subsidy Tiering</h2>
+        <p class="section-subtitle">
+          The <strong>First 1,000 Days</strong> spans from conception through 730 days post-birth — the window with the
+          greatest impact on a child's lifelong brain and physical development. The primary difference between the two
+          tiers is the monthly credit amount. All funds remain 100% purpose-bound to approved nutritious food in both
+          tiers.
+        </p>
+      </div>
+
+      <div class="sim-card">
+        <div class="sim-controls">
+          <div class="sim-control-group">
+            <label class="sim-label">Select Child Age Stage:</label>
+            <div class="sim-btn-group">
+              <button class="sim-option-btn active" id="simAgeTier1" data-age="tier1">
+                <i class="ph ph-baby"></i> First 1,000 Days Window (0–730 days post-birth)
+              </button>
+              <button class="sim-option-btn" id="simAgeTier2" data-age="tier2">
+                <i class="ph ph-child"></i> Standard Tier (731+ days post-birth)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sim-results-grid">
+          <!-- Tier Output Card -->
+          <div class="sim-result-card tier-card">
+            <div class="sim-result-tag" id="simTierNameTag">TIER 1 CRITICAL</div>
+            <div class="sim-grant-amount" id="simGrantAmount">₱5,000</div>
+            <div class="sim-grant-label">Monthly Purpose-Bound Nutri-Credits</div>
+            <p class="sim-tier-desc" id="simTierDesc">
+              Highest priority growth window. Grants are locked strictly to approved nutrient-dense food: fortified
+              milk, eggs, pulses, fish, and fresh vegetables.
+            </p>
+            <div style="font-size: 0.8rem; color: var(--teal-active); font-weight: 600; margin-top: 0.75rem;">
+              ℹ️ The primary difference between tiers is the monthly grant amount. All purchases remain 100%
+              purpose-bound in both tiers.
+            </div>
+          </div>
+
+          <!-- Category Lock Preview -->
+          <div class="sim-result-card lock-card">
+            <h4 style="color: var(--teal-primary); font-size: 1.1rem; margin-bottom: 0.75rem;">
+              <i class="ph ph-lock-key" style="color: var(--coral-primary);"></i> Purpose-Bound Basket Controls
+            </h4>
+            <div class="category-grid">
+              <div class="cat-pill cat-allowed"><i class="ph ph-check-circle"></i> Fortified Milk &amp; Eggs</div>
+              <div class="cat-pill cat-allowed"><i class="ph ph-check-circle"></i> Rice, Pulses &amp; Grains</div>
+              <div class="cat-pill cat-allowed"><i class="ph ph-check-circle"></i> Fresh Vegetables &amp; Fish</div>
+              <div class="cat-pill cat-blocked"><i class="ph ph-x-circle"></i> Junk Food &amp; Sodas</div>
+              <div class="cat-pill cat-blocked"><i class="ph ph-x-circle"></i> Mobile Load &amp; Tobacco</div>
+              <div class="cat-pill cat-blocked"><i class="ph ph-x-circle"></i> Non-Nutritious Items</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works (Interactive 5-Step Workflow Simulator) -->
+  <section class="workflow-section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-peach">Operational Journey</div>
+        <h2 class="section-title">How Bantayog Works</h2>
+        <p class="section-subtitle">Click through the 5 steps to see how a grant moves from LGU registration to
+          AI-verified store checkout and Polygon payout.</p>
+      </div>
+
+      <div class="workflow-tabs">
+        <button class="workflow-tab-btn active" data-step="0">Step 1: LGU Registration</button>
+        <button class="workflow-tab-btn" data-step="1">Step 2: QR Pass</button>
+        <button class="workflow-tab-btn" data-step="2">Step 3: AI Product Scan</button>
+        <button class="workflow-tab-btn" data-step="3">Step 4: PIN Checkout</button>
+        <button class="workflow-tab-btn" data-step="4">Step 5: Blockchain Payout</button>
+      </div>
+
+      <div class="workflow-display">
+        <!-- Mobile-only Prev/Next navigation -->
+        <div class="workflow-mobile-nav">
+          <button class="workflow-nav-btn" id="workflowPrevBtn" aria-label="Previous step">
+            <i class="ph ph-arrow-left"></i> Back
+          </button>
+          <span class="workflow-step-counter" id="workflowMobileCounter">1 of 5</span>
+          <button class="workflow-nav-btn" id="workflowNextBtn" aria-label="Next step">
+            Next <i class="ph ph-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="workflow-content-grid">
+          <div>
+            <div class="workflow-step-num" id="workflowStepNum">Step 01 / 05</div>
+            <h3 class="workflow-step-title" id="workflowStepTitle">LGU Registration: Guardians, Children &amp; Merchants
+            </h3>
+            <p class="workflow-step-desc" id="workflowStepDesc">
+              LGUs use the Admin Portal to register eligible guardians, children, and sari-sari store merchants. The
+              system automatically computes each child's age and assigns the correct subsidy tier.
+            </p>
+            <div class="workflow-highlights-box" id="workflowHighlight">
+              <i class="ph ph-shield-check" style="color: var(--coral-primary);"></i> The Admin Portal manages
+              beneficiaries and merchant onboarding in one place.
+            </div>
+          </div>
+
+          <div class="workflow-visual-box" id="workflowVisualBoxContainer">
+            <!-- Dynamic step preview injected by main.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- User Roles & Ecosystem Perspectives -->
+  <section class="roles-section" id="roles">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-teal">Bantayog Ecosystem</div>
+        <h2 class="section-title">Built for Community Ecosystems</h2>
+        <p class="section-subtitle">Serving mothers, local neighborhood sari-sari merchants, and government
+          administrators.</p>
+      </div>
+
+      <div class="roles-grid">
+        <!-- Guardian Role -->
+        <div class="role-card">
+          <div class="role-badge badge badge-peach"><i class="ph ph-heart"></i> Beneficiaries</div>
+          <h3 class="role-title">Guardians &amp; Mothers</h3>
+          <p class="role-desc">Zero smartphone or mobile data needed. The guardian presents their QR Nutri-Pass and
+            types their 6-digit PIN at the counter.</p>
+          <ul class="role-features">
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> QR Nutri-Pass — no phone needed</li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Secure 6-digit PIN authorization</li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Purpose-bound to healthy food</li>
+          </ul>
+        </div>
+
+        <!-- Merchant Role -->
+        <div class="role-card">
+          <div class="role-badge badge badge-teal"><i class="ph ph-storefront"></i> Micro-Economies</div>
+          <h3 class="role-title">Sari-Sari Merchants</h3>
+          <p class="role-desc">Installs the Bantayog store app on an Android phone. AI camera vision identifies products
+            instantly so store owners get paid with zero paperwork.</p>
+          <ul class="role-features">
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Low-cost Android mobile app</li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Gemini AI camera product scan</li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Immediate credit settlement &amp; cash-out
+            </li>
+          </ul>
+        </div>
+
+        <!-- LGU Admin Role -->
+        <div class="role-card">
+          <div class="role-badge badge badge-peach"><i class="ph ph-shield-check"></i> Governance</div>
+          <h3 class="role-title">LGU Administrators</h3>
+          <p class="role-desc">Admin dashboard to register guardians, children, and sari-sari store merchants, issue
+            passes, and monitor real-time nutrition analytics.</p>
+          <ul class="role-features">
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Beneficiary &amp; Merchant registration
+            </li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Automated age-tier computation</li>
+            <li class="role-feature-item"><i class="ph ph-check-circle"></i> Real-time public health analytics</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dual Portal Gateway (Main Conversion Section) -->
+  <section class="gateway-section">
+    <div class="container">
+      <div class="gateway-header">
+        <div class="badge badge-peach"
+          style="background: rgba(244, 141, 121, 0.2); color: #FFC0B4; border-color: rgba(244, 141, 121, 0.4);">
+          <span class="pulse-dot"></span> Live Portal Access
+        </div>
+        <h2 class="gateway-title">Access the Bantayog Applications</h2>
+        <p class="gateway-subtitle">Choose your user portal below to enter the live Bantayog platform.</p>
+      </div>
+
+      <div class="gateway-grid">
+        <!-- Merchant Portal Gateway Card -->
+        <div class="gateway-card merchant-gateway">
+          <div class="gateway-icon"><i class="ph ph-storefront"></i></div>
+          <div class="gateway-role-tag">For Sari-Sari Stores</div>
+          <h3 class="gateway-card-title">Merchant App</h3>
+          <p class="gateway-card-desc">
+            Open the store counter app to scan products with AI Gemini Vision, process Nutri-Pass checkouts, view sales
+            history, and cash out store balances.
+          </p>
+          <a href="https://merchant-bantayog.vercel.app/" target="_blank" rel="noopener noreferrer"
+            class="btn btn-primary gateway-btn" id="gatewayMerchantLink">
+            Launch Merchant App <i class="ph ph-arrow-up-right"></i>
+          </a>
+        </div>
+
+        <!-- Admin Portal Gateway Card -->
+        <div class="gateway-card admin-gateway">
+          <div class="gateway-icon"><i class="ph ph-user-gear"></i></div>
+          <div class="gateway-role-tag">For LGU Administrators</div>
+          <h3 class="gateway-card-title">Admin Portal</h3>
+          <p class="gateway-card-desc">
+            Log in to register guardians, children, and sari-sari merchants, issue QR Nutri-Passes, and monitor
+            real-time nutrition analytics.
+          </p>
+          <a href="https://admin-bantayog.vercel.app/login" target="_blank" rel="noopener noreferrer"
+            class="btn btn-secondary gateway-btn" id="gatewayAdminLink">
+            Open Admin Portal <i class="ph ph-arrow-up-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-container">
+      <div class="footer-brand">
+        <i class="ph ph-shield-check" style="color: var(--coral-primary);"></i> BANTAYOG
+      </div>
+      <div>
+        Republic Act 11148 (*Kalusugan at Nutrisyon ng Mag-Nanay Act*) Compliance Platform
+      </div>
+      <div class="footer-credits">
+        Developed by Team <span>JUMBO HOTDOG</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./main.js"></script>
+</body>
+
+</html>
