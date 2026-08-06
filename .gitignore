@@ -66,3 +66,4 @@ desktop.ini
 # --- Legacy & Internal Tooling ---
 #.kiro/
 #kiro/
+.vercel

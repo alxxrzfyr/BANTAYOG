@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { Keypair } from '@stellar/stellar-sdk'
 import { StellarClient } from '../services/chain.client.js'
 import { loadChainConfig } from '../lib/chain/config.js'
 import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
@@ -9,7 +10,7 @@ const chainRoutes = new Hono<{ Bindings: Env; Variables: { user?: { id: string; 
 // GET /api/chain/balance
 // Queries the Stellar Horizon network for an account's PHPC balance.
 // Query params:
-// - address?: Optional Stellar account ID. Defaults to issuer public key.
+// - address?: Optional Stellar account ID. Defaults to distribution account.
 chainRoutes.get('/balance', async (c) => {
   const configResult = loadChainConfig(process.env)
   if (configResult.isErr()) {
@@ -17,7 +18,8 @@ chainRoutes.get('/balance', async (c) => {
   }
 
   const queryAddress = c.req.query('address')
-  const targetAddress = queryAddress || configResult.value.issuerPublicKey
+  const distPublicKey = Keypair.fromSecret(configResult.value.distributionSecret).publicKey()
+  const targetAddress = queryAddress || distPublicKey
 
   const clientResult = await StellarClient.create(configResult.value)
   if (clientResult.isErr()) {
