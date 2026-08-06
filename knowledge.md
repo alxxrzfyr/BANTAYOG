@@ -15,8 +15,8 @@ Never deploy contracts, apply supabase migrations, sign APKs, or call production
 
 BANTAYOG turns LGU nutrition cash grants into nutrition-locked subsidies for the Philippine
 "First 1,000 Days" cohort (RA 11148). Guardians get a printed QR "Nutri-Pass"; credits spend
-only on child-appropriate food at approved sari-sari stores; settlement records on Polygon
-Amoy testnet (chain 80002) with a mock PHPC token. Team JUMBO HOTDOG; 1st Runner-Up SparkFest
+only on child-appropriate food at approved sari-sari stores; settlement records on Stellar
+testnet with a mock PHPC asset. Team JUMBO HOTDOG; 1st Runner-Up SparkFest
 2026; live pitch at Cryptita Plays Builder Showcase @ WOCEE 2026 on **August 8, 2026** (SMX
 Manila). Testnet/demo-grade code, but the architecture is real (ADRs in `docs/adr/`).
 
@@ -24,10 +24,10 @@ Manila). Testnet/demo-grade code, but the architecture is real (ADRs in `docs/ad
 
 - Setup: `pnpm install` (pnpm 9.15.0 pinned in `packageManager`, Node &gt;= 20). Copy `.env.example`
 → root `.env`, `apps/server/.env`, `apps/web/.env.local`. Apply `supabase/migrations/*.sql` in
-order (append-only). Contracts optional: `pnpm --filter @bantayog/contracts compile` + `pnpm deploy:contracts`.
+order (append-only). Stellar optional: `pnpm bootstrap:stellar`.
 - Dev: `pnpm dev` (turbo: web :3000 with `--webpack`, server :3001).
 - Test: `pnpm test` — single package: `pnpm --filter @bantayog/<pkg> test` (schema, db, server,
-web, contracts via Hardhat).
+web).
 - Lint: `pnpm lint` (eslint, `--max-warnings 0` — unused vars must be `_`-prefixed or deleted).
 - Types: `pnpm type-check` across the graph. Build: `pnpm build` (web = `next build`; server "build" is `tsc --noEmit`).
 - Mobile APK: `pnpm --filter @bantayog/web build:mobile` (merchant-only static export to `apps/web/out`)
@@ -51,7 +51,7 @@ and the Android Studio JBR 21 (`/opt/android-studio/jbr`), never the system JDK.
   (namespace `ph.bantayog.merchant`, Java MainActivity, minSdk 24 / compile+target 36,
   AGP 8.13.0, Gradle 8.14.3).
   - `packages/schema` (Zod DTOs, `@bantayog/schema`), `packages/db` (Supabase `Database`
-  types + BaseRepository, `@bantayog/db`), `packages/contracts` (Solidity + Hardhat 3),
+  types + BaseRepository, `@bantayog/db`),
   `packages/config` (tsconfig/eslint presets). Packages are consumed as source.
   - `supabase/migrations/` — 10 numbered append-only SQL files. `packages/db/src/types.ts` LAGS
   the migrations (verify against SQL, not types).
@@ -99,20 +99,20 @@ use relative imports with explicit `.js` extensions; web uses `@/…` aliases (d
   onchain/persistence/jwt/policy).
   - Parse, don't validate: `zValidator` + Zod schemas from `@bantayog/schema` at the boundary.
   - Domain logic pure with injectable `currentDate` (no `new Date()` inside).
-  - Money: PHP `NUMERIC(12,2)`, integer credits, 1 credit = 1 PHPC = 1e18 wei. Money moves ONLY
+  - Money: PHP `NUMERIC(12,2)`, integer credits, 1 credit = 1 PHPC = 1e7 stroops. Money moves ONLY
   through `settle_sale` RPC. No floats in credit math.
   - Migrations append-only; mirror every change in `packages/db/src/types.ts` + `types.test.ts`;
   update DTO snapshot on purpose.
   - Ownership/requirement header comments on server files (`BE1 owns this file`,
   `Requirements 8.1, 8.2`).
   - Docs in ASD-STE100 Simplified Technical English (short, active sentences).
-  - Stay on stack: viem (not ethers), Zustand (not Redux), `fetch` (not axios), Supabase client +
+  - Stay on stack: Stellar SDK, Zustand (not Redux), `fetch` (not axios), Supabase client +
   repositories (no ORM), `@node-rs/argon2` PINs, `jose` JWS, pino logs.
 - Things to avoid:
   - Business logic in `apps/web`; logic in the `/api/[...proxy]` route.
   - Editing an applied migration; `DB_RECORDED`/`BROADCAST` in `transactions.status` (CHECK
   allows only `PENDING_CHAIN | SUBMITTED | CONFIRMED | RECONCILED | FAILED`).
-  - Mainnet keys/RPC; `Ronin`/`Tanto`/`Waypoint`/`SKY_MAVIS`/chain 31337 (static test fails).
+  - Mainnet keys/RPC; `Polygon`/`Amoy`/`80002`/`Ronin`/`Tanto`/`Waypoint`/`SKY_MAVIS`/chain 31337 (static test fails).
   - Mutating endpoints under `/api/balance` (public by design).
   - Relying on `apps/web/lib/env.ts` dev fallbacks or the hardcoded `QR_TOKEN_SECRET` fallback.
   - Committing `.env*` (except `.env.example`), keystores, APKs/AABs; logging/returning secrets,
@@ -127,12 +127,12 @@ use relative imports with explicit `.js` extensions; web uses `@/…` aliases (d
 `claim_outbox_rows`; wrong `TransactionStatus`; `market_prices` untyped.
 - Known gaps (see `docs/context/PRD.md` §9): `qr_passes.revoked` only checked by verify-qr (a
 revoked pass can still transact); QR tokens carry no `exp`; checkout response vs stored row
-differ (`total_credit_deducted`, `idempotency_key`, `confirmed_at`, `stablecoin_amount_wei`
+differ (`total_credit_deducted`, `idempotency_key`, `confirmed_at`, `stablecoin_amount_stroops`
 not persisted); Gemini `is_child_friendly`/`Draft`→`VEGETABLES` fallbacks must be removed
 before offline plan; `docs/SECURITY.md` says no image storage but `products.image_url` stores
 base64; Render free plan sleeps (cold start ~30–60 s looks like a network failure).
 - Ask before: applying/editing migrations on a real Supabase project, deploying/upgrading
-contracts, spending from `DEPLOYER_PRIVATE_KEY`, changing auth/RBAC/RLS, touching
+contracts, spending from `STELLAR_SPONSOR_SECRET`, changing auth/RBAC/RLS, touching
 `settle_sale` or the cash-out lock, adding dependencies (esp. native Android: Kotlin,
 SQLCipher, WorkManager, ML Kit, OpenCV are a gated approval).
 

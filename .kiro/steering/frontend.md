@@ -84,8 +84,7 @@ not fall back for ineligible, invalid-image, authentication, signature, or confi
 `lib/domain/` (eligibility, nutrition-policy) and `lib/services/` (qr-token, pin, merchant,
 beneficiary) mirror server logic for display and legacy Next-API paths. The server is
 authoritative — if a rule changes, update `apps/server/src/domain` first and keep the client copy
-in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets, Hardhat
-account #0) that must never be relied on in a deployed environment.
+in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets) so `pnpm dev` doesn't crash on boot without a `.env.local` that must never be relied on in a deployed environment.
 
 ## Testing
 

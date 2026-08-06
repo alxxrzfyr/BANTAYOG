@@ -46,7 +46,7 @@ Testnet testnet with a mock PHPC token.
 | User | Surface | Authentication |
 | --- | --- | --- |
 | LGU administrator | `/login`, `/admin/*` | Supabase email and password, `app_metadata.role === 'admin'` |
-| Sari-sari merchant | `/merchant-login`, `/dashboard`, `/cart/*`, `/checkout/*` | Supabase password on `<mobile>@merchant.bantayog.local`, or an EVM `sign` proof |
+| Sari-sari merchant | `/merchant-login`, `/dashboard`, `/cart/*`, `/checkout/*` | Supabase password on `<mobile>@merchant.bantayog.local`, or a Stellar sign proof |
 | Guardian | `/balance` | None. The signed QR token is the credential |
 
 The guardian has low literacy and a low-end Android device. Keep the taps large and the steps
@@ -57,7 +57,7 @@ few. Use Tagalog-friendly copy.
 ### In scope (built)
 
 1. **Beneficiary registration.** Guardian and child data, monthly income, GPS point, 6-digit
-   guardian PIN (Argon2id), card serial. The server generates a custodial EVM wallet for each
+   guardian PIN (Argon2id), card serial. The server generates a custodial Stellar wallet for each
    beneficiary and stores the private key as AES-256-GCM ciphertext only.
 2. **Tier computation.** Tier 1 (Critical) applies while the age from conception is 1,000 days or
    less. This equals 730 days or less from birth. Tier 2 (Standard) applies after that. The server
@@ -71,7 +71,7 @@ few. Use Tagalog-friendly copy.
 6. **Cart and checkout.** The server verifies the QR token, checks `qr_passes.expires_at`,
    verifies the guardian PIN with a lockout, rejects a non-positive total, rejects a total above
    the balance, then calls the `settle_sale` RPC.
-7. **Merchant cash-out.** The merchant connects an EVM wallet with a `sign` proof. The
+7. **Merchant cash-out.** The merchant connects a Stellar wallet with a `sign` proof. The
    server takes the `cashout_in_progress` lock, transfers PHPC on-chain, waits for the receipt,
    then zeroes the off-chain balance.
 8. **Public balance view.** The printed pass opens a read-only page. The page shows the balance

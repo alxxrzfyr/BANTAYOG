@@ -413,7 +413,7 @@ After server acceptance:
 4. The local event changes from pending to accepted.
 5. The online cash-out path can use the accepted server balance.
 
-The existing online testnet EVM wallet cash-out path remains separate from this Rural offline
+The existing online testnet cash-out path remains separate from this Rural offline
 extension, if it is retained by the current application. A Rural APK cannot confirm a cash-out
 while offline. GCash, GoTyme, and bank-account transfers are not part of the current
 implementation.
@@ -426,13 +426,12 @@ merchant consent, fraud controls, security review, reconciliation, refund handli
 operational failure process.
 
 This ADR does not authorize provider credentials, provider API routes, real-money transfer code,
-or payout controls in either APK. Until a later ADR approves the work, the Rural feature only
-tracks server-accepted merchant earnings. Pending local earnings are never cash-outable.
+or payout controls in either APK. Until a later ADR approves the work, the existing online testnet cash-out path may be used, and only server-accepted merchant earnings may be cashed out; pending local earnings are never cash-outable.
 
 ### 9.1 Demo cost boundary
 
 The demo can use the existing free tiers, Gemini free quota, local open-source components, and the
-Polygon Amoy testnet without a new mandatory provider fee. The implementation must set usage
+Stellar testnet without a new mandatory provider fee. The implementation must set usage
 limits and alerts and must not enable a paid automatic upgrade. If Gemini quota or service is not
 available, the Rural build uses the allowed deterministic offline path. No real payout provider is
 called. Before the demo, verify that the selected image-capable Gemini model still has a free tier.
@@ -515,7 +514,7 @@ exposure.
 - Keep money movement inside Postgres functions with row locks and idempotency.
 - Use whole integer credits in signed payment payloads, TypeScript, Kotlin, and SQLite. Use
   `NUMERIC(12,2)` in Postgres and require offline credit amounts to have `.00`. One credit is one
-  PHPC and `10^18` PHPC wei. Item-price evidence uses integer centavos.
+  PHPC and `10^7` stroops. Item-price evidence uses integer centavos.
 - Do not add `DB_RECORDED` or `BROADCAST` to the transaction status CHECK.
 - Do not place business rules in `apps/web`.
 - Ask the owner before applying a migration to a real Supabase project, changing `settle_sale`,

@@ -48,8 +48,7 @@ Worktree split:              BANTAYOG-worktrees/merchant-apk owns Urban developm
 
 packages/schema/             Zod DTOs + inferred types (@bantayog/schema)
 packages/db/                 Supabase Database types, BaseRepository, clients (@bantayog/db)
-packages/contracts/          Solidity + Hardhat 3 (PHPC, PHPCSubsidy, registries, UUPSProxy)
-packages/config/             shared tsconfig presets + flat ESLint config
+packages/config/             Shared TS/Eslint configs presets + flat ESLint config
 packages/ui/                 placeholder, empty — web components live in apps/web/components
 
 supabase/migrations/         numbered SQL migrations; seed.sql, setup-test-users.js

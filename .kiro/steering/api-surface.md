@@ -70,7 +70,7 @@ Auth (`routes/auth.ts`)
 - `POST /api/auth/merchant-login` — mobile → `<digits>@merchant.bantayog.local`; blocks
   `SUSPENDED`; returns access + refresh token and merchant summary.
 - `POST /api/auth/merchant-refresh` — refresh-token exchange.
-- `POST /api/auth/wallet-login` — EVM `personal_sign` proof → matches an APPROVED merchant by
+- `POST /api/auth/wallet-login` — Stellar wallet proof → matches an APPROVED merchant by
   `wallet_address`, then mints a session via admin magiclink + `verifyOtp`.
 - `POST /api/auth/verify-pin` — 6-digit PIN check (no lockout on this path).
 - `POST /api/auth/verify-qr` — verifies the JWS token, rejects revoked/expired passes, then

@@ -676,7 +676,7 @@ After the server accepts the event:
 4. The local pending amount becomes accepted.
 5. Cash-out becomes available through the online server path.
 
-The existing online testnet EVM wallet cash-out path is separate from this offline design, if it is
+The existing online testnet cash-out path is separate from this offline design, if it is
 retained by the current application. A local database must never initiate or confirm a payout.
 GCash, GoTyme, and bank-account transfers are not current implementation scope.
 
@@ -688,7 +688,7 @@ review, reconciliation, refund handling, and operational failure handling.
 
 The current plan must not add provider credentials, provider API calls, real-money transfer code,
 or payout UI for these providers. A later ADR must approve that work. Until then, only the existing
-online testnet EVM wallet path may be used, and only server-accepted merchant earnings may be
+online testnet cash-out path may be used, and only server-accepted merchant earnings may be
 cashed out.
 
 ## 13. Local data and privacy
@@ -741,7 +741,7 @@ operational review reduce this risk but cannot remove it.
 ### 14.1 Demo cost controls
 
 The demo can use the current free tiers, Gemini free quota, local open-source components, and
-Polygon Amoy testnet without a new mandatory provider fee. Configure Gemini usage limits and
+Stellar testnet without a new mandatory provider fee. Configure Gemini usage limits and
 alerts. Do not enable a paid automatic upgrade. When Gemini quota or service is not available, use
 the permitted deterministic Rural fallback. Before the demo, verify that the selected image-capable
 model still has a free tier. Send a product-only crop with no beneficiary, guardian, merchant, PIN,

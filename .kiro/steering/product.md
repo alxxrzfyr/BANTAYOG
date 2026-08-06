@@ -7,7 +7,7 @@ inclusion: always
 BANTAYOG turns LGU nutrition cash grants into traceable, nutrition-locked subsidies for the
 Philippine "First 1,000 Days" cohort (RA 11148). A guardian receives a printed QR "Nutri-Pass"
 instead of cash; credits can only be spent on child-appropriate food at approved sari-sari
-stores, and settlement is recorded on Polygon Amoy testnet using a mock PHPC token.
+stores, and settlement is recorded on Stellar testnet using a mock PHPC asset.
 
 Built for SparkFest 2026 (GDG on Campus – PUP) by a 4-person team, and entered in the **Cryptita
 Plays Builder Showcase at WOCEE 2026** — live pitch on August 8, 2026 at SMX Convention Center
@@ -84,8 +84,8 @@ does not include their provider integrations or real-money transfer UI.
   service worker, `/~offline` fallback). Prefer flows that degrade gracefully.
 - Money is PHP with 2 decimals (`NUMERIC(12,2)`), and DB CHECK constraints forbid negative
   balances. Never introduce float drift into credit math.
-- Testnet only. Polygon Amoy (chain 80002) with a mock PHPC token; `DEPLOYER_PRIVATE_KEY` is a
-  zero-value testnet key. Never wire a mainnet key or mainnet RPC.
+- Testnet only. Stellar testnet with a mock PHPC asset; `STELLAR_SPONSOR_SECRET` is a
+  zero-value testnet key. Never wire a mainnet key or mainnet Horizon RPC.
 - Nutrition policy is government policy, not UI preference: keep tier rules, credit limits, and
   eligibility decisions server-side and deterministic.
 - Low-literacy, low-end Android users. Keep merchant/guardian UI large-tap, few steps, Tagalog-

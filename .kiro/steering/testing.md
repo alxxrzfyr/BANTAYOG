@@ -4,16 +4,14 @@ inclusion: manual
 
 # Testing Conventions
 
-Vitest 2 everywhere (`environment: node`, `globals: true`); Hardhat for Solidity. Tests live
+Vitest 2 everywhere (`environment: node`, `globals: true`). Tests live
 beside the code as `<name>.test.ts` — there is no separate `tests/` tree.
 
 ```bash
 pnpm test                                  # turbo: all packages
 pnpm --filter @bantayog/server test        # server unit + e2e-style tests
 pnpm --filter @bantayog/web test           # lib/** and app/api/** only
-pnpm --filter @bantayog/schema test
 pnpm --filter @bantayog/db test
-pnpm --filter @bantayog/contracts test     # hardhat test
 ```
 
 `apps/web/vitest.config.ts` restricts `include` to `lib/**/*.test.ts` and `app/api/**/*.test.ts`
@@ -47,7 +45,6 @@ testable logic in `lib/`.
 - Bug fix → add a regression test in the same file as the fix.
 - New service method → cover the happy path plus each `err(...)` branch.
 - New migration → update `packages/db/src/types.ts` and `packages/db/src/types.test.ts`.
-- Contract change → `pnpm --filter @bantayog/contracts test`; keep UUPS storage-layout tests
-  passing (`contracts/test/PHPCSubsidyV2Mock.sol`).
+- End-to-end tests live in `apps/server/src/e2e/`.
 - Before presenting a change: `pnpm type-check` and the relevant `test` script. Lint runs with
   `--max-warnings 0`, so unused vars must be prefixed `_` or removed.

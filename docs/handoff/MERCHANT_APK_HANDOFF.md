@@ -94,7 +94,7 @@ The repository is a pnpm workspace with Turborepo:
 | --- | --- |
 | `apps/web` | Next.js 16 PWA. Three surfaces in one deployment: admin, merchant, balance. View layer only |
 | `apps/server` | Hono 4 API on Render. All business logic |
-| `packages/{schema,db,contracts,config}` | Shared Zod schemas, Supabase types, Solidity, tooling config |
+| `packages/{schema,db,config}` | Shared Zod schemas, Supabase types, tooling config |
 
 `apps/web/middleware.ts` separates the three surfaces by hostname. `apps/web/app/api/[...proxy]/route.ts`
 forwards `/api/*` to the API server.

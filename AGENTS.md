@@ -20,10 +20,10 @@ Read also everything under docs/ , .kiro/steering directories
 
 BANTAYOG turns LGU nutrition cash grants into nutrition-locked subsidies for the Philippine
 "First 1,000 Days" cohort: guardians get a printed QR "Nutri-Pass", credits are spent only on
-child-appropriate food at approved sari-sari stores, and settlement is recorded on Polygon Amoy
-testnet with a mock PHPC token. pnpm workspace + Turborepo: `apps/web` (Next.js 16 PWA, view
+child-appropriate food at approved sari-sari stores, and settlement is recorded on Stellar
+testnet with a mock PHPC asset. pnpm workspace + Turborepo: `apps/web` (Next.js 16 PWA, view
 layer only), `apps/server` (Hono 4 API, all business logic), `apps/mobile` (Capacitor 8 Android
-shell bundling a merchant-only static export of `apps/web`), `packages/{schema,db,contracts,config}`,
+shell bundling a merchant-only static export of `apps/web`), `packages/{schema,db,config}`,
 `supabase/migrations`.
 
 The project is entered in the Cryptita Plays Builder Showcase at WOCEE 2026 (live pitch
@@ -36,18 +36,16 @@ features "for the demo".
 - Install: `pnpm install` (pnpm 9.15.0 is pinned in `packageManager`; Node >= 20)
 - Dev: `pnpm dev` (turbo: web on :3000 with `--webpack`, server on :3001)
 - Test: `pnpm test` — single package: `pnpm --filter @bantayog/server test`,
-  `--filter @bantayog/web test`, `--filter @bantayog/schema test`, `--filter @bantayog/db test`,
-  `--filter @bantayog/contracts test` (Hardhat)
+  `--filter @bantayog/web test`, `--filter @bantayog/schema test`, `--filter @bantayog/db test`
 - Lint: `pnpm lint` (eslint, `--max-warnings 0` — unused vars must be `_`-prefixed or deleted)
 - Build: `pnpm build` (web = `next build`; server "build" is `tsc --noEmit`, so it emits nothing)
 - Types: `pnpm type-check` across the graph
-- Contracts: `pnpm --filter @bantayog/contracts compile`; deploy via `pnpm deploy:contracts` (Amoy)
 - Android APK: `pnpm --filter @bantayog/web build:mobile` (merchant-only static export) then
   `pnpm --filter @bantayog/mobile exec cap sync android`; live reload with
   `pnpm --filter @bantayog/mobile dev:emulator`. Export `ANDROID_HOME` and build with the Android
   Studio JBR 21, not the system JDK. See `docs/MOBILE_BUILD.md` and `docs/adr/005-merchant-android-packaging.md`
 
-Env lives in root `.env`, `apps/server/.env`, `apps/web/.env.local`, `packages/contracts/.env`.
+Env lives in root `.env`, `apps/server/.env`, `apps/web/.env.local`.
 New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
 
 ## Working agreements
@@ -69,8 +67,8 @@ New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
 - Relative imports in `apps/server` and `packages/*` carry explicit `.js` extensions; `apps/web`
   uses `@/…` aliases declared in both `tsconfig.json` and `vitest.config.ts` (update both).
 - Ask for confirmation before: applying or editing migrations against a real Supabase project,
-  deploying or upgrading contracts, spending from `DEPLOYER_PRIVATE_KEY`, changing auth/RBAC or
-  RLS policies, and touching `settle_sale` or the cash-out lock.
+  spending from `STELLAR_SPONSOR_SECRET`, changing auth/RBAC or
+  RLS policies, and touching `settle_sale`.
 - Deeper reference docs are in `docs/context/` (`PRD`, `ARCHITECTURE`, `SCHEMA`, `DESIGN`, `RULES`),
   `.kiro/steering/` (`api-surface`, `data-model`, `blockchain`, `security`, `frontend`, `testing`)
   and `docs/adr/001-003`. Read `docs/context/SCHEMA.md` before a schema change, `DESIGN.md` before a
@@ -78,17 +76,16 @@ New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
 
 ## Repository expectations
 
-- Run `pnpm lint && pnpm type-check && pnpm test` before opening a pull request. Contract changes
-  additionally need `pnpm --filter @bantayog/contracts test` with UUPS storage-layout tests passing.
+- Run `pnpm lint && pnpm type-check && pnpm test` before opening a pull request.
 - Add a regression test in the same file as every bug fix; cover the happy path plus each `err(...)`
   branch for a new service method.
 - Document behaviour changes where the repo already keeps them: an ADR in `docs/adr/` for
-  decisions with real trade-offs, `docs/SECURITY.md` / `docs/SMART_CONTRACT_OPS.md` for security and
-  ops changes, and the matching `.kiro/steering/*.md` file so the described behaviour stays true.
+  decisions with real trade-offs, `docs/SECURITY.md` for security and ops changes, and the matching
+  `.kiro/steering/*.md` file so the described behaviour stays true.
   Several docs are aspirational today — fix the doc or the code, don't leave both wrong silently.
 - Preserve the ownership/requirement header comments on server files (`BE1 owns this file`,
   `Requirements 8.1, 8.2`) and extend that style in new files.
-- Keep money exact: PHP with 2 decimals, `NUMERIC(12,2)`, integer credits, `1 credit = 1e18 wei`.
+- Keep money exact: PHP with 2 decimals, `NUMERIC(12,2)`, integer stroops, `1 credit = 1e7 stroops`.
   No floats in credit math.
 - Naming: files kebab-case with a role suffix (`*.service.ts`, `*.repository.ts`, `*.gateway.ts`);
   DB columns snake_case with unit suffixes; DTOs camelCase, translated only in `src/dto/mappers.ts`.
@@ -102,9 +99,9 @@ New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
   `settle_sale` Postgres RPC (row lock + checks + insert in one transaction).
 - Never write `DB_RECORDED` or `BROADCAST` to `transactions.status`; the CHECK allows only
   `PENDING_CHAIN | SUBMITTED | CONFIRMED | RECONCILED | FAILED`.
-- Never wire a mainnet key or mainnet RPC. Polygon Amoy (80002) only, and read chain env vars only
+- Never wire a mainnet key or mainnet RPC. Stellar testnet only, and read chain env vars only
   through `loadChainConfig` in `apps/server/src/lib/chain/config.ts`.
-- Never reintroduce `Ronin` / `Tanto` / `Waypoint` / `SKY_MAVIS` / chain id `31337` outside the
+- Never reintroduce `Polygon` / `Amoy` / `80002` outside the
   allowlist — `apps/server/src/static-checks/forbidden-references.test.ts` fails the build.
 - Never throw for an expected failure. Return `err(new …Error())` from `apps/server/src/lib/errors.ts`
   and let the route map it via `errorToHttpStatus`.
@@ -112,6 +109,6 @@ New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
   by the signed QR token.
 - Never commit `.env*` (except `.env.example`), never log or return secrets, PINs, private keys, PII,
   or stack traces; use `collectConfiguredSecrets` + `redactSecrets` around chain operations.
-- Never rely on `apps/web/lib/env.ts` dev fallbacks (random JWT/QR secrets, Hardhat account #0) or
+- Never rely on `apps/web/lib/env.ts` dev fallbacks (random JWT/QR secrets) or
   the hardcoded `QR_TOKEN_SECRET` fallback in `QrTokenService` for anything deployed.
 - Never `git commit`, `git push`, `--force`, `reset --hard`, or `clean -f` unless explicitly asked.

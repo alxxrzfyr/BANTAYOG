@@ -321,18 +321,6 @@ The `transactions.status` CHECK allows five values. The code writes only three:
 (the cron). Nothing writes `SUBMITTED` or `RECONCILED`. One status therefore cannot tell an
 off-chain settlement apart from a chain confirmation.
 
-## 9. Contracts (`packages/contracts`)
-
-| Contract | Role |
-| --- | --- |
-| `PHPC.sol` | Mock PHP-pegged Stellar Asset, 18 decimals. The subsidy unit |
-| `StellarContract.sol` | UUPS-upgradeable subsidy logic. `onlyOwner` on `allocateCredits` and `processTransaction` |
-| `BeneficiaryRegistry.sol`, `MerchantRegistry.sol` | Kept from the earlier design. Not part of the PHPC settlement path |
-| `UUPSProxy.sol`, `test/StellarContractV2Mock.sol` | Proxy plumbing and the storage-layout test fixture |
-
-Soroban 3, solc 0.8.28, optimizer runs 200, `evmVersion: london`. Keep a V2 storage layout
-identical to V1. The runbook is `docs/SMART_CONTRACT_OPS.md`.
-
 ## 10. Adding a feature — the standard path
 
 1. Add or extend a Zod schema in `packages/schema`.
