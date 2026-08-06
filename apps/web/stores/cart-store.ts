@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { z } from "zod";
+// Import the submodule directly: the @bantayog/schema barrel uses .js-extension
+// re-exports that Next.js client webpack cannot resolve. Same pattern as
+// @bantayog/schema/analytics.
+import { IdentificationMethodSchema, type IdentificationMethod } from "@bantayog/schema/offline";
 
 const STORAGE_KEY = "bantayog-cart";
 const PERSIST_VERSION = 2;
@@ -14,6 +18,7 @@ export interface CartItem {
   imageDataUrl?: string;
   category?: string;
   unit?: string;
+  identificationMethod?: IdentificationMethod;
 }
 
 interface CartState {
@@ -36,6 +41,7 @@ const CartItemSchema = z.object({
   imageDataUrl: z.string().optional(),
   category: z.string().optional(),
   unit: z.string().optional(),
+  identificationMethod: IdentificationMethodSchema.optional(),
 });
 
 const PersistedStateSchema = z.object({
@@ -77,7 +83,7 @@ export const useCartStore = create<CartState>()(
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
-        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl, category, unit }) => ({
+        items: state.items.map(({ id, name, price, quantity, eligibility, imageDataUrl, category, unit, identificationMethod }) => ({
           id,
           name,
           price,
@@ -86,6 +92,7 @@ export const useCartStore = create<CartState>()(
           imageDataUrl,
           category,
           unit,
+          identificationMethod,
         })),
       }),
       onRehydrateStorage: () => {

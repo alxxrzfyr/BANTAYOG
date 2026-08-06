@@ -8,18 +8,6 @@ import { JwtError, RateLimitError } from '../lib/errors.js'
 // are only invoked when the mocked module is actually resolved during the
 // import chain below, by which point these `let`/`const` bindings exist).
 
-// Mock the Supabase auth client so `authMiddleware` resolves a merchant user
-// without making a real network call.
-vi.mock('jose', () => ({
-  jwtVerify: vi.fn().mockResolvedValue({
-    payload: {
-      sub: 'merchant-auth-id',
-      email: 'merchant@test.com',
-      app_metadata: { role: 'merchant' },
-    }
-  })
-}))
-
 // Controllable QrTokenService.verifyToken result, set per test.
 const mockVerifyToken = vi.fn()
 vi.mock('../services/qr-token.service.js', () => ({
@@ -186,6 +174,18 @@ function makeQrPassesBuilder() {
 }
 
 const mockSupabaseClient: any = {
+  auth: {
+    getUser: vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          id: 'merchant-auth-id',
+          email: 'merchant@test.com',
+          app_metadata: { role: 'merchant' },
+        },
+      },
+      error: null,
+    }),
+  },
   rpc: vi.fn().mockImplementation(async (fn: string, args: any) => {
     rpcCalls.push({ fn, args })
     if (rpcError) {

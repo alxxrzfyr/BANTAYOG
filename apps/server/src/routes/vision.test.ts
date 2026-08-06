@@ -25,19 +25,20 @@ vi.mock('@google/genai', () => {
   }
 })
 
-// Mock the Supabase auth client so authMiddleware resolves a merchant
-vi.mock('jose', () => ({
-  jwtVerify: vi.fn().mockResolvedValue({
-    payload: {
-      sub: 'merchant-auth-id',
-      email: 'merchant@test.com',
-      app_metadata: { role: 'merchant' },
-    }
-  })
-}))
-
 // Mock supabase db service client
 const mockSupabaseClient: any = {
+  auth: {
+    getUser: vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          id: 'merchant-auth-id',
+          email: 'merchant@test.com',
+          app_metadata: { role: 'merchant' },
+        },
+      },
+      error: null,
+    }),
+  },
   from: vi.fn().mockImplementation(() => ({
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),

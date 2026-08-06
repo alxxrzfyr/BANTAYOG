@@ -12,12 +12,37 @@ import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
 import { authFetch, clearMerchantToken } from "@/lib/api";
+import { decodeProductBarcode } from "@/lib/barcode/decode";
+import { normalizeGtin, canonicalizeGtin, isValidGtin } from "@/lib/barcode/gtin";
 
 // AI Image Scan Flow — 3 stages in one page (ref: 16-21.png)
 
 type Stage = 1 | 2 | 3;
 
 const MOCK_FOOD_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAADklEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+// Barcode glyph — authored SVG, same 2px stroke as the rest of this screen's icons.
+function BarcodeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 6v12" />
+      <path d="M7 6v12" />
+      <path d="M10 6v12" />
+      <path d="M13 6v12" />
+      <path d="M16 6v12" />
+      <path d="M20 6v12" />
+    </svg>
+  );
+}
 
 export default function AIScanPage() {
   return (
@@ -48,6 +73,13 @@ function AIScanContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [identificationMethod, setIdentificationMethod] = useState<
+    "ONLINE_BARCODE" | "ONLINE_GEMINI"
+  >("ONLINE_GEMINI");
+  const [barcodeStatus, setBarcodeStatus] = useState<
+    "reading" | "matched" | "ai-fallback" | null
+  >(null);
+  const [decodedGtin, setDecodedGtin] = useState<string | null>(null);
 
   const [priceRangeMin, setPriceRangeMin] = useState<number | null>(null);
   const [priceRangeMax, setPriceRangeMax] = useState<number | null>(null);
@@ -155,8 +187,12 @@ function AIScanContent() {
           flagged_ingredients: result.flaggedIngredients || [],
           reasoning: result.reasoning
         });
-        setPriceRangeMin(result.priceRangeMin);
-        setPriceRangeMax(result.priceRangeMax);
+        // No catalog range exists for a Gemini estimate — a fuzzy name match
+        // can inherit a bigger SKU's range and block valid small-format prices.
+        // isPriceRangeValid returns true when either end is null, so Add to
+        // Cart is not falsely blocked; the allowed-range hint stays hidden.
+        setPriceRangeMin(null);
+        setPriceRangeMax(null);
         setIsUnrecognizedBrand(false);
         setStage(2); // Go to Step 2
         return;
@@ -181,10 +217,53 @@ function AIScanContent() {
     }
   };
 
+  // ── Try barcode-first identification; returns true if it produced a match ──
+  const tryBarcodeIdentify = async (canvas: HTMLCanvasElement): Promise<boolean> => {
+    try {
+      const rawValue = await decodeProductBarcode(canvas);
+      if (!rawValue) return false;
+
+      const gtin = canonicalizeGtin(normalizeGtin(rawValue));
+      if (!isValidGtin(gtin)) return false;
+      setDecodedGtin(gtin);
+
+      const res = await authFetch("/api/vision/lookup-barcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gtin }),
+      });
+      if (!res.ok) return false;
+
+      const result = await res.json();
+      if (!result.matched) return false;
+
+      const p = result.product;
+      setProductName(p.name);
+      setEligibility(p.eligibility_status);
+      setCategory(p.category);
+      setImageUrl(p.image_url || null);
+      setAnalysisResult(null);
+      setPriceRangeMin(p.price_range_min);
+      setPriceRangeMax(p.price_range_max);
+      setPrice(((p.price_range_min + p.price_range_max) / 2).toFixed(2));
+      setIsUnrecognizedBrand(false);
+      setIdentificationMethod("ONLINE_BARCODE");
+      setBarcodeStatus("matched");
+      setStage(2);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // ── Capture photo ──
   const capturePhoto = useCallback(() => {
     setError(null);
+    setIdentificationMethod("ONLINE_GEMINI");
+    setBarcodeStatus("reading");
+    setDecodedGtin(null);
     if (!videoRef.current || !canvasRef.current) {
+      setBarcodeStatus("ai-fallback");
       setCapturedImage(MOCK_FOOD_IMAGE);
       stopCamera();
       runAIScan(MOCK_FOOD_IMAGE);
@@ -198,6 +277,7 @@ function AIScanContent() {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
+      setBarcodeStatus("ai-fallback");
       setCapturedImage(MOCK_FOOD_IMAGE);
       stopCamera();
       runAIScan(MOCK_FOOD_IMAGE);
@@ -208,7 +288,15 @@ function AIScanContent() {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setCapturedImage(dataUrl);
     stopCamera();
-    runAIScan(dataUrl);
+
+    setIsProcessing(true);
+    tryBarcodeIdentify(canvas).then((matched) => {
+      setIsProcessing(false);
+      if (!matched) {
+        setBarcodeStatus("ai-fallback");
+        runAIScan(dataUrl);
+      }
+    });
   }, [stopCamera]);
 
   // ── Validate price ──
@@ -276,6 +364,7 @@ function AIScanContent() {
       eligibility,
       imageDataUrl: imageUrl || capturedImage || undefined,
       category,
+      identificationMethod,
     });
     setInputSource("branded");
     setStage(3);
@@ -296,6 +385,9 @@ function AIScanContent() {
     setPriceRangeMin(null);
     setPriceRangeMax(null);
     setIsUnrecognizedBrand(false);
+    setIdentificationMethod("ONLINE_GEMINI");
+    setBarcodeStatus(null);
+    setDecodedGtin(null);
   };
 
   // ── Stage 1 — Capture ──
@@ -344,12 +436,23 @@ function AIScanContent() {
                   className="h-full w-full object-cover"
                 />
                 {isProcessing && (
-                  <>
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
-                      <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI Analyzing...</span>
-                    </div>
-                  </>
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2.5 bg-black/50" aria-live="polite">
+                    {barcodeStatus === "reading" ? (
+                      <>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white">
+                          <BarcodeIcon className="h-5 w-5" />
+                        </div>
+                        <span className="font-body text-xs font-bold text-white tracking-wider uppercase">Reading barcode...</span>
+                        {/* Reuses the design-system scan bar (globals.css .scanner-animation-bar) */}
+                        <div className="absolute inset-x-6 h-[2px] rounded-full bg-[#80cbc4] scanner-animation-bar shadow-[0_0_8px_rgba(128,203,196,0.9)]" aria-hidden="true" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-[#80cbc4]" />
+                        <span className="font-body text-xs font-bold text-white tracking-wider uppercase">AI estimate...</span>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (cameraStatus === "ready" || cameraStatus === "loading") ? (
@@ -371,28 +474,13 @@ function AIScanContent() {
                   </div>
                 )}
                 {cameraStatus === "ready" && (
-                  <>
-                    {/* Corner brackets */}
-                    <div className="pointer-events-none absolute inset-0">
-                      <div className="absolute left-3 top-3 h-10 w-10 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
-                      <div className="absolute right-3 top-3 h-10 w-10 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
-                      <div className="absolute bottom-3 left-3 h-10 w-10 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
-                      <div className="absolute bottom-3 right-3 h-10 w-10 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
-                    </div>
-                    {/* Camera capture button */}
-                    <button
-                      type="button"
-                      onClick={capturePhoto}
-                      className="absolute bottom-3 right-3 z-10 flex h-11 w-11 items-center justify-center"
-                      aria-label="Capture photo"
-                    >
-                      <img
-                        src="/merchantLogos/cam-logo.png"
-                        alt=""
-                        className="h-10 w-10"
-                      />
-                    </button>
-                  </>
+                  /* Corner brackets */
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute left-3 top-3 h-10 w-10 border-l-[3px] border-t-[3px] border-[#80cbc4]" />
+                    <div className="absolute right-3 top-3 h-10 w-10 border-r-[3px] border-t-[3px] border-[#80cbc4]" />
+                    <div className="absolute bottom-3 left-3 h-10 w-10 border-b-[3px] border-l-[3px] border-[#80cbc4]" />
+                    <div className="absolute bottom-3 right-3 h-10 w-10 border-b-[3px] border-r-[3px] border-[#80cbc4]" />
+                  </div>
                 )}
               </>
             ) : (
@@ -415,12 +503,57 @@ function AIScanContent() {
             <canvas ref={canvasRef} className="hidden" />
           </div>
 
+          {/* Barcode hint stays outside the viewfinder so it never obscures the item. */}
+          {!capturedImage && !isProcessing && cameraStatus === "ready" && (
+            <div className="mt-4 flex justify-center">
+              <div className="flex items-center gap-1.5 rounded-full bg-brand-sageBg px-3 py-1.5 shadow-sm">
+                <BarcodeIcon className="h-3.5 w-3.5 shrink-0 text-brand-darkTeal" />
+                <span className="font-body text-[11px] font-semibold text-brand-darkTeal">
+                  Barcode scanning supported
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Centered capture action stays clear of the camera panel. */}
+          {!capturedImage && !isProcessing && cameraStatus === "ready" && (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-darkTeal p-1 shadow-md transition-transform hover:scale-105 active:scale-95"
+                aria-label="Capture photo"
+              >
+                <img
+                  src="/merchantLogos/cam-logo.png"
+                  alt=""
+                  className="h-11 w-11"
+                />
+              </button>
+            </div>
+          )}
+
           {/* Instruction */}
           <p className="mt-3 text-center font-body text-xs italic text-gray-400">
             Take a picture of a single item in good lighting.
           </p>
 
           {/* Error */}
+          {barcodeStatus && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#b2dfdb] bg-white px-3 py-2.5 text-center" role="status" aria-live="polite">
+              <BarcodeIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#034C52]" />
+              <div className="flex-1 text-center">
+                <p className="font-body text-xs font-semibold text-[#034C52]">
+                  {barcodeStatus === "reading" && "Reading barcode..."}
+                  {barcodeStatus === "matched" && `Barcode matched: ${productName}`}
+                  {barcodeStatus === "ai-fallback" && "No barcode match — AI estimate"}
+                </p>
+                {barcodeStatus === "ai-fallback" && decodedGtin && (
+                  <p className="mt-1 font-body text-xs text-gray-600">Decoded GTIN: {decodedGtin}</p>
+                )}
+              </div>
+            </div>
+          )}
           {error && (
             <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-center" role="alert">
               <p className="font-body text-xs font-semibold text-red-600">{error}</p>
@@ -492,7 +625,20 @@ function AIScanContent() {
             </div>
           )}
 
-          {/* Unrecognized Brand Hint */}
+          {/* Identification provenance: green only for a catalog-verified barcode;
+              amber only when a decoded barcode missed the catalog. Plain Gemini
+              matches are already validated by the server, so no warning is shown. */}
+          {identificationMethod === "ONLINE_BARCODE" ? (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3" role="status">
+              <span className="block font-body text-sm font-bold text-emerald-800">✓ Catalog-verified barcode match</span>
+            </div>
+          ) : decodedGtin ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" role="alert">
+              <span className="block font-body text-sm font-bold text-amber-800">⚠ Unverified — barcode not in catalog, identity is an AI estimate</span>
+              <span className="mt-1 block font-body text-xs text-amber-700">Please verify the product name and price before adding.</span>
+              <span className="mt-1 block font-body text-xs text-amber-700">Decoded GTIN: {decodedGtin}</span>
+            </div>
+          ) : null}
           {isUnrecognizedBrand && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" role="alert">
               <span className="block font-body text-sm font-bold text-amber-800">

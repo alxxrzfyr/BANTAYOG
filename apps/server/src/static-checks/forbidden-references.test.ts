@@ -65,10 +65,13 @@ const ALLOWLISTED_PATH_SUBSTRINGS = [
   '/apps/server/src/static-checks/forbidden-references.test.ts',
   '/docs/adr/001-transactional-outbox.md',
   '/docs/adr/004-stellar-migration.md',
+  '/docs/adr/004-rural-offline-quota-authorization.md',
+  '/docs/superpowers/specs/2026-08-04-offline-product-validation-and-transactions-design.md',
   '/docs/STELLAR_MIGRATION_RUNBOOK.md',
   '/docs/SMART_CONTRACT_OPS.md',
   '/supabase/migrations/00003_polygon_amoy_migration.sql',
   '/AGENTS.md',
+  '/knowledge.md',
 ]
 
 // True when `line` is a comment line: a `//` or `--` line comment, or a line

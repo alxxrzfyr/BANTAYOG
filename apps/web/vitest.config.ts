@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 
+const repoRoot = path.resolve(__dirname, "../..");
+
 export default defineConfig({
   test: {
     globals: true,
@@ -16,8 +18,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@repo": repoRoot,
       "@": path.resolve(__dirname, "."),
       "@bantayog/schema/analytics": path.resolve(__dirname, "../../packages/schema/src/analytics.ts"),
+      "@bantayog/schema/offline": path.resolve(__dirname, "../../packages/schema/src/offline.ts"),
       "@bantayog/schema": path.resolve(__dirname, "../../packages/schema/src/index.ts"),
       "@bantayog/db": path.resolve(__dirname, "../../packages/db/src/index.ts"),
     },

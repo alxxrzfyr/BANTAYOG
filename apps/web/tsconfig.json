@@ -12,7 +12,10 @@
       "@/hooks/*": ["./hooks/*"],
       "@bantayog/db": ["../../packages/db/src/index.ts"],
       "@bantayog/schema": ["../../packages/schema/src/index.ts"],
-      "@bantayog/schema/analytics": ["../../packages/schema/src/analytics.ts"]
+      "@bantayog/schema/analytics": ["../../packages/schema/src/analytics.ts"],
+      "@bantayog/schema/offline": ["../../packages/schema/src/offline.ts"],
+      "@repo/*": ["../../*"],
+      "@repo": ["../../"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

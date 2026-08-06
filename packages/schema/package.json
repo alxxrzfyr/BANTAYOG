@@ -14,6 +14,10 @@
     "./analytics": {
       "types": "./src/analytics.ts",
       "import": "./src/analytics.ts"
+    },
+    "./offline": {
+      "types": "./src/offline.ts",
+      "import": "./src/offline.ts"
     }
   },
   "scripts": {

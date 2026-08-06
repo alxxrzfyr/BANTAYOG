@@ -52,7 +52,7 @@ export default function ScanCartItemsPage() {
           <Link
             href="/cart/branded"
             className="flex items-center gap-4 rounded-2xl bg-[#fde8e6] px-4 py-4 transition-colors hover:bg-[#f9d8d4] active:brightness-95"
-            aria-label="Branded Products - Scan branded/packaged items and let AI identify and validate them"
+            aria-label="Branded Products - Scan the barcode on packaged items; AI identifies items when no barcode match is found"
           >
             <img
               src="/merchantLogos/aiCam.png"
@@ -64,7 +64,7 @@ export default function ScanCartItemsPage() {
                 Branded Products
               </p>
               <p className="mt-0.5 font-body text-sm leading-snug text-gray-600">
-                Scan branded/packaged items and let AI identify and validate them.
+                Scan the barcode on packaged items for an instant match. AI identifies items when the barcode can't be read or isn't in the catalog.
               </p>
             </div>
             <svg
@@ -125,7 +125,7 @@ export default function ScanCartItemsPage() {
             className="h-6 w-6 flex-shrink-0"
           />
           <p className="font-body text-sm leading-snug text-[#034C52]">
-            <span className="font-semibold">Tip:</span> Choose Branded for packaged goods and Non-Branded for wet market items.
+            <span className="font-semibold">Tip:</span> Choose Branded for packaged goods and Non-Branded for wet market items. Packaged goods with a barcode identify fastest.
           </p>
         </div>
       </div>
