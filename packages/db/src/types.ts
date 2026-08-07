@@ -26,6 +26,8 @@ export type TransactionStatus =
 
 export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
 
+export type ProductVariantVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'LEGACY_IMPORTED'
+
 // ---------------------------------------------------------------------------
 // Row types (one per table)
 // ---------------------------------------------------------------------------
@@ -158,6 +160,28 @@ export interface ProductRow {
   created_at: string
 }
 
+export interface ProductVariantRow {
+  id: string
+  product_id: string
+  sku: string | null
+  brand: string | null
+  name: string
+  net_content: string | null
+  flavour: string | null
+  packaging_type: string | null
+  category: string
+  image_url: string | null
+  gtin: string | null
+  eligibility_status: 'eligible' | 'ineligible'
+  price_range_min: number
+  price_range_max: number
+  source_url: string | null
+  verification_status: ProductVariantVerificationStatus
+  verified_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ---------------------------------------------------------------------------
 // Table name union (re-exported by repository.ts)
 // ---------------------------------------------------------------------------
@@ -212,42 +236,21 @@ export interface Database {
       beneficiary_wallets: {
         Row: BeneficiaryWalletRow
         Insert: Omit<BeneficiaryWalletRow, 'created_at'>
-        Update: Partial<
-          Omit<BeneficiaryWalletRow, 'beneficiary_id' | 'created_at'>
-        >
+        Update: Partial<Omit<BeneficiaryWalletRow, 'beneficiary_id' | 'created_at'>>
       }
       merchant_wallets: {
         Row: MerchantWalletRow
         Insert: Omit<MerchantWalletRow, 'created_at'>
-        Update: Partial<
-          Omit<MerchantWalletRow, 'merchant_id' | 'created_at'>
-        >
+        Update: Partial<Omit<MerchantWalletRow, 'merchant_id' | 'created_at'>>
       }
       allocations: {
         Row: AllocationRow
-        Insert: Omit<
-          AllocationRow,
-          'id' | 'reconciled' | 'allocated_at' | 'ledger_sequence'
-        > & {
-          reconciled?: boolean
-          ledger_sequence?: number | null
-        }
+        Insert: Omit<AllocationRow, 'id' | 'reconciled' | 'allocated_at' | 'ledger_sequence'> & { reconciled?: boolean; ledger_sequence?: number | null }
         Update: Partial<Omit<AllocationRow, 'id' | 'allocated_at'>>
       }
       transactions: {
         Row: TransactionRow
-        Insert: Omit<
-          TransactionRow,
-          | 'id'
-          | 'created_at'
-          | 'status'
-          | 'onchain_tx_hash'
-          | 'confirmed_at'
-          | 'total_credit_deducted'
-          | 'stablecoin_amount_wei'
-          | 'asset_amount_stroops'
-          | 'ledger_sequence'
-        > & {
+        Insert: Omit<TransactionRow, 'id' | 'created_at' | 'status' | 'onchain_tx_hash' | 'confirmed_at' | 'total_credit_deducted' | 'stablecoin_amount_wei' | 'asset_amount_stroops' | 'ledger_sequence'> & {
           status?: TransactionStatus
           onchain_tx_hash?: string | null
           confirmed_at?: string | null
@@ -260,27 +263,12 @@ export interface Database {
       }
       qr_passes: {
         Row: QrPassRow
-        Insert: Omit<QrPassRow, 'id' | 'issued_at' | 'revoked'> & {
-          revoked?: boolean
-        }
+        Insert: Omit<QrPassRow, 'id' | 'issued_at' | 'revoked'> & { revoked?: boolean }
         Update: Partial<Omit<QrPassRow, 'id' | 'issued_at'>>
       }
       outbox: {
         Row: OutboxRow
-        Insert: Omit<
-          OutboxRow,
-          | 'id'
-          | 'created_at'
-          | 'status'
-          | 'attempts'
-          | 'run_after'
-          | 'processed_at'
-        > & {
-          status?: OutboxStatus
-          attempts?: number
-          run_after?: string
-          processed_at?: string | null
-        }
+        Insert: Omit<OutboxRow, 'id' | 'created_at' | 'status' | 'attempts' | 'run_after' | 'processed_at'> & { status?: OutboxStatus; attempts?: number; run_after?: string; processed_at?: string | null }
         Update: Partial<Omit<OutboxRow, 'id' | 'created_at'>>
       }
       photo_receipts: {
@@ -293,27 +281,27 @@ export interface Database {
         Insert: Omit<ProductRow, 'id' | 'created_at'>
         Update: Partial<Omit<ProductRow, 'id' | 'created_at'>>
       }
+      product_variants: {
+        Row: ProductVariantRow
+        Insert: Omit<ProductVariantRow, 'id' | 'created_at' | 'updated_at'> & {
+          sku?: string | null
+          brand?: string | null
+          net_content?: string | null
+          flavour?: string | null
+          packaging_type?: string | null
+          gtin?: string | null
+          source_url?: string | null
+          verification_status?: ProductVariantVerificationStatus
+          verified_at?: string | null
+        }
+        Update: Partial<Omit<ProductVariantRow, 'id' | 'created_at'>>
+      }
     }
     Views: Record<string, never>
     Functions: {
-      has_role: {
-        Args: { required_role: string }
-        Returns: boolean
-      }
-      claim_outbox_rows: {
-        Args: { p_limit: number }
-        Returns: Database['public']['Tables']['outbox']['Row'][]
-      }
-      settle_sale: {
-        Args: {
-          p_beneficiary_id: string
-          p_merchant_id: string
-          p_amount: number
-          p_items: Record<string, unknown>[]
-          p_transaction_id: string
-        }
-        Returns: string
-      }
+      has_role: { Args: { required_role: string }; Returns: boolean }
+      claim_outbox_rows: { Args: { p_limit: number }; Returns: Database['public']['Tables']['outbox']['Row'][] }
+      settle_sale: { Args: { p_beneficiary_id: string; p_merchant_id: string; p_amount: number; p_items: Record<string, unknown>[]; p_transaction_id: string }; Returns: string }
     }
     Enums: {
       merchant_status: MerchantStatus

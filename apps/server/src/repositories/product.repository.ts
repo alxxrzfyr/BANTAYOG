@@ -19,7 +19,20 @@ export class ProductRepository extends BaseRepository<'products'> {
     return data
   }
 
-  // Exact-match lookup by GTIN barcode (EAN-13/EAN-8/UPC-A/UPC-E).
+  // Exact-match lookup against the normalized SKU table.
+  async findVariantByGtin(gtin: string) {
+    const { data, error } = await (this.db as SupabaseClient)
+      .from('product_variants')
+      .select('*')
+      .eq('gtin', gtin)
+      .maybeSingle()
+
+    // Keep the lookup compatible before migration 00016 reaches a deployment.
+    if (error && !['PGRST205', '42P01'].includes(error.code ?? '')) throw error
+    return error ? null : data
+  }
+
+  // Legacy fallback while old product rows are being migrated.
   async findByGtin(gtin: string) {
     const { data, error } = await this.db
       .from('products')

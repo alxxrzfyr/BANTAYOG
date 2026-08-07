@@ -8,7 +8,15 @@ export interface ValidationSuccessResult {
   matched: true
   product: {
     id: string
+    family_id?: string
+    variant_id?: string
+    sku?: string | null
+    brand?: string | null
     name: string
+    net_content?: string | null
+    flavour?: string | null
+    packaging_type?: string | null
+    gtin?: string | null
     eligibility_status: 'eligible' | 'ineligible'
     category: string
     price_range_min: number
@@ -74,7 +82,13 @@ export class ProductsService {
     try {
       const candidates = gtin.length === 12 ? [gtin, `0${gtin}`] : [gtin]
       let matched: any = null
+      let isVariant = false
       for (const candidate of candidates) {
+        matched = await this.productRepo.findVariantByGtin(candidate)
+        if (matched) {
+          isVariant = true
+          break
+        }
         matched = await this.productRepo.findByGtin(candidate)
         if (matched) break
       }
@@ -83,16 +97,32 @@ export class ProductsService {
         return ok({ matched: false, reason: 'No product found for this barcode' })
       }
 
+      const variantFields = isVariant
+        ? {
+            variant_id: matched.id,
+            family_id: matched.product_id,
+            sku: matched.sku,
+            brand: matched.brand,
+            net_content: matched.net_content,
+            flavour: matched.flavour,
+            packaging_type: matched.packaging_type,
+            gtin: matched.gtin,
+          }
+        : {
+            gtin: matched.gtin,
+          }
+
       return ok({
         matched: true,
         product: {
           id: matched.id,
+          ...variantFields,
           name: matched.name,
           eligibility_status: matched.eligibility_status,
           category: matched.category,
           price_range_min: Number(matched.price_range_min),
           price_range_max: Number(matched.price_range_max),
-          image_url: matched.image_url
+          image_url: matched.image_url ?? null,
         }
       })
     } catch (error: any) {

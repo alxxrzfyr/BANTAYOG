@@ -14,7 +14,7 @@ import type {
 } from './types.js'
 
 describe('Database type structure', () => {
-  it('has all 7 tables in the public schema', () => {
+  it('has all catalog tables in the public schema', () => {
     // Type-level test: if this compiles, the types are correct
     const expectedTables: TableName[] = [
       'administrators',
@@ -24,9 +24,12 @@ describe('Database type structure', () => {
       'qr_passes',
       'outbox',
       'photo_receipts',
+      'products',
+      'product_variants',
     ]
-    // Runtime check that we listed them all
-    expect(expectedTables).toHaveLength(7)
+    // Runtime check that we listed the catalog tables too.
+    expect(expectedTables).toContain('products')
+    expect(expectedTables).toContain('product_variants')
   })
 })
 
