@@ -32,7 +32,8 @@
     "PHPC_SUBSIDY_ADDRESS",
     "PHPC_TOKEN_ADDRESS",
     "DEPLOYER_PRIVATE_KEY",
-    "LGU_DISTRICT_LABEL"
+    "LGU_DISTRICT_LABEL",
+    "RECONCILE_INTERVAL_MS"
   ],
   "tasks": {
     "build": {
