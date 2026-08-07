@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
-let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "https://bantayogserver-production.up.railway.app";
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "https://bantayog-ux6v.onrender.com";
 if (!API_BASE_URL.startsWith("http://") && !API_BASE_URL.startsWith("https://")) {
   API_BASE_URL = "https://" + API_BASE_URL;
 }
