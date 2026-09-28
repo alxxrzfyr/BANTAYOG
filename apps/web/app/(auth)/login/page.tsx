@@ -80,13 +80,13 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════
           MAIN CONTENT — Two-column layout
           ═══════════════════════════════════ */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 items-center px-8 py-10 lg:px-16 lg:py-12 gap-10 lg:gap-0">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 content-center items-center px-4 py-6 sm:px-8 sm:py-10 lg:px-16 lg:py-12 gap-8 sm:gap-10 lg:gap-0">
 
         {/* ─── LEFT COLUMN ─── */}
-        <div className="flex flex-col items-start gap-y-6 sm:gap-y-10 animate-fade-in">
+        <div className="flex flex-col items-center text-center lg:items-start lg:text-left gap-y-6 sm:gap-y-10 min-w-0 animate-fade-in">
 
           {/* Branding block — tightly grouped */}
-          <div className="flex flex-col items-start gap-y-3 sm:gap-y-4">
+          <div className="flex flex-col items-center lg:items-start gap-y-3 sm:gap-y-4 w-full">
 
             {/* DOH Badge */}
             <div
@@ -111,15 +111,20 @@ export default function LoginPage() {
               </span>
             </div>
 
-            {/* BANTAYOG Logo / Title — cropped to remove transparent padding baked into the PNG */}
-            <div className="w-full overflow-hidden" style={{ aspectRatio: '1920 / 338' }}>
+            {/* BANTAYOG Logo / Title — the PNG is 1920x1080 but the artwork only fills rows 363-699.
+                The box uses the artwork aspect ratio; object-cover + object-position crops the
+                transparent padding (363 / (1080 - 338) = 48.9%) with no negative margins. */}
+            <div
+              className="relative w-full max-w-xl lg:max-w-none overflow-hidden"
+              style={{ aspectRatio: '1920 / 338' }}
+            >
               <Image
                 src="/adminAssets/title.png"
                 alt="BANTAYOG"
-                width={1920}
-                height={1080}
-                className="w-full h-auto"
-                style={{ marginTop: '-18.9%' }}
+                fill
+                sizes="(min-width: 1024px) 50vw, (min-width: 640px) 576px, 100vw"
+                className="object-cover"
+                style={{ objectPosition: '50% 48.9%' }}
                 priority
               />
             </div>
@@ -139,7 +144,7 @@ export default function LoginPage() {
           </div>{/* / Branding block */}
 
           {/* Feature Highlight Cards */}
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+          <div className="flex flex-col md:flex-row gap-4 w-full max-w-lg text-left">
 
             {/* Card 1 — LGU Beneficiary Registry */}
             <div
@@ -189,17 +194,17 @@ export default function LoginPage() {
         </div>
 
         {/* ─── RIGHT COLUMN — Login Card ─── */}
-        <div className="flex items-center justify-end animate-slide-in-right">
+        <div className="flex items-center justify-center lg:justify-end min-w-0 animate-slide-in-right">
           <div
-            className="w-full max-w-[480px] rounded-[2rem] p-10 md:p-12"
+            className="w-full max-w-[480px] rounded-[2rem] p-6 sm:p-10 md:p-12"
             style={{
               backgroundColor: "#FDF2EE",
               boxShadow: "0 24px 64px rgba(3,62,57,0.14), 0 4px 16px rgba(0,0,0,0.06)",
             }}
           >
             {/* Card Header */}
-            <div className="text-center mb-7">
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#003E39]">
+            <div className="text-center mb-6 sm:mb-7">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-[#003E39]">
                 Gateway Portal Access
               </h1>
               <p className="text-xs mt-2 font-medium uppercase tracking-wider text-[rgba(3,62,57,0.55)]">
@@ -209,7 +214,7 @@ export default function LoginPage() {
 
             {/* LGU Portal Indicator Bar */}
             <div
-              className="w-full rounded-md px-4 h-12 flex items-center gap-2.5 mb-7 select-none bg-[#003E39]"
+              className="w-full rounded-md px-4 h-12 flex items-center gap-2.5 mb-6 sm:mb-7 select-none bg-[#003E39]"
             >
               <svg
                 className="w-5 h-5 flex-shrink-0 text-white"
@@ -240,7 +245,7 @@ export default function LoginPage() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
               {/* Email Field */}
               <div>
                 <label
@@ -255,7 +260,7 @@ export default function LoginPage() {
                   placeholder="juandelacruz@bantayog.gov.ph"
                   autoComplete="email"
                   {...register("email")}
-                  className="w-full h-14 rounded-xl bg-white px-4 text-lg outline-none transition-all duration-200"
+                  className="w-full h-12 sm:h-14 rounded-xl bg-white px-4 text-base sm:text-lg outline-none transition-all duration-200"
                   style={{
                     border: errors.email
                       ? "1.5px solid #DC2626"
@@ -299,7 +304,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   {...register("password")}
-                  className="w-full h-14 rounded-xl bg-white px-4 text-lg outline-none transition-all duration-200"
+                  className="w-full h-12 sm:h-14 rounded-xl bg-white px-4 text-base sm:text-lg outline-none transition-all duration-200"
                   style={{
                     border: errors.password
                       ? "1.5px solid #DC2626"
@@ -334,7 +339,7 @@ export default function LoginPage() {
                 id="login-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full h-14 rounded-xl font-bold text-lg uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed mt-2 bg-[#F18F76] hover:bg-[#e8795f] text-[#003E39]"
+                className="w-full h-12 sm:h-14 rounded-xl font-bold text-base sm:text-lg uppercase tracking-normal sm:tracking-wider flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed mt-2 bg-[#F18F76] hover:bg-[#e8795f] text-[#003E39]"
                 style={{
                   boxShadow: "0 4px 20px rgba(241,143,118,0.4)",
                 }}
