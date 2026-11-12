@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PayPalLogo } from "@/components/ui/paypal-logo";
 import { formatPhp, formatSaleTime, shortId } from "@/lib/settlements/format";
 import { merchantStage } from "@/lib/settlements/merchant-stage";
 import type {
@@ -282,6 +283,7 @@ function Hero({
         )}
 
         <div className="mt-4 font-body text-sm leading-relaxed text-white/85">{body}</div>
+        {display.kind === "paid" && <PayPalLogo onDark className="mt-4" />}
 
         {action && <div className="mt-6">{action}</div>}
       </div>

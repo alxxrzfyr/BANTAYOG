@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CreateFundTopupDto, type FundTopupDto } from "@bantayog/schema";
 import { Button } from "@/components/ui";
+import { PayPalLogo } from "@/components/ui/paypal-logo";
 import { createFundTopup, captureFundTopup } from "@/lib/fund/api";
 import { formatPhp, formatSaleTime } from "@/lib/settlements/format";
 import { safePayUrl } from "@/lib/settlements/pay-url";
@@ -15,7 +16,10 @@ export function FundReceipt({ receipt }: { receipt: FundTopupDto }) {
   if (receipt.status !== "COMPLETED") return <p role="status">Waiting for PayPal payment confirmation.</p>;
   return (
     <section aria-labelledby="receipt-heading" className="rounded-2xl border border-brand-sageBorder bg-white p-6 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-widest text-brand-activeTeal">PayPal sandbox receipt</p>
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-activeTeal">PayPal sandbox receipt</p>
+        <PayPalLogo />
+      </div>
       <h2 id="receipt-heading" className="mt-2 text-2xl font-bold text-brand-darkTeal">Contribution received</h2>
       <p role="status" className="mt-3 text-sm text-brand-darkTeal">PayPal confirmed {formatPhp(receipt.amountPhp)}.</p>
       <dl className="mt-5 space-y-3 text-sm text-brand-darkTeal">
@@ -107,7 +111,10 @@ export function FunderCheckout() {
             className="mt-2 min-h-[52px] w-full rounded-xl border border-brand-sageBorder bg-white px-4 text-xl font-bold tabular-nums text-brand-darkTeal focus:outline-2 focus:outline-brand-activeTeal" />
           <p id="amount-help" className="mt-2 text-xs text-brand-darkTeal/75">PHP 1.00 to PHP 100,000.00. Use two decimal places.</p>
           <Button type="submit" loading={pending} className="mt-5 min-h-[52px] w-full">{pending ? "Opening PayPal…" : "Continue to PayPal sandbox"}</Button>
-          <p className="mt-3 text-xs leading-relaxed text-brand-darkTeal/75">Approve in PayPal, then return here for your receipt. Test funds only. No real money moves.</p>
+          <div className="mt-4 flex items-start gap-3">
+            <PayPalLogo className="mt-0.5" />
+            <p className="text-xs leading-relaxed text-brand-darkTeal/75">Approve in PayPal, then return here for your receipt. Test funds only. No real money moves.</p>
+          </div>
         </form>}
     </div>
   );

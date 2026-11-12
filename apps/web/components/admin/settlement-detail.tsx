@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { PanelCardSkeleton, Rect, TextBar } from "@/components/admin/skeleton";
 import { SettlementStatusPill } from "@/components/admin/settlement-list";
+import { PayPalLogo } from "@/components/ui/paypal-logo";
 import { formatPhp, formatSaleTime, ledgerExplorerUrl, shortHash, shortId } from "@/lib/settlements/format";
 import { safePayUrl } from "@/lib/settlements/pay-url";
 import { settlementControls } from "@/lib/settlements/approve-outcome";
@@ -405,6 +406,10 @@ function DecisionPanel({
             </span>
             Paid{invoice.paidAt ? ` ${formatSaleTime(invoice.paidAt)}` : ""}
           </p>
+          <p className="mt-3 flex items-center gap-2.5 text-xs text-brand-darkTeal/80">
+            <PayPalLogo />
+            PayPal reports this invoice as paid.
+          </p>
           {payUrl ? (
             <a
               href={payUrl}
@@ -436,8 +441,9 @@ function DecisionPanel({
       )}
 
       {invoice.paypalInvoiceId && (
-        <p className="mt-5 text-[11px] text-brand-darkTeal/80">
-          PayPal invoice <span className="font-mono">{invoice.paypalInvoiceId}</span>
+        <p className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-brand-darkTeal/80">
+          {invoice.status !== "PAID" && <PayPalLogo />}
+          <span>PayPal invoice <span className="font-mono">{invoice.paypalInvoiceId}</span></span>
         </p>
       )}
     </div>
