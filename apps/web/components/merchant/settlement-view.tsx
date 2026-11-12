@@ -84,7 +84,7 @@ function announce(display: Display, overview: MerchantSettlementOverviewDto): st
     case "sent":
       return `Invoice of ${formatPhp(display.invoice.totalAmountPhp)} sent. Waiting for payment.`;
     case "paid":
-      return `PayPal invoice paid. Invoice amount: ${formatPhp(display.invoice.totalAmountPhp)}. The funder paid the program through PayPal. Store payout is a separate step handled by your program.`;
+      return `PayPal invoice paid. Invoice amount: ${formatPhp(display.invoice.totalAmountPhp)}. Payment to the program is confirmed. Store payout is a separate step handled by your program.`;
   }
 }
 
@@ -238,7 +238,7 @@ function Hero({
       amount = display.invoice.totalAmountPhp;
       body = (
         <StatusLine tone="done">
-          Paid{display.invoice.paidAt ? ` ${formatSaleTime(display.invoice.paidAt)}` : ""}. This is the invoice amount. PayPal can deduct its fee. The funder paid the program through PayPal. Store payout is a separate step handled by your program.
+          Paid{display.invoice.paidAt ? ` ${formatSaleTime(display.invoice.paidAt)}` : ""}. This is the invoice amount. PayPal can deduct its fee. Payment to the program is confirmed. Store payout is a separate step handled by your program.
         </StatusLine>
       );
       break;
@@ -314,7 +314,7 @@ function StatusLine({ tone, children }: { tone: "wait" | "done"; children: React
 
 const STEPS = [
   { title: "Officer review", who: "The program officer checks each sale and approves." },
-  { title: "PayPal payment", who: "The funder pays the program through PayPal." },
+  { title: "PayPal payment", who: "The program officer pays the invoice in the sandbox." },
   { title: "Invoice paid", who: "The PayPal invoice is paid. Store payout is separate." },
 ] as const;
 

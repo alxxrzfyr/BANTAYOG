@@ -15,9 +15,9 @@ feature adds that step with PayPal Invoicing (sandbox only).
    summary and the reason for each held sale.
 4. The program officer (role `admin`) reads the proposal and the proof for each sale, then
    approves.
-5. The server creates and sends a PayPal invoice. The officer pays it in PayPal.
+5. The server creates and sends a PayPal invoice. The officer pays it using a separate sandbox account.
 6. The server reads the invoice status from PayPal. The store owner sees "Paid".
-   The funder paid the program through PayPal. Store payout is a separate step handled by the
+   PayPal confirms payment to the program. Store payout is a separate step handled by the
    program on local rails; paying an invoice to the program business account does not prove that
    local store transfer executed. The store has no PayPal account requirement.
 
@@ -120,7 +120,7 @@ or `SUBMITTED` are counted as "waiting for ledger confirmation" and are not invo
   code with `shortcut:` and state it in `apps/server/README.md`. Payment goes to that sandbox
   account. This does not prove payment to a separate merchant account. The store has no PayPal
   account requirement. The program pays each store on the local rail the store already uses.
-  Paying an invoice proves payment from funder to program, not local transfer execution.
+  A paid invoice confirms payment to the program, not local transfer execution or the payer's funding source.
 - Never log or return the client secret or the access token. Use `redactSecrets` around calls.
 - Save the remote draft ID before send. Check the remote ID, reference, PHP currency and total
   before send and on refresh. Use a fixed invoice number in addition to the POST request keys.

@@ -56,7 +56,7 @@ export function FundLedgerView({ ledger }: { ledger: FundLedgerDto }) {
           Backed grants include reserved funds and issued grants. An unresolved reservation stays covered until an operator verifies the payment outcome.
         </p>
         <p className="mt-3 text-xs leading-relaxed text-white/75">
-          Paid invoice totals are gross amounts. PayPal can deduct a fee from the receiving account. This is not a cash balance.
+          Paid invoice totals are gross amounts. PayPal can deduct a fee from the receiving account. This is not a cash balance. Paid invoices add no money to the grant fund.
         </p>
       </section>
       <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

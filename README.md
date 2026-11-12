@@ -85,13 +85,17 @@ AI assists with product identification and claim review; it does not control the
    rules flag unusual prices, and Gemini writes a review summary. An officer checks the sales
    and ledger proof, resolves holds where appropriate, and approves the invoice. AI cannot change
    amounts or release a server hold.
-3. **Verify invoice payment.** The server creates and sends a PayPal invoice to the funder.
-   BANTAYOG marks it paid only after PayPal returns `PAID`, not merely after a checkout redirect.
+3. **Verify invoice payment.** The server creates and sends a PayPal invoice. A program officer
+   pays it using a separate sandbox account. BANTAYOG marks it paid only after PayPal returns
+   `PAID`, not merely after a checkout redirect.
 
 **All payments use sandbox test funds.** Invoice payments go to one program business account,
 not directly to individual stores. The program must pay each store through a separate local
 transfer; a paid invoice does not prove that transfer. Stores need no PayPal account. Contributions
-back grants but do not automatically pay invoices from a pooled fund.
+back grants but do not automatically pay invoices from a pooled fund. The intended model asks
+the sponsor to contribute once. The prototype does not transfer that contribution to the
+sandbox invoice payer or verify who funded the payer. The separate invoice payment is still
+required; a paid invoice does not prove that the sponsor paid only once.
 
 <br>
 

@@ -93,6 +93,7 @@ Previous column meanings remain identical:
 - `owed_php`: `confirmed_sales_php - paid_invoices_php`. This is the program obligation for unpaid confirmed sales, not cash.
 
 No second gate exists on invoices.
+A paid invoice adds no money to the grant fund. The intended model asks the sponsor to contribute once. In the sandbox, a separate test account pays each invoice. The app does not transfer the contribution to that account or verify its funding source.
 No journal duplication exists.
 
 ## 3. Allocation flow and failure retention

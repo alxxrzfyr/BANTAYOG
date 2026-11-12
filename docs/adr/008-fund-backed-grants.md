@@ -70,6 +70,7 @@ Existing columns keep their meanings:
 Allocations created before migration 00020 remain valid.
 They do not reduce `available_to_grant_php`.
 No second gate exists on invoices.
+A paid invoice adds no money to the grant fund. The intended model asks the sponsor to contribute once. A separate sandbox account pays each invoice; the app does not transfer the contribution to that account or verify its funding source.
 No journal duplication exists.
 
 ## Why no automatic recovery

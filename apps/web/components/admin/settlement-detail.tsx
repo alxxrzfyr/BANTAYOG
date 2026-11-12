@@ -306,7 +306,7 @@ function DecisionPanel({
             ) : (
               "."
             )}{" "}
-            You then pay it in PayPal.
+            The program officer then pays it in the PayPal sandbox. The contribution does not automatically fund this payment.
           </p>
 
           <button
