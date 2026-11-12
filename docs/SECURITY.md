@@ -197,15 +197,6 @@ When an unresolved reservation (`RESERVED`) requires recovery:
 4. If proof of non-payment is absent, the operator must retain the reservation.
 5. If payment occurred with partial database writes, the operator must reconcile the database. The operator must never call the grant endpoint again to repair a partial write.
 
-## PayPal transfer simulation
-
-`PayPal (Demo)` is a local user interface simulation. Its completion message is not payment
-proof. It has no payment API calls and does not change balances, claims, or transaction records.
-It uses example details, masks the recipient on preview, and does not save form data in browser
-storage or send it to a server. Closing the dialog clears its component state. No wallet
-connection or positive account balance is required for this simulation. The demo does not add
-real PayPal transfers or change the existing cash-out authorization.
-
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.

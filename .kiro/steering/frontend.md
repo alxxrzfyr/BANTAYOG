@@ -151,16 +151,11 @@ weight from a photo. Missing weight or a price failure does not select the nutri
 The page validates request and response shapes with the shared schemas. Edits invalidate the
 current result; responses from an older request cannot approve changed details.
 
-## PayPal transfer demo
+## Merchant transfer branding
 
-The merchant wallet card opens a local `PayPal (Demo)` preview from `Transfer to Wallet`.
-It works without a connected wallet or a positive account balance because it moves no funds.
-It uses example email and amount inputs, validates their format, and masks the email in the
-preview. The user must confirm the simulation before the completion message appears.
-The native modal dialog keeps focus inside it, supports Escape, and restores focus on close.
-Form details stay in component memory and clear on close. The demo does not call PayPal,
-the cash-out route, or account APIs. It does not change balances, claims, or transaction history.
-The existing wallet connection and cash-out implementation remain separate.
+The merchant wallet card shows the PayPal logo near `Transfer to Wallet`.
+The logo does not add a transfer flow. The existing button still reports that the feature
+is coming soon and requires a connected wallet and a positive balance.
 
 ## Testing
 

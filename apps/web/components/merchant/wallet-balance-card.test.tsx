@@ -6,14 +6,17 @@ vi.mock("@/lib/chain/wallet-adapter", () => ({ pickWallet: vi.fn() }));
 vi.mock("@/lib/api", () => ({ authFetch: vi.fn() }));
 
 describe("WalletBalanceCard API balance", () => {
-  it.each(["0.0000000", "12.0000000"])("offers the PayPal demo without a connected wallet at balance %s", (balance) => {
-    const html = renderToStaticMarkup(<WalletBalanceCard balance={balance} walletAddress={null}
+  it("shows only the PayPal logo and keeps the existing transfer action", () => {
+    const html = renderToStaticMarkup(<WalletBalanceCard balance="12.0000000" walletAddress={null}
       connected={false} isLoading={false} isError={false} refetch={() => {}} />);
-    expect(html).toContain("PayPal (Demo)");
-    expect(html).toContain("Simulation only. No funds move.");
+    expect(html).toContain('src="/paypal-logo.svg"');
+    expect(html).toContain('aria-label="PayPal"');
+    expect(html).not.toContain("PayPal (Demo)");
+    expect(html).not.toContain("Simulation only");
+    expect(html).not.toContain("<dialog");
     const button = html.match(/<button[^>]*>Transfer to Wallet<\/button>/)?.[0];
-    expect(button).toContain('aria-haspopup="dialog"');
-    expect(button).not.toContain(' disabled=""');
+    expect(button).not.toContain('aria-haspopup="dialog"');
+    expect(button).toContain(' disabled=""');
   });
 
   it.each([
