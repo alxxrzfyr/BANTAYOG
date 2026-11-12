@@ -38,7 +38,7 @@ importers:
         version: 1.19.14(hono@4.12.27)
       '@hono/zod-validator':
         specifier: ^0.4.2
-        version: 0.4.3(hono@4.12.27)(zod@4.4.3)
+        version: 0.4.3(hono@4.12.27)(zod@4.6.6)
       '@node-rs/argon2':
         specifier: ^2.0.2
         version: 2.0.2
@@ -79,8 +79,8 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
       zod:
-        specifier: ^4.0.0
-        version: 4.4.3
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@bantayog/config':
         specifier: workspace:*
@@ -158,8 +158,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.2
       zod:
-        specifier: ^4.0.0
-        version: 4.4.3
+        specifier: ^4.6.6
+        version: 4.6.6
       zustand:
         specifier: ^5.0.14
         version: 5.0.14(@types/react@19.2.17)(immer@10.0.2)(react@19.2.7)
@@ -241,8 +241,8 @@ importers:
   packages/schema:
     dependencies:
       zod:
-        specifier: ^4.0.0
-        version: 4.4.3
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@bantayog/config':
         specifier: workspace:*
@@ -2842,8 +2842,8 @@ packages:
   zod@4.4.1:
     resolution: {integrity: sha512-a6ENMBBGZBsnlSebQ/eKCguSBeGKSf4O7BPnqVPmYGtpBYI7VSqoVqw+QcB7kPRjbqPwhYTpFbVj/RqNz/CT0Q==}
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
 
   zustand@5.0.14:
     resolution: {integrity: sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g==}
@@ -3133,10 +3133,10 @@ snapshots:
     dependencies:
       hono: 4.12.27
 
-  '@hono/zod-validator@0.4.3(hono@4.12.27)(zod@4.4.3)':
+  '@hono/zod-validator@0.4.3(hono@4.12.27)(zod@4.6.6)':
     dependencies:
       hono: 4.12.27
-      zod: 4.4.3
+      zod: 4.6.6
 
   '@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.7))':
     dependencies:
@@ -5189,7 +5189,7 @@ snapshots:
 
   zod@4.4.1: {}
 
-  zod@4.4.3: {}
+  zod@4.6.6: {}
 
   zustand@5.0.14(@types/react@19.2.17)(immer@10.0.2)(react@19.2.7):
     optionalDependencies:
