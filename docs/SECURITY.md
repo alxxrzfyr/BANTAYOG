@@ -96,6 +96,13 @@ ADR-004 defines the Rural offline extension. It is not implemented in the curren
 - GCash, GoTyme, and bank-account payouts are not implemented. They are future partnership plans
   only and need separate provider, compliance, and security approval.
 
+## Repository publication
+
+Keep local agent databases, private reports, research notes and generated service workers out
+of source commits. Test keys are generated at runtime. No test seed is stored in the current
+test fixtures. Excluding a file from a new tree does not remove it from Git history or revoke
+any key. The existing private history needs a separate review before any public release.
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.

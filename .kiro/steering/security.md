@@ -129,6 +129,9 @@ architecture decision.
 
 ## Known drift to be aware of
 
+- Keep `.freebuff`, `.commandcode`, private reports and research notes out of source commits.
+  Stellar tests generate keys at runtime. A new tree does not clear secret data from old history.
+
 - `docs/SECURITY.md` states scanned images are never stored. In the current `analyzeScan` path,
   `ProductsService.validateOrCreateProduct` persists the scan as a base64 data URL in
   `products.image_url`, and migration 00005 adds a `reference-images` bucket. Treat the doc as

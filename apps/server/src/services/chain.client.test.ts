@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Keypair } from '@stellar/stellar-sdk'
 import { OnchainError } from '../lib/errors.js'
 import type { ChainConfig } from '../lib/chain/config.js'
 
@@ -43,12 +44,15 @@ const { StellarClient } = await import('./chain.client.js')
 // Fixtures
 
 // Valid Stellar keypairs generated for testing only, no real funds.
-const TEST_ISSUER_SECRET = 'SDCZZHZZD5SXM4D2URYUXP2P4SE2USDCY2LZDPZKJKYAU3D7IBDUYA7T'
-const TEST_ISSUER_PUBLIC = 'GD6VMWR7LSJB7EUN3EFDWAPLFU4J4F6PPMYEARN3ZHLQQAAWMRHS6ITF'
-const TEST_DISTRIBUTION_SECRET = 'SDC2BIDMEHKSREA3ERHZ6X6JHCREXA7M4VK3YZ6V2VLF7V34XLODJTPB'
-const TEST_DISTRIBUTION_PUBLIC = 'GCMDPTWWUFBBRVXQRPAGERY56BU6L4G6FL62DIYBN6YJTTNTMM5HSYNT'
-const TEST_SPONSOR_SECRET = 'SB2I3WPGIQZJQC4J5HZV5Y3ZMBEWQ2F7KY4KRV3BQPLI2RKHFGWS64FY'
-const TEST_SPONSOR_PUBLIC = 'GDMWRPZ5XBKU2HZ5DDRLHFEZRBIV26Z5ZRFYT3TELC5LTDCFLRMQQI4N'
+const TEST_ISSUER_KEYPAIR = Keypair.random()
+const TEST_ISSUER_SECRET = TEST_ISSUER_KEYPAIR.secret()
+const TEST_ISSUER_PUBLIC = TEST_ISSUER_KEYPAIR.publicKey()
+const TEST_DISTRIBUTION_KEYPAIR = Keypair.random()
+const TEST_DISTRIBUTION_SECRET = TEST_DISTRIBUTION_KEYPAIR.secret()
+const TEST_DISTRIBUTION_PUBLIC = TEST_DISTRIBUTION_KEYPAIR.publicKey()
+const TEST_SPONSOR_KEYPAIR = Keypair.random()
+const TEST_SPONSOR_SECRET = TEST_SPONSOR_KEYPAIR.secret()
+const TEST_SPONSOR_PUBLIC = TEST_SPONSOR_KEYPAIR.publicKey()
 
 function buildConfig(overrides: Partial<ChainConfig> = {}): ChainConfig {
   return {
@@ -432,8 +436,9 @@ describe('StellarClient.getLedgerSequence', () => {
 // submitting (idempotency, risk R2), matching the pattern already used by
 // scripts/bootstrap-stellar.ts and scripts/provision-stellar-accounts.ts.
 
-const TEST_NEW_ACCOUNT_SECRET = 'SBHXE3S4SNS4R2QT2A4PJWB5EN62HKJWEIDYGWDGTY5NCW7QE6LSJ6MN'
-const TEST_NEW_ACCOUNT_PUBLIC = 'GANQ4X5FDIREJPH6LR5YCC5ODMSACA5T6Q54F7EF6BGO55M7R6AQIP52'
+const TEST_NEW_ACCOUNT_KEYPAIR = Keypair.random()
+const TEST_NEW_ACCOUNT_SECRET = TEST_NEW_ACCOUNT_KEYPAIR.secret()
+const TEST_NEW_ACCOUNT_PUBLIC = TEST_NEW_ACCOUNT_KEYPAIR.publicKey()
 
 function makeFreshAccount(publicKey: string) {
   return {

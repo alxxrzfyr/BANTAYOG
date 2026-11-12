@@ -67,3 +67,12 @@ desktop.ini
 #.kiro/
 #kiro/
 .vercel
+
+# Local agent data and private working notes. Keep them on this computer.
+.freebuff/
+.commandcode/
+reports/
+research_notes/
+
+# Serwist creates this file during the production build.
+apps/web/public/sw.js

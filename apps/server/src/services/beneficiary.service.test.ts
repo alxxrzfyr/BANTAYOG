@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { Keypair } from '@stellar/stellar-sdk'
 import fc from 'fast-check'
 import { ok, err } from 'neverthrow'
 import { BeneficiaryService } from './beneficiary.service.js'
 import { QrTokenService } from './qr-token.service.js'
 import { StellarClient } from './chain.client.js'
 import { OnchainError } from '../lib/errors.js'
+
+const testIssuer = Keypair.random()
 
 // Controllable StellarClient.create result, set per test/property run
 // below. `BeneficiaryService.register` now ALSO calls `StellarClient.create`
@@ -152,10 +155,10 @@ describe('BeneficiaryService.register — custodial wallet wiring', () => {
     vi.stubEnv('STELLAR_HORIZON_URL', 'https://horizon-testnet.stellar.org')
     vi.stubEnv('STELLAR_NETWORK_PASSPHRASE', 'Test SDF Network ; September 2015')
     vi.stubEnv('PHPC_ASSET_CODE', 'PHPC')
-    vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', 'GDVIX3H4TPPZ3ZR5TBYGV2BHVT5KZGIIACXPGTS3WJI7FCLIQMDKXBP6')
-    vi.stubEnv('PHPC_ISSUER_SECRET', 'SBLOCMCBZRMHGNNELJSDHS2UKCDI2KWDVTPQGJLX3IWM34ZTDOID7XCI')
-    vi.stubEnv('PHPC_DISTRIBUTION_SECRET', 'SD2ZBARMFVIIPB75WKI6GOEATW3CWEZ3FCMFRLWPS4H34KLP2WLXVKTR')
-    vi.stubEnv('STELLAR_SPONSOR_SECRET', 'SA5BA56CFEMCKAYOCKWQ7FRQHXG7VDMBLTHLAPUNKBYRY7P3R2XDIWKM')
+    vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', testIssuer.publicKey())
+    vi.stubEnv('PHPC_ISSUER_SECRET', testIssuer.secret())
+    vi.stubEnv('PHPC_DISTRIBUTION_SECRET', Keypair.random().secret())
+    vi.stubEnv('STELLAR_SPONSOR_SECRET', Keypair.random().secret())
     vi.stubEnv('CUSTODIAL_KEY_ENCRYPTION_KEY', 'test-key-encryption-key')
     vi.stubEnv('QR_TOKEN_SECRET', 'test-qr-token-secret')
 
@@ -240,10 +243,10 @@ describe('Property 15: registration wallet failure persists no partial state', (
     vi.stubEnv('STELLAR_HORIZON_URL', 'https://horizon-testnet.stellar.org')
     vi.stubEnv('STELLAR_NETWORK_PASSPHRASE', 'Test SDF Network ; September 2015')
     vi.stubEnv('PHPC_ASSET_CODE', 'PHPC')
-    vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', 'GDVIX3H4TPPZ3ZR5TBYGV2BHVT5KZGIIACXPGTS3WJI7FCLIQMDKXBP6')
-    vi.stubEnv('PHPC_ISSUER_SECRET', 'SBLOCMCBZRMHGNNELJSDHS2UKCDI2KWDVTPQGJLX3IWM34ZTDOID7XCI')
-    vi.stubEnv('PHPC_DISTRIBUTION_SECRET', 'SD2ZBARMFVIIPB75WKI6GOEATW3CWEZ3FCMFRLWPS4H34KLP2WLXVKTR')
-    vi.stubEnv('STELLAR_SPONSOR_SECRET', 'SA5BA56CFEMCKAYOCKWQ7FRQHXG7VDMBLTHLAPUNKBYRY7P3R2XDIWKM')
+    vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', testIssuer.publicKey())
+    vi.stubEnv('PHPC_ISSUER_SECRET', testIssuer.secret())
+    vi.stubEnv('PHPC_DISTRIBUTION_SECRET', Keypair.random().secret())
+    vi.stubEnv('STELLAR_SPONSOR_SECRET', Keypair.random().secret())
     vi.stubEnv('CUSTODIAL_KEY_ENCRYPTION_KEY', 'test-key-encryption-key')
     vi.stubEnv('QR_TOKEN_SECRET', 'test-qr-token-secret')
 
@@ -324,10 +327,10 @@ function stubAllocationEnv() {
   vi.stubEnv('STELLAR_HORIZON_URL', 'https://horizon-testnet.stellar.org')
   vi.stubEnv('STELLAR_NETWORK_PASSPHRASE', 'Test SDF Network ; September 2015')
   vi.stubEnv('PHPC_ASSET_CODE', 'PHPC')
-  vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', 'GDVIX3H4TPPZ3ZR5TBYGV2BHVT5KZGIIACXPGTS3WJI7FCLIQMDKXBP6')
-  vi.stubEnv('PHPC_ISSUER_SECRET', 'SBLOCMCBZRMHGNNELJSDHS2UKCDI2KWDVTPQGJLX3IWM34ZTDOID7XCI')
-  vi.stubEnv('PHPC_DISTRIBUTION_SECRET', 'SD2ZBARMFVIIPB75WKI6GOEATW3CWEZ3FCMFRLWPS4H34KLP2WLXVKTR')
-  vi.stubEnv('STELLAR_SPONSOR_SECRET', 'SA5BA56CFEMCKAYOCKWQ7FRQHXG7VDMBLTHLAPUNKBYRY7P3R2XDIWKM')
+  vi.stubEnv('PHPC_ISSUER_PUBLIC_KEY', testIssuer.publicKey())
+  vi.stubEnv('PHPC_ISSUER_SECRET', testIssuer.secret())
+  vi.stubEnv('PHPC_DISTRIBUTION_SECRET', Keypair.random().secret())
+  vi.stubEnv('STELLAR_SPONSOR_SECRET', Keypair.random().secret())
   vi.stubEnv('CUSTODIAL_KEY_ENCRYPTION_KEY', 'test-key-encryption-key')
   vi.stubEnv('QR_TOKEN_SECRET', 'test-qr-token-secret')
 }
