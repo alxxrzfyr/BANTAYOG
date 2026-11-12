@@ -1,5 +1,4 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { clearPinHash } from "@/stores/pin-store";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co",
@@ -32,7 +31,6 @@ export function clearMerchantToken(): void {
   window.localStorage.removeItem(MERCHANT_TOKEN_KEY);
   window.localStorage.removeItem(MERCHANT_TOKEN_KEY + "_expires");
   window.localStorage.removeItem(MERCHANT_REFRESH_TOKEN_KEY);
-  clearPinHash();
 }
 
 async function refreshMerchantToken(): Promise<string | null> {

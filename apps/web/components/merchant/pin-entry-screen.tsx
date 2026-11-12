@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { hashPin, getPinHash, setPinLocked } from "@/stores/pin-store";
+import { hashPin, getPinHash, setPinLocked, clearPinHash } from "@/stores/pin-store";
 import { clearMerchantToken } from "@/lib/api";
 import { useCartStore } from "@/stores/cart-store";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,7 +24,8 @@ export function PinEntryScreen({ onUnlock }: PinEntryScreenProps) {
 
   const handleForgotPin = () => {
     // Clear everything and force full re-login
-    clearMerchantToken(); // Also clears PIN hash
+    clearMerchantToken();
+    clearPinHash();
     clearCart();
     queryClient.clear();
     router.push("/merchant-login");

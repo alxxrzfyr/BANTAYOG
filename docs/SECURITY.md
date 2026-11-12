@@ -194,3 +194,10 @@ When an unresolved reservation (`RESERVED`) requires recovery:
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.
+
+## Merchant device PIN
+
+The merchant PIN hash stays in local storage when the user logs out or a session ends.
+The next login uses the saved PIN. Forgot PIN clears the hash and requires a new login
+before PIN setup. The PIN applies to this device and browser storage. It does not sync
+between devices. Clearing app data removes it.

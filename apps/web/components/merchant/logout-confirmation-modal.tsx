@@ -22,8 +22,8 @@ export function LogoutConfirmationModal({ isOpen, onClose }: LogoutConfirmationM
   const handleLogout = async () => {
     setIsLoggingOut(true);
     
-    // Clear everything
-    clearMerchantToken(); // This now also clears the PIN hash
+    // Clear the session and cart. Keep the device PIN for the next login.
+    clearMerchantToken();
     clearCart();
     queryClient.clear();
     
