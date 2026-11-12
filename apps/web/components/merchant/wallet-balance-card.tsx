@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { pickWallet } from "@/lib/chain/wallet-adapter";
 import { authFetch } from "@/lib/api";
+import { PayPalTransferDemo } from "./paypal-transfer-demo";
 
 // Wallet Balance Card — matches the dark teal card in merchantPages/13.png
 
@@ -33,6 +34,7 @@ export function WalletBalanceCard({
   // ── Wallet connection state ──
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("idle");
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [transferDemoOpen, setTransferDemoOpen] = useState(false);
 
   const handleConnectWallet = useCallback(async () => {
     setWalletStatus("connecting");
@@ -201,14 +203,20 @@ export function WalletBalanceCard({
           </span>
           <button
             type="button"
-            onClick={() => alert("This feature is coming soon!")}
-            disabled={!connected || !hasBalance}
+            onClick={() => setTransferDemoOpen(true)}
+            disabled={isLoading}
+            aria-haspopup="dialog"
+            aria-describedby="wallet-transfer-demo-note"
             className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#f48d79]/40"
           >
             Transfer to Wallet
           </button>
         </div>
+        <p id="wallet-transfer-demo-note" className="mt-3 font-body text-xs leading-relaxed text-white/90">
+          PayPal (Demo). Simulation only. No funds move.
+        </p>
       </div>
+      {transferDemoOpen && <PayPalTransferDemo onClose={() => setTransferDemoOpen(false)} />}
     </>
   );
 }
