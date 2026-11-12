@@ -41,7 +41,7 @@ interface RecentTransactionsProps {
 }
 
 async function fetchTransactions(limit: number): Promise<{ data: Transaction[]; count: number }> {
-  const res = await authFetch(`/api/transactions?limit=${limit + 1}`); // fetch +1 to detect "has more"
+  const res = await authFetch(`/api/transactions?limit=${limit + 1}`, { session: "merchant" }); // fetch +1 to detect "has more"
   if (!res.ok) {
     throw new Error("Failed to fetch transactions");
   }

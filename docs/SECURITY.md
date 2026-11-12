@@ -10,6 +10,12 @@ BANTAYOG implements a hybrid authentication system to support LGU administrators
 2. **Merchant Auth**: Uses a custom wrapper login flow mapping a mobile number to a derived merchant email address (`[mobile]@merchant.bantayog.local`) in Supabase Auth.
 3. **QR Pass Identification**: Beneficiaries do not have a credentials login. They use a signed JWS compact JWT (signed with `QR_TOKEN_SECRET` using HS256) embedded in a physical QR Pass. The token encodes `{ beneficiaryId, childName, guardianName, tier, pin_hash_ref }`.
 
+Merchant history and checkout select `{ session: "merchant" }` in `authFetch` for the shared
+`/api/transactions` route. These requests use only the saved merchant token and its refresh flow.
+They do not use an admin session when the merchant token is missing or refresh fails. Admin
+transaction requests use the admin session by default. The server checks the role and restricts
+merchant reads to the merchant's own transactions.
+
 ## Authorization System (RBAC)
 
 Role-Based Access Control is enforced at the route boundary in Hono:

@@ -35,6 +35,9 @@ surfaces; `middleware.ts` decides which one by hostname.
 - Always call the API through `authFetch` (`lib/api.ts`). Token precedence: merchant localStorage
   token (with expiry check and silent refresh via `/api/auth/merchant-refresh`) → Supabase browser
   session. Merchant token wins so an admin session cannot leak into merchant-only endpoints.
+- Shared transaction routes use `{ session: "merchant" }` for merchant history and checkout.
+  This selects only the merchant token, including after refresh. Admin transaction requests use
+  the default admin session. The `session` option is not sent to `fetch`.
 - `clearMerchantToken()` clears session tokens and keeps the device PIN. Only Forgot PIN clears the PIN hash before a new login.
 - TanStack Query for server state (see `hooks/use-merchant-profile.ts`), Zustand for local state:
   `stores/cart-store.ts` (cart items and totals), `stores/pin-store.ts` (PIN gate), plus

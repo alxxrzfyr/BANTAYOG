@@ -91,7 +91,11 @@ export function isAdminEndpoint(url: string): boolean {
   );
 }
 
-export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(
+  url: string,
+  options: RequestInit & { session?: "merchant" | "admin" } = {},
+): Promise<Response> {
+  const { session, ...requestOptions } = options;
   let merchantToken = null;
   if (typeof window !== "undefined") {
     merchantToken = localStorage.getItem(MERCHANT_TOKEN_KEY);
@@ -103,12 +107,13 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     }
   }
 
-  const isAdmin = isAdminEndpoint(url);
+  // Shared routes need an explicit session from merchant callers.
+  const isAdmin = session === "admin" || (session !== "merchant" && isAdminEndpoint(url));
   let sessionToken = null;
 
   // We only fetch the sessionToken if it's an admin endpoint, 
-  // or if there is no merchant token.
-  if (isAdmin || !merchantToken) {
+  // or if there is no merchant token and no explicit merchant session.
+  if (isAdmin || (!merchantToken && session !== "merchant")) {
     try {
       const { data } = await supabase.auth.getSession();
       sessionToken = data.session?.access_token ?? null;
@@ -120,10 +125,11 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
   // Strict enforcement:
   // - Admin endpoints MUST use sessionToken (even if null)
   // - Merchant endpoints use merchantToken, or fallback to sessionToken
-  const token = isAdmin ? sessionToken : (merchantToken ?? sessionToken);
+  // - Explicit merchant requests never fall back to an admin session
+  const token = session === "merchant" ? merchantToken : isAdmin ? sessionToken : (merchantToken ?? sessionToken);
 
   const headers = {
-    ...options.headers,
+    ...requestOptions.headers,
   } as Record<string, string>;
 
   if (token) {
@@ -131,7 +137,7 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
   }
 
   const response = await fetch(url, {
-    ...options,
+    ...requestOptions,
     headers,
   });
 

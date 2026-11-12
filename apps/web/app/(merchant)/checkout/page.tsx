@@ -263,6 +263,7 @@ export default function CheckoutPage() {
       setSubmitting(true);
       try {
         const res = await authFetch("/api/transactions", {
+          session: "merchant",
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
