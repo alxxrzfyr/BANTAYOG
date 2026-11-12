@@ -19,10 +19,10 @@ BANTAYOG
 ## Project Brief
 
 **The problem our solution addresses**  
-One in four Filipino children under five suffers irreversible stunting caused by chronic malnutrition during their first 1,000 days of life. Government nutrition cash assistance is often diverted to non-nutritious items (like junk food or tobacco) due to a lack of traceability, while merchants face complex reimbursements that discourage program participation.
+Nutrition aid has a proof gap. A cash transfer record shows that money arrived. It does not show which food was bought. When a grant intended for child nutrition also pays for other needs, the program cannot verify the intended purchase from the transfer alone. Small neighborhood stores also need a practical way to make a claim and check payment.
 
 **our proposed solution**  
-BANTAYOG transforms loose cash grants into targeted, tracked, nutrition-locked subsidies. Guardians are given a physical QR "Nutri-Pass" that acts as an offline digital wallet. Subsidies can only be spent on nutrient-dense foods at local sari-sari stores, validated via AI product recognition, and every transaction is securely settled and traced on the Stellar network.
+BANTAYOG uses nutrition-locked credits and a printed QR "Nutri-Pass". The store uses its phone to identify items. Server rules check the approved food list and record the sale. Stellar testnet records the ledger proof. A reviewed PayPal sandbox invoice adds payment status for the store claim. The guardian needs no smartphone, and the store needs no payment terminal.
 
 **The intended users or beneficiaries**
 
@@ -30,9 +30,38 @@ BANTAYOG transforms loose cash grants into targeted, tracked, nutrition-locked s
 - Low-income families relying on local credit
 - LGUs (Local Government Units) administering the subsidies
 - Local sari-sari store merchants
+- Funders, including local programs and international aid groups. No agency partnership is claimed.
 
 **The impact of our project**  
-BANTAYOG gives LGUs full financial oversight over nutrition spending and ensures that every peso disbursed actively combats stunting. By working within existing community micro-economies (sari-sari stores) and locking funds to healthy food, we close the loop between government funding and measurable child nutrition outcomes.
+BANTAYOG aims to give a program item-level purchase records and payment proof at small stores. These records do not measure a child's nutrition outcome. A field study and program evaluation are still needed.
+
+## PayPal and AI: the new payment flow
+
+**Check each basket. Review the claim. Verify the payment.**
+
+1. The merchant requests payment for confirmed, unpaid sales.
+2. Server price rules hold unusual prices. Gemini writes the review summary and can add a hold
+   when a price reference is missing. It cannot change an amount or release a server hold.
+3. A program officer checks each sale and its ledger proof, releases a hold if appropriate, and
+   approves. The server creates and sends the PayPal invoice.
+4. The program pays in PayPal. BANTAYOG checks the remote invoice and shows paid only for `PAID`.
+5. A funder can make a separate sandbox contribution at `/fund`. The server captures an approved
+   Orders v2 order. The receipt and `/admin/fund` show gross, fee and net separately.
+
+Item-level checks use the store's phone and a printed pass. Payment status comes from PayPal.
+This is the intended value for both local programs and international aid funders.
+
+**Current limits:** one sandbox business account receives every store invoice. This does not
+prove payment to a separate store account. Contributions do not yet issue child credits, pay
+invoices from a pooled fund, or prove that one contribution bought a specific item. All PayPal
+payments use test funds. No live payment is supported.
+
+The model proposes, server rules fix the amounts, a person approves, and PayPal executes.
+The database prevents one sale from being claimed twice and one capture from funding two records.
+
+Use the [server setup](apps/server/README.md), [build contracts](docs/designs/paypal-settlement.md),
+[fund contract](docs/designs/paypal-fund.md), and [verification record](docs/paypal-hackathon/verification.md).
+Event rules and the submission checklist stay in [the event folder](docs/paypal-hackathon/).
 
 ---
 
@@ -51,16 +80,15 @@ BANTAYOG gives LGUs full financial oversight over nutrition spending and ensures
 
 ## Why This Problem Is Hard
 
-The policy anchor is RA 11148 (*Kalusugan at Nutrisyon ng Mag-Nanay Act*), which protects the
-first 1,000 days from conception. Stunting inside that window is irreversible. Cash assistance is
-the standard delivery mechanism, and it fails in three specific ways:
+The target program serves the First 1,000 Days cohort. It needs proof at the food counter as
+well as a record of disbursement. The prototype addresses three gaps:
 
 
 | Failure mode          | What happens today                                                                                                         | What BANTAYOG does instead                                                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Diversion**         | Cash is fungible. Nothing stops it from becoming junk food, load, or tobacco.                                              | Credits buy approved food only. The approved food list makes the decision, not a promise.                 |
-| **No audit trail**    | The LGU sees a disbursement list, never a receipt. Audit is manual, paper-based, and months late.                          | Every sale writes an item-by-item receipt at the moment of the sale.                                      |
-| **Merchant friction** | Reimbursement is slow and bureaucratic, so sari-sari stores opt out — and they are the only shops many families can reach. | The store gets the credit the moment the sale completes, and moves the money out on demand. No paperwork. |
+| **Purchase control** | A cash grant can pay for many needs. The transfer alone does not prove a food purchase. | Credits are checked against the approved food list at checkout. |
+| **Item proof** | A disbursement record does not contain the store basket. | The sale record contains the items, amount, time and ledger reference. |
+| **Payment proof** | A recorded sale does not by itself prove that the store claim was paid. | The officer reviews the claim, then PayPal supplies invoice payment status. |
 
 
 Two design constraints shaped everything else:
@@ -90,7 +118,7 @@ flowchart LR
     B3["The approved food list<br/>decides yes or no"]
     B4["Basket"]
     B5["Scan the pass<br/>and enter the PIN"]
-    B6["Settle the sale:<br/>credits out, store paid"]
+    B6["Record the sale:<br/>credits out, store credited"]
   end
 
   subgraph Chain["Stellar testnet"]
@@ -128,8 +156,8 @@ flowchart LR
  sufficient credits. After five wrong PIN entries the system locks the pass for 15 minutes.
 5. **Settlement.** The system removes the credits from the pass, adds the same amount to the store
  balance, and writes the receipt. These three actions occur together, or none of them occurs. The
- merchant sees the result immediately. The payment goes to the public ledger after the sale, and
- the merchant moves the store balance to a wallet on demand.
+ merchant sees the result immediately. The ledger record follows the sale. The PayPal claim and
+ invoice payment are separate steps; recording credits does not mean that a PayPal invoice is paid.
 
 ### Safeguards we built on purpose
 
@@ -139,7 +167,7 @@ flowchart LR
 | One path for money               | Every peso moves through one protected step in the database. That step locks the record, checks the balance, and writes the receipt together. |
 | Exact money                      | Pesos keep two decimal places. Credits are whole numbers. One credit is one peso. No rounding error can occur.                                |
 | A double tap cannot pay twice    | Each checkout carries one unique key. A repeated tap with the same key collides, and the system pays one time only.                           |
-| One cash-out at a time           | The system takes a lock before it moves money out of a store balance. Two cash-outs cannot run together.                                      |
+| One invoice claim per sale | A database constraint reserves each released sale for one settlement invoice. |
 | The AI cannot approve a sale     | The approved food list is the only authority for eligibility. The AI only identifies the product.                                             |
 | The device decides nothing       | The server sets the tier, the grant, the eligibility, and the balance. The app only shows the result.                                         |
 | A negative balance is impossible | The database refuses a balance below zero, and it refuses any grant amount other than 5,000 or 3,500.                                         |
@@ -251,6 +279,9 @@ team placed **1st Runner-Up** on July 9, 2026.
 
 ## Repository Information
 
+- **License:** [MIT](LICENSE), matching the existing package license.
+
 - **Live Demo:** [Watch Demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
 - **APK Download:** [Download APK](https://drive.google.com/drive/folders/1WBwtM_48NqHBRsulMHh0qs_ClyvFr24N?usp=sharing)
 - **Test Credentials (So you can login and test our project):** [Testing_Access](https://drive.google.com/file/d/1D7TcflxdrH6FG4aDZIQkJAVpAizVpaKg/view?usp=sharing) 
+

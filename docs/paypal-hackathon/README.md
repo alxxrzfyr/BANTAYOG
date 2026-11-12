@@ -51,6 +51,15 @@ An existing project must also show significant work after October 1, 2026.
 The Official Rules control when a page disagrees with them (Rules §11.4). The files in this
 folder quote the Rules and record each conflict with its controlling value.
 
+## BANTAYOG and this hackathon
+
+The owner authorized the PayPal build on `feat/paypal-hackathon`. It adds AI review of store
+claims, sandbox invoicing, public sandbox contributions and an admin fund ledger. Live local
+checks are recorded in [verification.md](verification.md). This does not mean that the new
+code is deployed or that the entry is submitted.
+
+All `AGENTS.md` confirmation gates stay in force: `settle_sale`, auth, RBAC, RLS and migrations.
+
 ## Files
 
 | File | Read it when you |

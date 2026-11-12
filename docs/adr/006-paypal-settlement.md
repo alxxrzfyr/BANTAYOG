@@ -105,4 +105,4 @@ application with its existing role middleware. They check input validation and m
 The DTO snapshot records the proof shape and the `approved` field. SQL tests inspect constraints,
 locks, totals and grants. Live checks passed for role grants and concurrent proposals. The
 owner's project has migration 00018 applied. Sandbox checks covered review, approval, sending,
-payment and merchant status refresh.
+payment and merchant status refresh. See `docs/paypal-hackathon/verification.md` for the results.

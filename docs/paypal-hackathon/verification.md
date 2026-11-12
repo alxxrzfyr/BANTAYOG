@@ -62,9 +62,28 @@ with `Cache-Control: no-store` through both the API and the web proxy. The brows
 no API or Authorization-bearing request after the ledger request. The production funder page
 kept the existing brand colors and fit 390 CSS pixels.
 
+## Android browser checks
+
+Android Studio Device Manager created a Medium Phone with the installed Android 17.0
+(API 37) x86_64 image. T3 opened it in the Device panel. The production PWA ran in Android
+Chrome through a local port forward. No APK was built or installed.
+
+- The contribution page rejected PHP 0.00. Its PayPal link opened the sandbox checkout.
+- PayPal cancel-and-return showed the cancellation notice in BANTAYOG.
+- The return link for the existing completed test order recovered the same receipt: gross
+  PHP 50.00, fee PHP 16.95 and net PHP 33.05. It cleared the callback query. This check did not
+  make a new payment on Android.
+- The receipt page fit 411 CSS pixels with no horizontal overflow. It kept the existing design.
+- The production service worker controlled the page. Anonymous ledger access returned HTTP 401
+  with `Cache-Control: no-store`. The browser cache held no API or Authorization-bearing request.
+- Signed-out admin access returned to the login page. The merchant claims page showed that the
+  session had ended and exposed no claim data.
+
+Authenticated merchant and officer flows were checked in Brave as recorded above. They were
+not repeated on Android. The five Android QA tabs were closed. The emulator remains available.
+
 ## Remaining checks and limits
 
-- Android QA could not run. The device tool reported no Android devices on the local host.
 - Independent payment review found no actionable defects in the reviewed source and tests.
 - Publication review found private local files and test key literals in the existing history.
   Current source cleanup does not remove that history. Public release remains a separate step.
