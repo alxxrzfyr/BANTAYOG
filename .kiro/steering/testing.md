@@ -22,6 +22,11 @@ pnpm --filter @bantayog/db test            # db unit + PGlite SQL tests
 of migrations and SQL functions. PGlite proves SQL behavior and rollback under transactional fixtures,
 but multi-connection concurrent advisory lock proof requires actual PostgreSQL.
 
+The database `test` script first runs TypeScript with `tsconfig.type-tests.json`. This checks the
+`expectTypeOf` contracts in `src/types.test.ts`, which the source-only build excludes. The script
+then runs Vitest. Do not replace type assertions with checks of values set in the same fixture.
+Do not retain unused production modules only to keep their tests running.
+
 ## Patterns already in the repo
 
 - **Pure domain first.** `src/domain/*.test.ts` passes an explicit `currentDate` so tier/eligibility

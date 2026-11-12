@@ -84,10 +84,14 @@ not fall back for ineligible, invalid-image, authentication, signature, or confi
 
 ## Client-side domain logic
 
-`lib/domain/` (eligibility, nutrition-policy) and `lib/services/` (qr-token, pin, merchant,
-beneficiary) mirror server logic for display and legacy Next-API paths. The server is
-authoritative — if a rule changes, update `apps/server/src/domain` first and keep the client copy
-in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets) so `pnpm dev` doesn't crash on boot without a `.env.local` that must never be relied on in a deployed environment.
+`lib/domain/` (eligibility, nutrition-policy) mirrors server logic for display only.
+Registration, grants, guardian PIN checks, and pass signing use the server implementations.
+Do not add web service copies only for tests. The merchant's local device PIN in
+`stores/pin-store.ts` is separate. QR scanning uses `lib/qr/scanner.ts`.
+Argon2 and `jose` are server dependencies, not direct web dependencies.
+If a domain rule changes, update `apps/server/src/domain` first and keep the display copy in sync
+or delete it. `lib/env.ts` has development fallbacks (random JWT/QR secrets). Never use those
+fallbacks in a deployed environment.
 
 ## Admin navigation on small screens
 

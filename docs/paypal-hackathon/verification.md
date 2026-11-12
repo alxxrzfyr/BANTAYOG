@@ -133,3 +133,22 @@ funder paid the program and that store payout is separate. No new payment ran in
 - One sandbox business account receives store invoice payments. Separate merchant accounts,
   live payments, refunds, disputes and webhooks are outside this build.
 - No Devpost submission or new video was made in this work.
+
+## Cleanup verification (November 13, 2026)
+
+Local checks passed on Windows with Node 22.23.4 and pnpm 9.15.0:
+
+- `pnpm run lint --concurrency=1`: four tasks passed with no lint warnings.
+- `pnpm run type-check --concurrency=1`: six tasks passed.
+- `pnpm run test --concurrency=1`: 111 schema, 68 database, 500 server and 183 web tests passed
+  (862 total).
+
+The cleanup removed unused web service copies, their tests, and unused QR, email and photo
+placeholders. It also removed two tests of third-party result helpers and two unused direct web
+dependencies. Database fixture-value checks now use type assertions. The database test script
+checks those assertions with TypeScript before Vitest runs. An in-memory negative check confirmed
+that the compiler rejects an invalid money type without changing a source file.
+
+Active server behavior, migrations and DTO snapshot contents stayed unchanged. These checks did
+not repeat the live sandbox flows or the production build. The earlier payment and testnet limits
+still apply.

@@ -16,7 +16,7 @@
     "build": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint . --config ../config/eslint.config.js --max-warnings 0",
     "type-check": "tsc --noEmit --project tsconfig.json",
-    "test": "vitest run",
+    "test": "tsc --noEmit --project tsconfig.type-tests.json && vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo"
   },

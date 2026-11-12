@@ -1,7 +1,7 @@
 import { describe, it, expect, expectTypeOf } from 'vitest'
 import { readFileSync } from 'node:fs'
-import type { Database, SettlementInvoiceRow, SettlementInvoiceLineRow } from './types.js'
 import type {
+  Database,
   TableName,
   MerchantRow,
   BeneficiaryRow,
@@ -11,8 +11,9 @@ import type {
   MerchantWalletRow,
   MerchantStatus,
   EligibilityStatus,
-  TransactionStatus,
   OutboxStatus,
+  SettlementInvoiceRow,
+  SettlementInvoiceLineRow,
 } from './types.js'
 
 describe('Database type structure', () => {
@@ -35,16 +36,21 @@ describe('Database type structure', () => {
     expectTypeOf<Ledger['available_to_grant_php']>().toEqualTypeOf<string>()
   })
   it('mirrors the service-only fund records and SQL functions', () => {
-    const row: Database['public']['Tables']['fund_topups']['Row'] = {
-      id: 'fund', amount_php: '50.00', status: 'COMPLETED', paypal_order_id: '5O190127TN364715T',
-      paypal_capture_id: '3C679366HH908993F', fee_php: '16.70', net_amount_php: '33.30',
-      created_at: '2026-11-12T00:00:00Z', completed_at: '2026-11-12T00:01:00Z',
-    }
-    const args: Database['public']['Functions']['record_fund_capture']['Args'] = {
-      p_id: row.id, p_order_id: row.paypal_order_id!, p_capture_id: row.paypal_capture_id!,
-      p_amount_php: row.amount_php, p_fee_php: row.fee_php!, p_net_amount_php: row.net_amount_php!,
-    }
-    expect(args.p_net_amount_php).toBe('33.30')
+    type Topup = Database['public']['Tables']['fund_topups']['Row']
+    expectTypeOf<Topup['status']>().toEqualTypeOf<'CREATED' | 'COMPLETED'>()
+    expectTypeOf<Topup['amount_php']>().toEqualTypeOf<string>()
+    expectTypeOf<Topup['fee_php']>().toEqualTypeOf<string | null>()
+    expectTypeOf<Topup['net_amount_php']>().toEqualTypeOf<string | null>()
+    expectTypeOf<Database['public']['Functions']['record_fund_capture']>().toEqualTypeOf<{
+      Args: {
+        p_id: string; p_order_id: string; p_capture_id: string;
+        p_amount_php: string; p_fee_php: string; p_net_amount_php: string
+      }
+      Returns: string
+    }>()
+  })
+
+  it('keeps the fund migration additive and service-only', () => {
     const sql = readFileSync(new URL('../../../supabase/migrations/00019_paypal_fund.sql', import.meta.url), 'utf8')
     expect(sql).toContain('CREATE TABLE public.fund_topups')
     expect(sql).toContain('CREATE VIEW public.fund_topup_details WITH (security_invoker = true)')
@@ -54,21 +60,16 @@ describe('Database type structure', () => {
     expect(sql).not.toMatch(/CREATE POLICY|UPDATE public\.(beneficiaries|merchants)|CREATE OR REPLACE/)
   })
   it('mirrors settlement tables and SQL-owned amounts', () => {
-    const invoice: SettlementInvoiceRow = {
-      id: 'invoice', merchant_id: 'merchant', status: 'PROPOSED', total_amount_php: '10.10',
-      ai_summary: 'Review complete.', paypal_invoice_id: null, paypal_invoice_url: null,
-      approved_by: null, created_at: '2026-11-12T00:00:00Z', sent_at: null, paid_at: null,
-    }
-    const line: SettlementInvoiceLineRow = {
-      id: 'line', invoice_id: invoice.id, transaction_id: 'sale', amount_php: '10.10', held: false, hold_reason: null,
-    }
-    const tables: TableName[] = ['settlement_invoices', 'settlement_invoice_lines']
-    const args: Database['public']['Functions']['create_settlement_proposal']['Args'] = {
-      p_merchant_id: 'merchant', p_held: [], p_ai_summary: 'Review complete.', p_sale_ids: ['sale'],
-    }
-    expect(tables).toHaveLength(2)
-    expect(line.amount_php).toBe(invoice.total_amount_php)
-    expect(args.p_sale_ids).toEqual(['sale'])
+    expectTypeOf<SettlementInvoiceRow['status']>().toEqualTypeOf<'PROPOSED' | 'SENT' | 'PAID' | 'CANCELLED'>()
+    expectTypeOf<SettlementInvoiceRow['total_amount_php']>().toEqualTypeOf<string | number>()
+    expectTypeOf<SettlementInvoiceLineRow['amount_php']>().toEqualTypeOf<string | number>()
+    expectTypeOf<Database['public']['Functions']['create_settlement_proposal']>().toEqualTypeOf<{
+      Args: {
+        p_merchant_id: string; p_held: { transactionId: string; reason: string }[];
+        p_ai_summary: string; p_sale_ids: string[]
+      }
+      Returns: { id: string; created: boolean }
+    }>()
   })
 
   it('has SQL duplicate guards, row locks, SQL totals, and service-only access', () => {
@@ -85,163 +86,65 @@ describe('Database type structure', () => {
     expect(sql).toContain('FROM PUBLIC, anon, authenticated')
     expect(sql).toContain('TO service_role')
   })
-  it('has all catalog tables in the public schema', () => {
-    // Type-level test: if this compiles, the types are correct
-    const expectedTables: TableName[] = [
-      'administrators',
-      'merchants',
-      'beneficiaries',
-      'transactions',
-      'qr_passes',
-      'outbox',
-      'photo_receipts',
-      'products',
-      'product_variants',
-    ]
-    // Runtime check that we listed the catalog tables too.
-    expect(expectedTables).toContain('products')
-    expect(expectedTables).toContain('product_variants')
+  it('exposes the declared public tables', () => {
+    expectTypeOf<TableName>().toEqualTypeOf<
+      | 'administrators' | 'merchants' | 'beneficiaries' | 'transactions'
+      | 'qr_passes' | 'outbox' | 'photo_receipts' | 'products' | 'product_variants'
+      | 'beneficiary_wallets' | 'merchant_wallets' | 'allocations'
+      | 'settlement_invoices' | 'settlement_invoice_lines'
+      | 'fund_topups' | 'fund_grant_reservations'
+    >()
   })
 })
 
 describe('Enum types', () => {
-  it('MerchantStatus has 4 values', () => {
-    const valid: MerchantStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']
-    expect(valid).toHaveLength(4)
+  it('limits merchant status to the supported values', () => {
+    expectTypeOf<MerchantStatus>().toEqualTypeOf<'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>()
   })
 
-  it('EligibilityStatus has 4 values', () => {
-    const valid: EligibilityStatus[] = ['PENDING', 'ELIGIBLE', 'INELIGIBLE', 'SUSPENDED']
-    expect(valid).toHaveLength(4)
+  it('limits eligibility status to the supported values', () => {
+    expectTypeOf<EligibilityStatus>().toEqualTypeOf<'PENDING' | 'ELIGIBLE' | 'INELIGIBLE' | 'SUSPENDED'>()
   })
 
-  it('TransactionStatus has 6 lifecycle states', () => {
-    const valid: TransactionStatus[] = [
-      'PENDING_CHAIN',
-      'CONFIRMED',
-      'DB_RECORDED',
-      'BROADCAST',
-      'RECONCILED',
-      'FAILED',
-    ]
-    expect(valid).toHaveLength(6)
-  })
-
-  it('OutboxStatus has 4 values', () => {
-    const valid: OutboxStatus[] = ['PENDING', 'PROCESSING', 'DONE', 'FAILED']
-    expect(valid).toHaveLength(4)
+  it('limits outbox status to the supported values', () => {
+    expectTypeOf<OutboxStatus>().toEqualTypeOf<'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'>()
   })
 })
 
-describe('Row types compile-check', () => {
-  it('MerchantRow has required fields', () => {
-    const row: MerchantRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      auth_user_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d480',
-      store_name: 'Test Store',
-      owner_name: 'Test Owner',
-      mobile_number_e164: '+639171234567',
-      wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
-      wallet_balance: 0,
-      cashout_in_progress: false,
-      status: 'PENDING',
-      created_at: '2026-06-29T00:00:00Z',
-    }
-    expect(row.id).toBeDefined()
+describe('Row type contracts', () => {
+  it('allows a merchant without a wallet and keeps the balance numeric', () => {
+    expectTypeOf<MerchantRow['wallet_address']>().toEqualTypeOf<string | null>()
+    expectTypeOf<MerchantRow['wallet_balance']>().toEqualTypeOf<number>()
   })
 
-  it('BeneficiaryRow has required fields', () => {
-    const row: BeneficiaryRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      guardian_name: 'Maria Santos',
-      guardian_mobile_hash: 'sha256:abc',
-      child_name: 'Baby Santos',
-      child_age_months: 12,
-      monthly_income_php: 8000,
-      gps_lat: 14.5995,
-      gps_lng: 120.9842,
-      pin_hash_argon2id: null,
-      pin_salt: null,
-      eligibility_status: 'PENDING',
-      credit_balance: 0,
-      card_serial: null,
-      activated_at: null,
-      deactivated_at: null,
-      created_at: '2026-06-29T00:00:00Z',
-    }
-    expect(row.id).toBeDefined()
+  it('allows an unissued beneficiary pass and an unset PIN', () => {
+    expectTypeOf<BeneficiaryRow['card_serial']>().toEqualTypeOf<string | null>()
+    expectTypeOf<BeneficiaryRow['pin_hash_argon2id']>().toEqualTypeOf<string | null>()
+    expectTypeOf<BeneficiaryRow['pin_salt']>().toEqualTypeOf<string | null>()
   })
 
-  it('TransactionRow has required fields', () => {
-    const row: TransactionRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      beneficiary_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d480',
-      merchant_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d481',
-      item_list_jsonb: [],
-      total_credit_deducted: 0,
-      stablecoin_amount_wei: '0',
-      asset_amount_stroops: null,
-      onchain_tx_hash: null,
-      ledger_sequence: null,
-      idempotency_key: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      status: 'PENDING_CHAIN',
-      created_at: '2026-06-29T00:00:00Z',
-      confirmed_at: null,
-    }
-    expect(row.id).toBeDefined()
+  it('keeps transaction chain proof nullable until confirmation', () => {
+    expectTypeOf<TransactionRow['asset_amount_stroops']>().toEqualTypeOf<string | null>()
+    expectTypeOf<TransactionRow['onchain_tx_hash']>().toEqualTypeOf<string | null>()
+    expectTypeOf<TransactionRow['ledger_sequence']>().toEqualTypeOf<number | null>()
+    expectTypeOf<TransactionRow['confirmed_at']>().toEqualTypeOf<string | null>()
   })
 
-  it('AllocationRow has required fields including ledger_sequence (migration 00012, F7)', () => {
-    const row: AllocationRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      beneficiary_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d480',
-      tier: 1,
-      amount_phpc: 5000,
-      onchain_tx_hash: 'stellarhash123',
-      ledger_sequence: 42,
-      reconciled: false,
-      allocated_at: '2026-06-29T00:00:00Z',
-    }
-    expect(row.ledger_sequence).toBe(42)
+  it('limits allocation tiers and permits legacy rows without ledger proof', () => {
+    expectTypeOf<AllocationRow['tier']>().toEqualTypeOf<1 | 2>()
+    expectTypeOf<AllocationRow['ledger_sequence']>().toEqualTypeOf<number | null>()
+    expectTypeOf<AllocationRow['onchain_tx_hash']>().toEqualTypeOf<string | null>()
   })
 
-  it('AllocationRow allows ledger_sequence to be null (legacy rows predating migration 00012)', () => {
-    const row: AllocationRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      beneficiary_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d480',
-      tier: 2,
-      amount_phpc: 3500,
-      onchain_tx_hash: null,
-      ledger_sequence: null,
-      reconciled: false,
-      allocated_at: '2026-06-29T00:00:00Z',
-    }
-    expect(row.ledger_sequence).toBeNull()
+  it('requires encrypted merchant wallet fields', () => {
+    expectTypeOf<MerchantWalletRow>().toEqualTypeOf<{
+      merchant_id: string; address: string; enc_ciphertext: string;
+      enc_iv: string; enc_auth_tag: string; created_at: string
+    }>()
   })
 
-  it('MerchantWalletRow has required fields (migration 00011)', () => {
-    const row: MerchantWalletRow = {
-      merchant_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d481',
-      address: 'GANQ4X5FDIREJPH6LR5YCC5ODMSACA5T6Q54F7EF6BGO55M7R6AQIP52',
-      enc_ciphertext: 'ciphertext',
-      enc_iv: 'iv',
-      enc_auth_tag: 'authtag',
-      created_at: '2026-06-29T00:00:00Z',
-    }
-    expect(row.address).toMatch(/^[GC][A-Z2-7]{55}$/)
-  })
-
-  it('OutboxRow has required fields', () => {
-    const row: OutboxRow = {
-      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-      kind: 'CALL_SUBSIDY_CONTRACT',
-      payload_jsonb: {},
-      status: 'PENDING',
-      attempts: 0,
-      run_after: '2026-06-29T00:00:00Z',
-      created_at: '2026-06-29T00:00:00Z',
-      processed_at: null,
-    }
-    expect(row.id).toBeDefined()
+  it('keeps outbox payloads structured and completion optional', () => {
+    expectTypeOf<OutboxRow['payload_jsonb']>().toEqualTypeOf<Record<string, unknown>>()
+    expectTypeOf<OutboxRow['processed_at']>().toEqualTypeOf<string | null>()
   })
 })

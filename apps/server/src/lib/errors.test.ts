@@ -9,9 +9,6 @@ import {
   PolicyError,
   errorToHttpStatus,
   errorToResponseBody,
-  ok,
-  err,
-  type AppResult,
 } from './errors.js'
 
 describe('Error classes', () => {
@@ -108,19 +105,5 @@ describe('errorToResponseBody', () => {
   it('does not include details when absent', () => {
     const body = errorToResponseBody(new AuthError('forbidden'))
     expect(body.details).toBeUndefined()
-  })
-})
-
-describe('neverthrow helpers', () => {
-  it('ok() creates a success Result', () => {
-    const r: AppResult<string> = ok('success')
-    expect(r.isOk()).toBe(true)
-    expect(r.isErr()).toBe(false)
-  })
-
-  it('err() creates an error Result', () => {
-    const r: AppResult<string> = err(new ValidationError('fail'))
-    expect(r.isOk()).toBe(false)
-    expect(r.isErr()).toBe(true)
   })
 })
