@@ -28,6 +28,9 @@ Not in scope (do not build): PayPal Payouts, webhooks, onboarding of many stores
 `settle_sale`, `settle_sale_and_enqueue`, `credit_balance` or `merchants.wallet_balance`, a public
 proof page, a chat feature, a new production dependency.
 
+The first phase passed its live checks. Phase 2 adds funder top-up (Orders v2 create and capture)
+and a fund ledger screen. [The fund contract](paypal-fund.md) defines that separate scope.
+
 ## 3. Data (migration `00018_paypal_settlement.sql`)
 
 New tables only. Enable RLS on each table and add no client policy: the server uses the service

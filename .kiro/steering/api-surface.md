@@ -197,9 +197,21 @@ Repeat approval on the same invoice after failure. A repeat cannot release anoth
 An approved proposal cannot be rejected. This prevents reuse of sales with a remote draft.
 No eligible sale gives HTTP 400. Invalid IDs, status, release IDs or reason give HTTP 400.
 A foreign merchant invoice gives HTTP 403. A PayPal failure gives HTTP 502 without remote text.
-This phase has no top-ups, payouts, webhooks or changes to credit balances.
+The separate fund routes implement top-ups. No route implements payouts, webhooks or changes
+to credit balances.
 
 Approval sends only a remote `DRAFT`. It syncs an invoice that PayPal already sent. A `SENT`
 invoice with no payer URL can recover the URL through refresh or repeat approval. A paid response
 with no URL keeps the saved URL. A `PAID` approval does not require a URL. An all-held proposal
 with no release selection returns a validation message before the approval function is called.
+
+## PayPal fund
+
+`POST /api/fund/topups` is public sandbox checkout. Its strict body is `{ requestId, amountPhp }`.
+`POST /api/fund/topups/:orderId/capture` captures only a saved, approved and matching order.
+Both return the safe contribution DTO. They use a 1 KiB body limit and the existing checkout
+rate limiter. A completed capture retry returns the same receipt.
+
+`GET /api/fund/ledger` requires `admin`. SQL supplies aggregate funding, grants, confirmed sales,
+paid invoices and the amount still owed, plus the latest 50 completed contributions. No payer
+or child information is in the contribution DTO. Credits are unchanged. See ADR 007.

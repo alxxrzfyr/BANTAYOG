@@ -12,6 +12,29 @@ const invoiceSchema = z.object({
   amount: z.object({ currency_code: z.string(), value: z.string().regex(/^\d+\.\d{2}$/) }),
 })
 
+const orderMoney = z.object({ currency_code: z.string(), value: z.string().regex(/^\d+\.\d{2}$/) })
+const orderSchema = z.object({
+  id: z.string().regex(/^[A-Z0-9]{17}$/), status: z.string(), intent: z.string(),
+  purchase_units: z.array(z.object({
+    reference_id: z.string(), amount: orderMoney,
+    payments: z.object({ captures: z.array(z.object({
+      id: z.string().regex(/^[A-Z0-9]{17}$/), status: z.string(), final_capture: z.boolean(), amount: orderMoney,
+      seller_receivable_breakdown: z.object({ gross_amount: orderMoney, paypal_fee: orderMoney, net_amount: orderMoney }).optional(),
+    })).default([]) }).optional(),
+  })).length(1),
+  links: z.array(z.object({ rel: z.string(), href: z.string() })).default([]),
+})
+
+export interface PayPalOrderCapture {
+  id: string; status: string; final: boolean; amount: string; currency: string
+  gross: string | null; grossCurrency: string | null; fee: string | null; feeCurrency: string | null
+  net: string | null; netCurrency: string | null
+}
+export interface PayPalOrder {
+  id: string; status: string; intent: string; reference: string; amount: string; currency: string
+  approvalUrl: string | null; captures: PayPalOrderCapture[]
+}
+
 export interface PayPalInvoice {
   id: string
   status: string
@@ -97,6 +120,52 @@ export class PayPalGateway {
     return result.isErr() ? err(result.error) : ok(undefined)
   }
 
+  async createOrder(id: string, amountPhp: string, returnOrigin: string): Promise<AppResult<string>> {
+    const result = await this.request(id, '/v2/checkout/orders', 'POST', 'oc', {
+      intent: 'CAPTURE', purchase_units: [{ reference_id: id, invoice_id: `BT-FUND-${id}`,
+        description: 'BANTAYOG sandbox nutrition contribution', amount: { currency_code: 'PHP', value: amountPhp } }],
+      payment_source: { paypal: { experience_context: { shipping_preference: 'NO_SHIPPING', user_action: 'PAY_NOW',
+        return_url: `${returnOrigin}/fund?result=approved`, cancel_url: `${returnOrigin}/fund?result=cancelled` } } },
+    })
+    if (result.isErr()) return err(result.error)
+    const parsed = z.object({ id: z.string().regex(/^[A-Z0-9]{17}$/) }).safeParse(result.value)
+    return parsed.success ? ok(parsed.data.id) : this.failure('order response')
+  }
+
+  async getOrder(id: string, orderId: string): Promise<AppResult<PayPalOrder>> {
+    const result = await this.request(id, `/v2/checkout/orders/${encodeURIComponent(orderId)}`, 'GET')
+    if (result.isErr()) return err(result.error)
+    const parsed = orderSchema.safeParse(result.value)
+    if (!parsed.success) return this.failure('order proof')
+    const order = parsed.data
+    const unit = order.purchase_units[0]
+    const approvalUrl = order.links.find(link => link.rel === 'approve' || link.rel === 'payer-action')?.href ?? null
+    if (approvalUrl) {
+      try {
+        const url = new URL(approvalUrl)
+        if (url.origin !== 'https://www.sandbox.paypal.com' || url.username || url.password ||
+          !/^\/checkoutnow\/?$/.test(url.pathname) || url.searchParams.get('token') !== order.id || url.hash) return this.failure('order approval URL')
+      } catch { return this.failure('order approval URL') }
+    }
+    return ok({ id: order.id, status: order.status, intent: order.intent, reference: unit.reference_id,
+      amount: unit.amount.value, currency: unit.amount.currency_code, approvalUrl,
+      captures: (unit.payments?.captures ?? []).map(capture => {
+        const amounts = capture.seller_receivable_breakdown
+        return { id: capture.id, status: capture.status, final: capture.final_capture,
+          amount: capture.amount.value, currency: capture.amount.currency_code,
+          gross: amounts?.gross_amount.value ?? null, grossCurrency: amounts?.gross_amount.currency_code ?? null,
+          fee: amounts?.paypal_fee.value ?? null, feeCurrency: amounts?.paypal_fee.currency_code ?? null,
+          net: amounts?.net_amount.value ?? null, netCurrency: amounts?.net_amount.currency_code ?? null }
+      }),
+    })
+  }
+
+  async captureOrder(id: string, orderId: string): Promise<AppResult<PayPalOrder>> {
+    const result = await this.request(id, `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, 'POST', 'op', {})
+    // Read the full order. Capture responses can omit intent and the purchase-unit amount.
+    return result.isErr() ? err(result.error) : this.getOrder(id, orderId)
+  }
+
   async get(settlementId: string, invoiceId: string): Promise<AppResult<PayPalInvoice>> {
     const result = await this.request(settlementId, `/v2/invoicing/invoices/${encodeURIComponent(invoiceId)}`, 'GET')
     if (result.isErr()) return err(result.error)
@@ -120,7 +189,7 @@ export class PayPalGateway {
       const response = await this.fetcher(`${this.config.apiBase}${path}`, {
         method, redirect: 'error', signal: AbortSignal.timeout(15000),
         headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json',
-          ...(operation === 'c' ? { Prefer: 'return=representation' } : {}),
+          ...(['c', 'oc', 'op'].includes(operation ?? '') ? { Prefer: 'return=representation' } : {}),
           ...(operation ? { 'PayPal-Request-Id': this.key(settlementId, operation) } : {}) },
         ...(body ? { body: JSON.stringify(body) } : {}),
       })

@@ -3,6 +3,23 @@ import type { SettlementInvoiceSummaryRow, SettlementLineDetailRow, SettlementMe
 import type { SettlementInvoiceDto, SettlementLineDto, MerchantSettlementOverviewDto } from '@bantayog/schema'
 import { SettlementItemDto } from '@bantayog/schema'
 import { formatPhp } from '../domain/php-money.js'
+import type { FundTopupRow, FundLedgerSummaryRow } from '@bantayog/db'
+import type { FundTopupDto, FundLedgerDto } from '@bantayog/schema'
+
+export function toFundTopupDTO(row: FundTopupRow, approvalUrl: string | null = null): FundTopupDto {
+  return { id: row.id, status: row.status, amountPhp: row.amount_php, feePhp: row.fee_php,
+    netAmountPhp: row.net_amount_php, orderId: row.paypal_order_id, captureId: row.paypal_capture_id,
+    approvalUrl, createdAt: row.created_at, completedAt: row.completed_at }
+}
+
+export function toFundLedgerDTO(data: { summary: FundLedgerSummaryRow; topups: FundTopupRow[] }): FundLedgerDto {
+  const s = data.summary
+  return { grossContributionsPhp: s.gross_contributions_php, feesPhp: s.fees_php,
+    netContributionsPhp: s.net_contributions_php, grantsIssuedPhp: s.grants_issued_php,
+    grantCount: s.grant_count, confirmedSalesPhp: s.confirmed_sales_php,
+    paidInvoicesPhp: s.paid_invoices_php, owedPhp: s.owed_php, topups: data.topups.map(row => toFundTopupDTO(row)) }
+}
+
 export interface BeneficiaryDTO {
   id: string
   guardianName: string

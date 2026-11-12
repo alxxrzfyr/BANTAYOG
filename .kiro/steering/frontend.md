@@ -89,6 +89,14 @@ beneficiary) mirror server logic for display and legacy Next-API paths. The serv
 authoritative — if a rule changes, update `apps/server/src/domain` first and keep the client copy
 in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets) so `pnpm dev` doesn't crash on boot without a `.env.local` that must never be relied on in a deployed environment.
 
+## PayPal fund
+
+PayPal fund pages are `/fund` (public sandbox checkout and receipt) and `/admin/fund` (admin
+ledger). `lib/fund/api.ts` validates responses with the shared schemas. Create and capture use
+guest fetch; the ledger uses the admin session. A return URL triggers a server proof check and
+never displays payment success by itself. The browser saves the request UUID and amount before
+checkout and reuses them on retry. A failed return check keeps the same order for retry.
+
 ## Workspace builds and private requests
 
 Webpack resolves workspace `.js` imports to TypeScript when emitted JavaScript is absent, through

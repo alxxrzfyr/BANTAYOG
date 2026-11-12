@@ -6,8 +6,16 @@ import {
   toClassificationDTO,
   toBalanceDTO
 } from './mappers.js'
-import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO } from './mappers.js'
+import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO, toFundTopupDTO } from './mappers.js'
 import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto } from '@bantayog/schema'
+
+it('maps a completed contribution with separate gross, fee and net amounts', () => {
+  expect(toFundTopupDTO({
+    id: 'f4ee46f7-d82e-4c9d-b1e3-febff1d73caf', amount_php: '50.00', status: 'COMPLETED',
+    paypal_order_id: '5O190127TN364715T', paypal_capture_id: '3C679366HH908993F',
+    fee_php: '16.70', net_amount_php: '33.30', created_at: '2026-11-12T00:00:00Z', completed_at: '2026-11-12T00:01:00Z',
+  })).toMatchSnapshot()
+})
 
 it('maps settlement proof without private sale fields and fixes decimal strings', () => {
   const row = {

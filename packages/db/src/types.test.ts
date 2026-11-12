@@ -16,6 +16,25 @@ import type {
 } from './types.js'
 
 describe('Database type structure', () => {
+  it('mirrors the service-only fund records and SQL functions', () => {
+    const row: Database['public']['Tables']['fund_topups']['Row'] = {
+      id: 'fund', amount_php: '50.00', status: 'COMPLETED', paypal_order_id: '5O190127TN364715T',
+      paypal_capture_id: '3C679366HH908993F', fee_php: '16.70', net_amount_php: '33.30',
+      created_at: '2026-11-12T00:00:00Z', completed_at: '2026-11-12T00:01:00Z',
+    }
+    const args: Database['public']['Functions']['record_fund_capture']['Args'] = {
+      p_id: row.id, p_order_id: row.paypal_order_id!, p_capture_id: row.paypal_capture_id!,
+      p_amount_php: row.amount_php, p_fee_php: row.fee_php!, p_net_amount_php: row.net_amount_php!,
+    }
+    expect(args.p_net_amount_php).toBe('33.30')
+    const sql = readFileSync(new URL('../../../supabase/migrations/00019_paypal_fund.sql', import.meta.url), 'utf8')
+    expect(sql).toContain('CREATE TABLE public.fund_topups')
+    expect(sql).toContain('CREATE VIEW public.fund_topup_details WITH (security_invoker = true)')
+    expect(sql).toContain('CREATE VIEW public.fund_ledger_summary WITH (security_invoker = true)')
+    expect(sql).toContain('CREATE FUNCTION public.record_fund_capture')
+    expect(sql).toContain('paypal_capture_id TEXT UNIQUE')
+    expect(sql).not.toMatch(/CREATE POLICY|UPDATE public\.(beneficiaries|merchants)|CREATE OR REPLACE/)
+  })
   it('mirrors settlement tables and SQL-owned amounts', () => {
     const invoice: SettlementInvoiceRow = {
       id: 'invoice', merchant_id: 'merchant', status: 'PROPOSED', total_amount_php: '10.10',

@@ -167,3 +167,11 @@ Four views use `security_invoker = true`. Only the service role can read them:
 `PENDING_CHAIN` and `SUBMITTED` sales as waiting for ledger confirmation. It sums only `PAID`
 invoices for the paid total. Held sales remain unpaid. New types mirror all four views and all
 three functions. The migration passed live checks and was applied to the owner's project.
+
+## PayPal fund
+
+Migration 00019 adds `fund_topups`, `fund_topup_details`, `fund_ledger_summary`,
+`create_fund_topup` and `record_fund_capture`. The table fixes one request amount and one order
+and capture ID. The capture function locks the row, checks exact gross, fee and net, and keeps
+repeat capture idempotent. All objects are service-only. The table has RLS with no client policy.
+Both views return money as text. No existing balance or policy changes. See ADR 007 and SCHEMA.

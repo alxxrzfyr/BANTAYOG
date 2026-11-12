@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { isAdminEndpoint } from "./api";
 
 describe("isAdminEndpoint", () => {
+  it("uses the admin session only for the fund ledger", () => {
+    expect(isAdminEndpoint("/api/fund/ledger")).toBe(true);
+    expect(isAdminEndpoint("/api/fund/ledger?x=1")).toBe(true);
+    expect(isAdminEndpoint("/api/fund/ledgerX")).toBe(false);
+    expect(isAdminEndpoint("/api/fund/topups")).toBe(false);
+  });
   it("routes the admin settlement endpoints through the admin session", () => {
     expect(isAdminEndpoint("/api/settlements")).toBe(true);
     expect(isAdminEndpoint("/api/settlements?status=PROPOSED")).toBe(true);

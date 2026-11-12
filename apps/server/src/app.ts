@@ -92,6 +92,7 @@ import merchantSelfRoutes from './routes/merchant-self.js'
 import analyticsRoutes from './routes/analytics.js'
 import merchantSettlementRoutes from './routes/merchant-settlements.js'
 import settlementRoutes from './routes/settlements.js'
+import fundRoutes from './routes/fund.js'
 
 // Auth routes: mostly public (login, merchant-login); logout protected inside authRoutes
 app.route('/api/auth', authRoutes)
@@ -100,6 +101,11 @@ app.route('/api/auth', authRoutes)
 // solely by the signed QR token itself (Requirement 8.3), not by a session,
 // so it deliberately carries no authMiddleware/requireRole.
 app.route('/api/balance', balanceRoutes)
+
+// Sandbox checkout is public. Ledger authorization is applied inside fundRoutes.
+app.use('/api/fund/topups', rateLimit('fund-checkout', 10, 60))
+app.use('/api/fund/topups/*', rateLimit('fund-checkout', 10, 60))
+app.route('/api/fund', fundRoutes)
 
 // Merchant self-profile routes (merchant-only, authenticated)
 // MUST be registered before /api/merchants/* admin wildcard to avoid

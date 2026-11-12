@@ -247,9 +247,37 @@ export interface SettlementMerchantOverviewRow {
 // Database schema (for Supabase typed client)
 // ---------------------------------------------------------------------------
 
+export interface FundTopupRow {
+  id: string
+  amount_php: string
+  status: 'CREATED' | 'COMPLETED'
+  paypal_order_id: string | null
+  paypal_capture_id: string | null
+  fee_php: string | null
+  net_amount_php: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface FundLedgerSummaryRow {
+  gross_contributions_php: string
+  fees_php: string
+  net_contributions_php: string
+  grants_issued_php: string
+  grant_count: number
+  confirmed_sales_php: string
+  paid_invoices_php: string
+  owed_php: string
+}
+
 export interface Database {
   public: {
     Tables: {
+      fund_topups: {
+        Row: FundTopupRow
+        Insert: Pick<FundTopupRow, 'id' | 'amount_php'> & Partial<Omit<FundTopupRow, 'id' | 'amount_php'>>
+        Update: Partial<Omit<FundTopupRow, 'id' | 'amount_php' | 'created_at'>>
+      }
       settlement_invoices: {
         Row: SettlementInvoiceRow
         Insert: Pick<SettlementInvoiceRow, 'merchant_id' | 'ai_summary'> & Partial<Omit<SettlementInvoiceRow, 'merchant_id' | 'ai_summary'>>
@@ -363,12 +391,16 @@ export interface Database {
       }
     }
     Views: {
+      fund_topup_details: { Row: FundTopupRow }
+      fund_ledger_summary: { Row: FundLedgerSummaryRow }
       settlement_eligible_sales: { Row: SettlementSaleRow }
       settlement_invoice_summaries: { Row: SettlementInvoiceSummaryRow }
       settlement_line_details: { Row: SettlementLineDetailRow }
       settlement_merchant_overviews: { Row: SettlementMerchantOverviewRow }
     }
     Functions: {
+      create_fund_topup: { Args: { p_id: string; p_amount_php: string }; Returns: string }
+      record_fund_capture: { Args: { p_id: string; p_order_id: string; p_capture_id: string; p_amount_php: string; p_fee_php: string; p_net_amount_php: string }; Returns: string }
       create_settlement_proposal: { Args: { p_merchant_id: string; p_held: { transactionId: string; reason: string }[]; p_ai_summary: string; p_sale_ids: string[] }; Returns: { id: string; created: boolean } }
       approve_settlement: { Args: { p_invoice_id: string; p_admin_id: string; p_release: string[] }; Returns: string }
       cancel_settlement: { Args: { p_invoice_id: string; p_reason: string }; Returns: string }

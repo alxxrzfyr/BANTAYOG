@@ -88,7 +88,8 @@ export function isAdminEndpoint(url: string): boolean {
     pathname.startsWith("/api/chain") ||
     pathname.startsWith("/api/transactions") ||
     pathname.startsWith("/api/products") ||
-    atOrBelow("/api/settlements")
+    atOrBelow("/api/settlements") ||
+    atOrBelow("/api/fund/ledger")
   );
 }
 

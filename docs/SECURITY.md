@@ -123,6 +123,21 @@ headers before its default runtime cache rules and uses `NetworkOnly`. An outage
 a cached financial response or a prior user's authenticated data. Public static assets keep
 their existing cache rules. This changes no server role or RLS policy.
 
+## PayPal sandbox fund
+
+Fund create and capture endpoints are public. They do not accept a payer, payee, currency or
+return URL from a request. The server fixes PHP and the configured web return origin. A UUID
+fixes one request amount. Only a saved order can be captured, and PayPal must first report buyer
+approval. Full order proof is checked before and after capture. One final completed capture
+must match the saved amount and reference. SQL checks gross, fee and net with exact decimals.
+Unique order and capture IDs, a row lock and a fixed capture request ID protect retries.
+
+The new fund objects have service-only grants and no client policy. The admin role protects
+the ledger. Public receipts contain no payer or child data. Request bodies have a 1 KiB limit;
+public checkout uses the existing rate limiter. Configure Upstash when hosting it.
+No contribution writes credits or merchant balances. Refunds and disputes need operator review.
+See ADR 007 for the accounting boundary.
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.

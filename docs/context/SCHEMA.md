@@ -57,6 +57,7 @@ products, market_prices, outbox                (no foreign key)
 | `00009_qr_passes_nullable_expires_at.sql` | `qr_passes.expires_at` becomes nullable |
 | `00010_market_prices.sql` | `pg_trgm`; `market_prices` with trigram indexes |
 | `00018_paypal_settlement.sql` | Two settlement tables, four service views and three service functions. See the settlement sections below |
+| `00019_paypal_fund.sql` | `fund_topups`, two service views and two service functions. No balance or existing policy changes |
 
 ### Warnings about re-running migrations
 
@@ -476,7 +477,24 @@ Consequences:
 4. Reconciling `types.ts` with the migrations is a useful, self-contained task. Do it as one
    change, with `packages/db/src/types.test.ts` updated in the same commit.
 
-## 7. Checklist for a schema change
+## 7. PayPal fund objects (migration 00019)
+
+`fund_topups` stores a caller request UUID, a fixed `amount_php`, `CREATED` or `COMPLETED`
+status, unique nullable `paypal_order_id` and `paypal_capture_id`, nullable `fee_php` and
+`net_amount_php`, and creation and completion times. Money is `NUMERIC(12,2)`. A completed row
+requires all payment fields and `amount_php = fee_php + net_amount_php`. No payer data is stored.
+
+`fund_topup_details` returns money as text. `fund_ledger_summary` computes contribution gross,
+fees and net, issued grants with a ledger hash, confirmed sales, paid invoice totals and the
+amount still owed. Both views use `security_invoker = true` and service-only read grants.
+
+`create_fund_topup(p_id, p_amount_php)` fixes the amount on first use. A retry with a different
+amount fails. `record_fund_capture(p_id, p_order_id, p_capture_id, p_amount_php, p_fee_php,
+p_net_amount_php)` locks the row and checks its order, exact amount and fee equation. Repeating
+the same proof is safe; different proof fails. Both functions execute only for `service_role`.
+The table has RLS and no client policy or client grants. Existing balance functions are unchanged.
+
+## 8. Checklist for a schema change
 
 1. Add the next numbered file in `supabase/migrations/`. Use `IF NOT EXISTS`. Name every index.
 2. Use `gen_random_uuid()` for a new primary key.
