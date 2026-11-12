@@ -289,12 +289,10 @@ The event was organized by GDG on Campus at the Polytechnic University of the Ph
 
 BANTAYOG's core flows rely on these platforms and their developer resources.
 
-| Name | Links and resources |
-| --- | --- |
-| PayPal | [Sandbox testing](https://developer.paypal.com/sandbox-testing/overview), [Orders v2](https://developer.paypal.com/api/orders/v2), and [Invoicing v2](https://developer.paypal.com/api/invoicing/v2) for test contributions and claim invoices. |
-| Google Gemini | [Gemini API docs](https://ai.google.dev/gemini-api/docs) and the [Google GenAI SDK](https://github.com/googleapis/js-genai) for product recognition and claim review. |
-| Stellar | [Developer docs](https://developers.stellar.org/docs) and the [JavaScript SDK](https://github.com/stellar/js-stellar-sdk) for the testnet ledger and mock PHPC transfers. |
-| Supabase | [Platform docs](https://supabase.com/docs) for PostgreSQL, authentication, and storage. |
+- **PayPal:** [Sandbox testing](https://developer.paypal.com/sandbox-testing/overview), [Orders v2](https://developer.paypal.com/api/orders/v2), and [Invoicing v2](https://developer.paypal.com/api/invoicing/v2) for test contributions and claim invoices.
+- **Google Gemini:** [Gemini API docs](https://ai.google.dev/gemini-api/docs) and the [Google GenAI SDK](https://github.com/googleapis/js-genai) for product recognition and claim review.
+- **Stellar:** [Developer docs](https://developers.stellar.org/docs) and the [JavaScript SDK](https://github.com/stellar/js-stellar-sdk) for the testnet ledger and mock PHPC transfers.
+- **Supabase:** [Platform docs](https://supabase.com/docs) for PostgreSQL, authentication, and storage.
 
 <br>
 
