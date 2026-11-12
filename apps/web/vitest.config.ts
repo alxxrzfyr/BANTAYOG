@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["lib/**/*.test.ts", "app/api/**/*.test.ts"],
+    // View tests render with react-dom/server in the node environment (no DOM library).
+    include: ["lib/**/*.test.ts", "app/api/**/*.test.ts", "components/**/*.test.tsx"],
     testTimeout: 30000,
     coverage: {
       provider: "v8",
@@ -16,6 +17,8 @@ export default defineConfig({
       exclude: ["lib/**/*.test.ts", "lib/env.ts"],
     },
   },
+  // tsconfig sets "jsx": "preserve" for Next; tests need esbuild to compile JSX.
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@repo": repoRoot,

@@ -5,7 +5,7 @@
   "description": "BANTAYOG Next.js 16 PWA — frontend only, no business logic (FE1+FE2 ownership)",
   "scripts": {
     "dev": "next dev --port 3000 --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint . --config ../../packages/config/eslint.config.js --max-warnings 0",
     "type-check": "tsc --noEmit",

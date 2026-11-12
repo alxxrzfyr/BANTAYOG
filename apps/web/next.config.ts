@@ -12,6 +12,8 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Workspace sources use Node-style .js imports before JavaScript is emitted.
+  experimental: { extensionAlias: { ".js": [".js", ".ts", ".tsx"] } },
   turbopack: {},
 };
 

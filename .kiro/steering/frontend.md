@@ -86,8 +86,14 @@ beneficiary) mirror server logic for display and legacy Next-API paths. The serv
 authoritative — if a rule changes, update `apps/server/src/domain` first and keep the client copy
 in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets) so `pnpm dev` doesn't crash on boot without a `.env.local` that must never be relied on in a deployed environment.
 
+## Workspace builds and private requests
+
+Webpack resolves workspace `.js` imports to TypeScript when emitted JavaScript is absent, through
+`experimental.extensionAlias`. Both dev and production builds use Webpack because Serwist does
+not support Turbopack. This permits runtime use of the shared Zod schema barrel.
+
 ## Testing
 
-`vitest.config.ts` only picks up `lib/**/*.test.ts` and `app/api/**/*.test.ts`, so keep logic
-that needs coverage out of components. Path aliases must be added in both `tsconfig.json` and
-`vitest.config.ts`.
+`vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts` and
+`components/**/*.test.tsx`. Component tests use `react-dom/server` in the Node environment.
+Path aliases must be added in both `tsconfig.json` and `vitest.config.ts`.
