@@ -4,10 +4,9 @@
 
 # BANTAYOG
 
-**Food credits should be usable where people already shop, not only where payment infrastructure exists.**
+**Helping the families put their children’s nutrition first.**
 
-BANTAYOG lets families use nutrition credits for approved food at neighborhood stores, with a printed QR Nutri-Pass instead of a smartphone.
-Merchants accept the pass on a phone, while program officers track purchases, review store claims, and verify funding and invoice payments through PayPal sandbox.
+A food-credit system that lets families buy approved food at local stores with a printed QR pass. Stores use a phone, AI helps review payment requests, and PayPal sandbox handles funding and invoices.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
 [![PayPal: Sandbox](https://img.shields.io/badge/PayPal-Sandbox-003087?style=flat&logo=paypal&logoColor=white)](#paypal-and-ai)
@@ -68,21 +67,30 @@ These are goals rather than measured outcomes.
 
 ## How it works
 
-1. **Register the family.** An administrator records the guardian and child, registers a 6-digit
-   guardian PIN, and prints a signed QR Nutri-Pass. This pass identifies the beneficiary at checkout.
-2. **Issue a funded grant.** The server calculates the child's tier from age. Tier 1 receives
-   **5,000 credits** through 730 days from birth, equivalent to 1,000 days from conception.
-   Tier 2 receives **3,500 credits** after that point. Each child gets one grant only, and the
-   system requires sufficient verified PayPal funding before issuance. **One credit is one peso.**
-3. **Build an eligible basket.** The merchant photographs packaged products or selects fresh-market
-   items such as rice and vegetables. Gemini helps identify products and estimate prices.
-   Eligibility comes from the approved food catalog rather than the AI.
-4. **Authorize checkout.** The merchant scans the pass, and the guardian enters the PIN. The
-   server checks the pass, beneficiary status, PIN, purchase total, and available credits.
+<div align="center">
+
+```mermaid
+flowchart TD
+    register["Register the family"] --> grant["Issue a funded grant"]
+    grant --> basket["Choose approved food"]
+    basket --> checkout["Scan the pass and enter the PIN"]
+    checkout --> receipt["Record the purchase"]
+```
+
+</div>
+
+1. **Register the family.** An administrator records the guardian and child, sets a 6-digit
+   guardian PIN, and prints their signed QR Nutri-Pass.
+2. **Issue a funded grant.** Each child gets one age-based grant of **5,000 credits for Tier 1**
+   or **3,500 for Tier 2**, backed by verified PayPal contributions after fees.
+   **One credit is one peso.**
+3. **Choose approved food.** The merchant photographs products or selects fresh food such as rice
+   and vegetables. Gemini helps identify products, but the approved catalog decides eligibility.
+4. **Confirm the purchase.** The merchant scans the pass, and the guardian enters the PIN.
+   The server checks the pass, PIN, beneficiary status, total, and available credits before checkout.
    Five wrong PIN entries cause a 15-minute lockout.
-5. **Record the purchase.** The database deducts the guardian's credits, adds the same amount to
-   the store's recorded balance, and writes the receipt in one transaction. The merchant does not
-   wait for the later Stellar testnet record. The guardian can use the pass to view the updated balance.
+5. **Record the purchase.** The database updates both balances and saves the receipt in one
+   transaction. The guardian can then check the new balance without waiting for the Stellar testnet record.
 
 For example, an approved **₱120 basket uses 120 credits** and creates a ₱120 sale record for the
 store. Because payment follows a separate flow, recording the sale does not mean the store has received cash.
@@ -109,9 +117,9 @@ Server rules and human approval remain in control of the money.
    pays it using a separate sandbox account. BANTAYOG marks it paid only after PayPal returns
    `PAID`, not merely after a checkout redirect.
 
-**All payments use sandbox test funds.** Each invoice is paid to the program's business account rather than directly to a store.
-The program must pay each store through a separate local transfer, so stores do not need a PayPal account.
-A paid invoice confirms payment to the program but does not prove that the store received that transfer.
+> [!NOTE]
+> **All payments use sandbox test funds.** A paid invoice confirms payment to the program's business account, not a transfer to the store.
+> The program must pay each store through a separate local transfer, so stores do not need a PayPal account.
 
 Contributions back grants, but they do not automatically pay store invoices from a pooled fund.
 Although the intended model asks each sponsor to contribute once, the prototype still requires a separate sandbox account to pay each invoice.
@@ -274,6 +282,19 @@ The event was organized by GDG on Campus at the Polytechnic University of the Ph
 - [Watch the demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
 - [Download the Android APK](https://github.com/alxxrzfyr/BANTAYOG/releases/download/merchant-v1.0.1/BANTAYOG-merchant-v1.0.1.apk) to use the hosted merchant app through an Android debug build with internet access. The device PIN stays saved after logout.
 - Follow the [test access and walkthrough](#quick-start) for sign-in details and steps to try the hosted demo.
+
+<br>
+
+## Acknowledgements
+
+BANTAYOG's core flows rely on these platforms and their developer resources.
+
+| Name | Links and resources |
+| --- | --- |
+| PayPal | [Sandbox testing](https://developer.paypal.com/sandbox-testing/overview), [Orders v2](https://developer.paypal.com/api/orders/v2), and [Invoicing v2](https://developer.paypal.com/api/invoicing/v2) for test contributions and claim invoices. |
+| Google Gemini | [Gemini API docs](https://ai.google.dev/gemini-api/docs) and the [Google GenAI SDK](https://github.com/googleapis/js-genai) for product recognition and claim review. |
+| Stellar | [Developer docs](https://developers.stellar.org/docs) and the [JavaScript SDK](https://github.com/stellar/js-stellar-sdk) for the testnet ledger and mock PHPC transfers. |
+| Supabase | [Platform docs](https://supabase.com/docs) for PostgreSQL, authentication, and storage. |
 
 <br>
 
