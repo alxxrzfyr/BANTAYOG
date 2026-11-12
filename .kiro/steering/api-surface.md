@@ -162,6 +162,44 @@ Cron
 ## Error contract
 
 `{ error: <tag>, message, details? }` with tags `validation` (400), `auth` (403, or 401 when
-`code === 'expired'`), `rateLimit` (429), `onchain` (502), `persistence` (500), `jwt` (401),
+`code === 'expired'`), `rateLimit` (429), `onchain` (502), `paypal` (502), `persistence` (500), `jwt` (401),
 `policy` (422). Some handlers also return ad-hoc tags (`not_found`, `forbidden`, `conflict`,
 `invalid_pass`) — match the surrounding file rather than "fixing" them piecemeal.
+
+## PayPal settlement: first phase
+
+Use `docs/designs/paypal-settlement.md` and ADR 006. Money fields are decimal strings with two
+decimal places. Detail responses include sale proof. List responses omit lines and private data.
+Each invoice includes `approved`: true when the first approval actor is saved, even before draft
+creation. The web screen uses this field to lock release and reject controls.
+
+Merchant routes use the merchant profile from the authenticated user. They accept no merchant ID.
+Only an approved merchant profile can use these routes.
+
+| Route | Result |
+| --- | --- |
+| `GET /api/merchants/me/settlements` | Unpaid totals, ledger wait count, paid total and invoice history |
+| `POST /api/merchants/me/settlements` | 201 for a new proposal; 200 for the existing active invoice |
+| `GET /api/merchants/me/settlements/:id` | Own invoice with lines |
+| `POST /api/merchants/me/settlements/:id/refresh` | Read PayPal status for an own invoice |
+
+Admin routes use the existing `admin` role guard.
+
+| Route | Result |
+| --- | --- |
+| `GET /api/settlements?status=` | Invoice list, newest first; optional status filter |
+| `GET /api/settlements/:id` | Invoice with lines |
+| `POST /api/settlements/:id/approve` | Body: `{ releaseTransactionIds?: string[] }`. Fix approval, create draft, send and return the payer link |
+| `POST /api/settlements/:id/reject` | Body: `{ reason: string }`. Cancel an unapproved proposal |
+| `POST /api/settlements/:id/refresh` | Check remote proof and mark paid only for PayPal status `PAID` |
+
+Repeat approval on the same invoice after failure. A repeat cannot release another held line.
+An approved proposal cannot be rejected. This prevents reuse of sales with a remote draft.
+No eligible sale gives HTTP 400. Invalid IDs, status, release IDs or reason give HTTP 400.
+A foreign merchant invoice gives HTTP 403. A PayPal failure gives HTTP 502 without remote text.
+This phase has no top-ups, payouts, webhooks or changes to credit balances.
+
+Approval sends only a remote `DRAFT`. It syncs an invoice that PayPal already sent. A `SENT`
+invoice with no payer URL can recover the URL through refresh or repeat approval. A paid response
+with no URL keeps the saved URL. A `PAID` approval does not require a URL. An all-held proposal
+with no release selection returns a validation message before the approval function is called.

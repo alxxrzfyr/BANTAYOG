@@ -50,6 +50,11 @@ export class PersistenceError {
   ) {}
 }
 
+export class PayPalError {
+  readonly _tag = 'paypal' as const
+  constructor(public readonly message: string) {}
+}
+
 export class JwtError {
   readonly _tag = 'jwt' as const
   constructor(
@@ -74,6 +79,7 @@ export type AppError =
   | RateLimitError
   | OnchainError
   | PersistenceError
+  | PayPalError
   | JwtError
   | PolicyError
 
@@ -96,6 +102,7 @@ export function errorToHttpStatus(error: AppError): ContentfulStatusCode {
     case 'rateLimit':
       return 429
     case 'onchain':
+    case 'paypal':
       return 502
     case 'persistence':
       return 500

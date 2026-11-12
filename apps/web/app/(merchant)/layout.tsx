@@ -17,18 +17,18 @@ export default function MerchantLayout({
 
   // Fetch profile. React Query will only perform the query if enabled is true.
   // We disable query on login page to avoid infinite redirect loop.
-  const { data: profile, isError } = useMerchantProfile();
+  const { data: profile, isAuthError } = useMerchantProfile();
 
   useEffect(() => {
     if (isLoginPage) return;
 
-    if (isError) {
+    if (isAuthError) {
       // Clear token and kick out
       window.localStorage.removeItem(MERCHANT_TOKEN_KEY);
       window.localStorage.removeItem(MERCHANT_TOKEN_KEY + "_expires");
       router.push("/merchant-login");
     }
-  }, [isError, isLoginPage, router]);
+  }, [isAuthError, isLoginPage, router]);
 
   useEffect(() => {
     if (isLoginPage) return;

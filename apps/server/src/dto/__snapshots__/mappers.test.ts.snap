@@ -89,3 +89,40 @@ exports[`DTO Mappers Snapshot Tests > should correctly map a wallet balance resu
   "formatted": "10000.0",
 }
 `;
+
+exports[`maps settlement proof without private sale fields and fixes decimal strings 1`] = `
+{
+  "aiSummary": "Review complete.",
+  "approved": false,
+  "createdAt": "2026-11-12T00:00:00Z",
+  "heldAmountPhp": "0.00",
+  "id": "a47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "lines": [
+    {
+      "amountPhp": "10.10",
+      "held": false,
+      "holdReason": null,
+      "items": [
+        {
+          "category": "GRAINS",
+          "imageUrl": null,
+          "name": "Rice",
+          "quantity": 1,
+          "unitPricePhp": "10.10",
+        },
+      ],
+      "ledgerTxHash": "ledger-hash",
+      "soldAt": "2026-11-11T00:00:00Z",
+      "transactionId": "c47ac10b-58cc-4372-a567-0e02b2c3d479",
+    },
+  ],
+  "merchantId": "b47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "paidAt": null,
+  "payUrl": null,
+  "paypalInvoiceId": null,
+  "sentAt": null,
+  "status": "PROPOSED",
+  "storeName": "Test store",
+  "totalAmountPhp": "10.10",
+}
+`;

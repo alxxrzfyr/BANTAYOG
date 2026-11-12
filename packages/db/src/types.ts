@@ -188,6 +188,61 @@ export interface ProductVariantRow {
 
 export type TableName = keyof Database['public']['Tables']
 
+export type SettlementInvoiceStatus = 'PROPOSED' | 'SENT' | 'PAID' | 'CANCELLED'
+
+export interface SettlementInvoiceRow {
+  id: string
+  merchant_id: string
+  status: SettlementInvoiceStatus
+  total_amount_php: string | number
+  ai_summary: string
+  paypal_invoice_id: string | null
+  paypal_invoice_url: string | null
+  approved_by: string | null
+  created_at: string
+  sent_at: string | null
+  paid_at: string | null
+}
+
+export interface SettlementInvoiceLineRow {
+  id: string
+  invoice_id: string
+  transaction_id: string
+  amount_php: string | number
+  held: boolean
+  hold_reason: string | null
+}
+
+export interface SettlementSaleRow {
+  id: string
+  merchant_id: string
+  amount_php: string
+  sold_at: string
+  ledger_tx_hash: string | null
+  item_list_jsonb: Record<string, unknown>[]
+}
+
+export interface SettlementInvoiceSummaryRow extends Omit<SettlementInvoiceRow, 'total_amount_php'> {
+  total_amount_php: string
+  store_name: string
+  held_amount_php: string
+}
+
+export interface SettlementLineDetailRow extends Omit<SettlementInvoiceLineRow, 'amount_php'> {
+  amount_php: string
+  sold_at: string
+  ledger_tx_hash: string | null
+  item_list_jsonb: Record<string, unknown>[]
+}
+
+export interface SettlementMerchantOverviewRow {
+  merchant_id: string
+  unpaid_sale_count: number
+  unpaid_amount_php: string
+  waiting_for_ledger_count: number
+  paid_amount_php: string
+}
+
 // ---------------------------------------------------------------------------
 // Database schema (for Supabase typed client)
 // ---------------------------------------------------------------------------
@@ -195,6 +250,16 @@ export type TableName = keyof Database['public']['Tables']
 export interface Database {
   public: {
     Tables: {
+      settlement_invoices: {
+        Row: SettlementInvoiceRow
+        Insert: Pick<SettlementInvoiceRow, 'merchant_id' | 'ai_summary'> & Partial<Omit<SettlementInvoiceRow, 'merchant_id' | 'ai_summary'>>
+        Update: Partial<Omit<SettlementInvoiceRow, 'id' | 'created_at'>>
+      }
+      settlement_invoice_lines: {
+        Row: SettlementInvoiceLineRow
+        Insert: Pick<SettlementInvoiceLineRow, 'invoice_id' | 'transaction_id' | 'amount_php'> & Partial<Pick<SettlementInvoiceLineRow, 'id' | 'held' | 'hold_reason'>>
+        Update: Partial<Omit<SettlementInvoiceLineRow, 'id' | 'invoice_id' | 'transaction_id'>>
+      }
       administrators: {
         Row: AdministratorRow
         Insert: Omit<AdministratorRow, 'id' | 'created_at'>
@@ -297,8 +362,16 @@ export interface Database {
         Update: Partial<Omit<ProductVariantRow, 'id' | 'created_at'>>
       }
     }
-    Views: Record<string, never>
+    Views: {
+      settlement_eligible_sales: { Row: SettlementSaleRow }
+      settlement_invoice_summaries: { Row: SettlementInvoiceSummaryRow }
+      settlement_line_details: { Row: SettlementLineDetailRow }
+      settlement_merchant_overviews: { Row: SettlementMerchantOverviewRow }
+    }
     Functions: {
+      create_settlement_proposal: { Args: { p_merchant_id: string; p_held: { transactionId: string; reason: string }[]; p_ai_summary: string; p_sale_ids: string[] }; Returns: { id: string; created: boolean } }
+      approve_settlement: { Args: { p_invoice_id: string; p_admin_id: string; p_release: string[] }; Returns: string }
+      cancel_settlement: { Args: { p_invoice_id: string; p_reason: string }; Returns: string }
       has_role: { Args: { required_role: string }; Returns: boolean }
       claim_outbox_rows: { Args: { p_limit: number }; Returns: Database['public']['Tables']['outbox']['Row'][] }
       settle_sale: { Args: { p_beneficiary_id: string; p_merchant_id: string; p_amount: number; p_items: Record<string, unknown>[]; p_transaction_id: string }; Returns: string }

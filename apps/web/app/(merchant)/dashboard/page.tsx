@@ -156,6 +156,41 @@ export default function MerchantDashboard() {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </Link>
+
+          {/* Get paid — PayPal settlement of confirmed sales */}
+          <Link
+            href="/dashboard/settlements"
+            className="mt-3 flex min-h-[72px] items-center gap-4 rounded-2xl border border-brand-darkTeal/15 bg-white px-5 py-4 transition-colors hover:bg-brand-peachBg active:brightness-95"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-sageBg text-brand-darkTeal"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="6" width="20" height="13" rx="2" />
+                <circle cx="12" cy="12.5" r="2.5" />
+                <path d="M6 9.5v.01M18 15.5v.01" />
+              </svg>
+            </span>
+            <span className="flex-1">
+              <span className="block font-body text-base font-bold text-brand-darkTeal">Get paid</span>
+              <span className="block font-body text-sm text-brand-darkTeal/80">Claim payment for confirmed sales</span>
+            </span>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="flex-shrink-0 text-brand-darkTeal"
+              aria-hidden="true"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
         </section>
 
         {/* 3. Recent Transactions */}

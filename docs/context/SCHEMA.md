@@ -56,6 +56,7 @@ products, market_prices, outbox                (no foreign key)
 | `00008_product_image_url_and_general_categories.sql` | `products.image_url`; a data update that folds old category names into nine values |
 | `00009_qr_passes_nullable_expires_at.sql` | `qr_passes.expires_at` becomes nullable |
 | `00010_market_prices.sql` | `pg_trgm`; `market_prices` with trigram indexes |
+| `00018_paypal_settlement.sql` | Two settlement tables, four service views and three service functions. See the settlement sections below |
 
 ### Warnings about re-running migrations
 
@@ -318,6 +319,57 @@ UNIQUE `(commodity_name, market_location, source, as_of_date)`. Two GIN trigram 
 the fuzzy match in `pricing-validation.service.ts`. The rows are seeded reference data, not a
 live DA or PSA feed.
 
+### settlement_invoices (00018)
+
+| Column | Type | Constraint |
+| --- | --- | --- |
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `merchant_id` | UUID | NOT NULL, references `merchants(id)` |
+| `status` | TEXT | NOT NULL, default `PROPOSED`. `PROPOSED`, `SENT`, `PAID`, `CANCELLED` |
+| `total_amount_php` | NUMERIC(12,2) | NOT NULL, default 0, >= 0. SQL sums the released lines |
+| `ai_summary` | TEXT | NOT NULL |
+| `paypal_invoice_id` | TEXT | UNIQUE, nullable. Saved before send |
+| `paypal_invoice_url` | TEXT | Nullable. The sandbox payer link |
+| `approved_by` | UUID | Nullable. The first approval actor |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `now()` |
+| `sent_at`, `paid_at` | TIMESTAMPTZ | Nullable |
+
+Index `settlement_one_active_invoice` permits one `PROPOSED` or `SENT` invoice per merchant.
+Approval fixes the released lines and total. Status stays `PROPOSED` until PayPal confirms send.
+The API field `approved` is true when `approved_by` is not null. It does not depend on a draft ID.
+
+### settlement_invoice_lines (00018)
+
+| Column | Type | Constraint |
+| --- | --- | --- |
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `invoice_id` | UUID | NOT NULL, references `settlement_invoices(id)` ON DELETE CASCADE |
+| `transaction_id` | UUID | NOT NULL, references `transactions(id)` |
+| `amount_php` | NUMERIC(12,2) | NOT NULL, >= 0. Copy of the sale amount |
+| `held` | BOOLEAN | NOT NULL, default false |
+| `hold_reason` | TEXT | Nonblank when held. Null when released |
+
+The pair `(invoice_id, transaction_id)` is unique. Index `settlement_lines_invoice` supports
+invoice reads. Partial unique index `settlement_one_claim_per_sale` reserves a transaction when
+`held = false`. Keep the reservation after payment. A hold or cancellation frees the sale.
+Cancellation holds every line and sets the invoice total to zero. These tables do not change
+credit balances, merchant wallet balances, or the sale settlement functions.
+
+### Settlement views (00018)
+
+All four views use `security_invoker = true`. Only `service_role` has `SELECT`. Access is revoked
+from `PUBLIC`, `anon` and `authenticated`. SQL returns each money amount as decimal text.
+
+| View | Result |
+| --- | --- |
+| `settlement_eligible_sales` | `CONFIRMED` or `RECONCILED` sales with no released settlement line. Includes merchant ID, amount, sale time, ledger hash and stored items |
+| `settlement_invoice_summaries` | Invoice columns, store name and the SQL sum of held lines. Includes `approved_by` |
+| `settlement_line_details` | Settlement lines with sale time, ledger hash and stored items |
+| `settlement_merchant_overviews` | Per merchant: eligible sale count and amount, count waiting for ledger confirmation, and total of `PAID` invoices |
+
+The waiting count includes `PENDING_CHAIN` and `SUBMITTED` sales. Held sales remain eligible
+unless another invoice reserves them. The server selects at most 100 sales, oldest first.
+
 ## 4. Functions and RPCs
 
 ### settle_sale — the only money path
@@ -352,6 +404,18 @@ transaction in the same database transaction. Do not move this logic into TypeSc
 | `has_role(required_role TEXT)` | Reads `auth.users.raw_app_meta_data->>'role'`. `admin` satisfies every check. `SECURITY DEFINER`, STABLE |
 | `match_product_embeddings(query_embedding vector(768), match_threshold float, match_count int)` | Cosine kNN over `products.image_embedding`. Returns id, name, category, eligibility_status, price range, reference image and similarity. 00007 is the current version |
 
+### Settlement functions (00018)
+
+Each function uses `SECURITY DEFINER` and `search_path = public`. Only `service_role` has
+`EXECUTE`. Access is revoked from `PUBLIC`, `anon` and `authenticated`. Each function takes the
+same transaction lock for a merchant. Approval and cancellation also lock the invoice row.
+
+| Function | Behavior |
+| --- | --- |
+| `create_settlement_proposal(p_merchant_id UUID, p_held JSONB, p_ai_summary TEXT, p_sale_ids UUID[]) RETURNS JSONB` | Reuse an active invoice or insert the reviewed eligible sales, their holds and the SQL total. Return `{ id, created }`. Require 1 to 100 reviewed IDs. Lock sale rows. Sales that arrive during review wait for the next proposal |
+| `approve_settlement(p_invoice_id UUID, p_admin_id UUID, p_release UUID[]) RETURNS UUID` | Validate selected sales and reservations. Release selected lines, require a positive SQL total and record the first approval. A repeat cannot release another held line. Do not change status until send |
+| `cancel_settlement(p_invoice_id UUID, p_reason TEXT) RETURNS UUID` | Cancel only an unapproved proposal. Require a nonblank reason. Hold every line with that reason and set the total to zero. Repeat cancellation returns the same ID |
+
 ## 5. RLS policies
 
 RLS is enabled on every application table. The API server uses the service role key and therefore
@@ -368,6 +432,7 @@ bypasses RLS. Route guards and explicit ownership checks are the real gate. Keep
 | `beneficiary_wallets` | `admin_all_beneficiary_wallets` |
 | `allocations` | `admin_all_allocations` |
 | `market_prices` | `Allow authenticated read access to market_prices` |
+| `settlement_invoices`, `settlement_invoice_lines` | RLS enabled. No client policy. Only `service_role` has direct SELECT, INSERT, UPDATE and DELETE grants |
 
 There is no policy that lets a merchant `UPDATE` a transaction, and no policy that lets any client
 read `beneficiary_wallets`. The public balance view works because the server holds the service

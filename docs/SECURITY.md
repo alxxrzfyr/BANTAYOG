@@ -103,6 +103,19 @@ of source commits. Test keys are generated at runtime. No test seed is stored in
 test fixtures. Excluding a file from a new tree does not remove it from Git history or revoke
 any key. The existing private history needs a separate review before any public release.
 
+## PayPal sandbox settlement
+
+PayPal API requests use only `api-m.sandbox.paypal.com`. The gateway can read a draft ID from a
+resource link on that origin or `api.sandbox.paypal.com`. It validates the ID and never follows
+the resource link. Draft creation requests the invoice representation. Only invoice create and
+send use deterministic request IDs; OAuth token requests do not use them.
+
+The first approval fixes the released sale set. An approved proposal cannot be rejected, even
+before a remote draft ID is saved. The API exposes this state as `approved`. A retry sends only
+a remote `DRAFT` and checks remote ID, reference, currency and amount before status sync. A
+missing payer URL can be saved on a later refresh without changing the original send time.
+Payment sync keeps a saved URL when PayPal omits it. See ADR 006 for source checks and limits.
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.

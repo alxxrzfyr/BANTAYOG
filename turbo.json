@@ -1,6 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
+    "PAYPAL_CLIENT_ID",
+    "PAYPAL_CLIENT_SECRET",
+    "PAYPAL_PROGRAM_PAYER_EMAIL",
+    "PAYPAL_API_BASE",
     "API_BASE_URL",
     "CRON_SECRET",
     "NEXT_PUBLIC_API_BASE_URL",

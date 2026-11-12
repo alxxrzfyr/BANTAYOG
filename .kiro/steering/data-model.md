@@ -133,3 +133,37 @@ Consequences: never write `DB_RECORDED`/`BROADCAST` to `transactions.status`; ex
 `intervention_tier`, `total_amount`, and `last_error` reads to need casts; verify
 `photo_receipts` / `claim_outbox_rows` actually exist in the target database before using them.
 Reconciling this file with the migrations is a genuinely useful cleanup task.
+
+## PayPal settlement: migration 00018
+
+The new tables record a separate settlement claim. They do not change credit balances or the
+merchant wallet balance. Use `docs/adr/006-paypal-settlement.md` for the decision and limits.
+
+- `settlement_invoices`: merchant, status, SQL total, summary, remote invoice ID and payer URL,
+  approval actor and timestamps. Status is `PROPOSED`, `SENT`, `PAID` or `CANCELLED`.
+- `settlement_invoice_lines`: invoice, transaction, copied sale amount, hold flag and hold reason.
+  All amounts use `NUMERIC(12,2)`. A hold must have a reason. A released line has no hold reason.
+- A partial unique index permits one `PROPOSED` or `SENT` invoice per merchant.
+- A partial unique index on transaction ID reserves each line with `held = false`. The reservation
+  remains after payment. Cancellation holds all lines and sets the payable total to zero.
+- Both tables enable RLS and have no client policy. Only the service role has direct access.
+
+Functions use a shared transaction lock for each merchant. Approval and cancellation lock the
+invoice row. All multi-row writes and all totals stay in SQL.
+
+| Function | Behavior |
+| --- | --- |
+| `create_settlement_proposal(p_merchant_id, p_held, p_ai_summary, p_sale_ids)` | Reuse the active invoice or insert the reviewed eligible sales and their SQL total. Return the ID and whether it was created |
+| `approve_settlement(p_invoice_id, p_admin_id, p_release)` | Release selected lines, compute the total and fix the first approval. Reject a different release selection on retry |
+| `cancel_settlement(p_invoice_id, p_reason)` | Cancel only an unapproved proposal and free its sale reservations |
+
+Eligible sales have status `CONFIRMED` or `RECONCILED` and no released settlement line. The
+reviewed ID list prevents a new sale from entering a proposal during the model call. Each
+proposal has at most 100 sales because PayPal permits 100 invoice items.
+
+Four views use `security_invoker = true`. Only the service role can read them:
+`settlement_eligible_sales`, `settlement_invoice_summaries`, `settlement_line_details` and
+`settlement_merchant_overviews`. SQL converts each numeric amount to text. The overview counts
+`PENDING_CHAIN` and `SUBMITTED` sales as waiting for ledger confirmation. It sums only `PAID`
+invoices for the paid total. Held sales remain unpaid. New types mirror all four views and all
+three functions. The migration passed live checks and was applied to the owner's project.

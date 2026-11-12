@@ -84,6 +84,8 @@ import transactionRoutes from './routes/transactions.js'
 import balanceRoutes from './routes/balance.js'
 import merchantSelfRoutes from './routes/merchant-self.js'
 import analyticsRoutes from './routes/analytics.js'
+import merchantSettlementRoutes from './routes/merchant-settlements.js'
+import settlementRoutes from './routes/settlements.js'
 
 // Auth routes: mostly public (login, merchant-login); logout protected inside authRoutes
 app.route('/api/auth', authRoutes)
@@ -98,9 +100,14 @@ app.route('/api/balance', balanceRoutes)
 // the admin-only middleware intercepting /api/merchants/me requests.
 app.use('/api/merchants/me', authMiddleware, requireRole('merchant'))
 app.use('/api/merchants/me/*', authMiddleware, requireRole('merchant'))
+app.route('/api/merchants/me/settlements', merchantSettlementRoutes)
 app.route('/api/merchants/me', merchantSelfRoutes)
 
 // Admin-only routes
+app.use('/api/settlements', authMiddleware, requireRole('admin'))
+app.use('/api/settlements/*', authMiddleware, requireRole('admin'))
+app.route('/api/settlements', settlementRoutes)
+
 app.use('/api/beneficiaries', authMiddleware, requireRole('admin'))
 app.use('/api/beneficiaries/*', authMiddleware, requireRole('admin'))
 app.route('/api/beneficiaries', beneficiaryRoutes)

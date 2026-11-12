@@ -71,12 +71,13 @@ async function refreshMerchantToken(): Promise<string | null> {
   }
 }
 
-function isAdminEndpoint(url: string): boolean {
+export function isAdminEndpoint(url: string): boolean {
   // Strip query parameters
-  const pathname = url.split("?", 1)[0];
+  const pathname = url.split("?", 1)[0].replace(/\/+$/, "");
+  const atOrBelow = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
   // Explicitly merchant-only routes
-  if (pathname.startsWith("/api/merchants/me")) return false;
+  if (atOrBelow("/api/merchants/me")) return false;
   if (pathname.startsWith("/api/vision")) return false;
 
   // These paths require LGU Admin (sessionToken)
@@ -86,7 +87,8 @@ function isAdminEndpoint(url: string): boolean {
     pathname.startsWith("/api/analytics") ||
     pathname.startsWith("/api/chain") ||
     pathname.startsWith("/api/transactions") ||
-    pathname.startsWith("/api/products")
+    pathname.startsWith("/api/products") ||
+    atOrBelow("/api/settlements")
   );
 }
 

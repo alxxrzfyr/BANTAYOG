@@ -6,6 +6,51 @@ import {
   toClassificationDTO,
   toBalanceDTO
 } from './mappers.js'
+import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO } from './mappers.js'
+import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto } from '@bantayog/schema'
+
+it('maps settlement proof without private sale fields and fixes decimal strings', () => {
+  const row = {
+    id: 'a47ac10b-58cc-4372-a567-0e02b2c3d479', merchant_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
+    store_name: 'Test store', status: 'PROPOSED' as const, total_amount_php: '10.10', held_amount_php: '0.00',
+    ai_summary: 'Review complete.', paypal_invoice_id: null, paypal_invoice_url: null, approved_by: null,
+    created_at: '2026-11-12T00:00:00Z', sent_at: null, paid_at: null,
+    lines: [{ id: 'line', invoice_id: 'invoice', transaction_id: 'c47ac10b-58cc-4372-a567-0e02b2c3d479',
+      amount_php: '10.10', sold_at: '2026-11-11T00:00:00Z', held: false, hold_reason: null, ledger_tx_hash: 'ledger-hash',
+      item_list_jsonb: [{ name: 'Rice', category: 'GRAINS', quantity: 1, unitPricePhp: 10.1, imageUrl: null, pin: 'private' }],
+      beneficiary: { child_name: 'private' },
+    }],
+  }
+  const dto = toSettlementInvoiceDTO(row)
+  expect(SettlementInvoiceDto.safeParse(dto).success).toBe(true)
+  expect(dto).toMatchSnapshot()
+  expect(dto).toHaveProperty('approved', false)
+  expect(toSettlementInvoiceDTO({ ...row, approved_by: 'admin' })).toHaveProperty('approved', true)
+  expect(JSON.stringify(dto)).not.toContain('private')
+  const overview = toMerchantSettlementOverviewDTO({ merchant_id: row.merchant_id, unpaid_sale_count: 1,
+    unpaid_amount_php: '10.10', waiting_for_ledger_count: 2, paid_amount_php: '0.00', invoices: [row] })
+  expect(MerchantSettlementOverviewDto.safeParse(overview).success).toBe(true)
+  expect(overview.invoices[0]).not.toHaveProperty('lines')
+})
+
+it.each([null, {}, [null, 42, 'bad', {}, { name: 'Rice', category: 'GRAINS', quantity: 1, unitPricePhp: 'invalid' },
+  { name: 'Rice', category: null, quantity: 1, unitPricePhp: '10.10' },
+  { name: 'Rice', category: 'GRAINS', quantity: 0, unitPricePhp: '10.10' }]])('skips malformed stored item fields without throwing: %j', items => {
+  const line = { transaction_id: 'c47ac10b-58cc-4372-a567-0e02b2c3d479', amount_php: '10.10', sold_at: '2026-11-12T00:00:00Z',
+    held: false, hold_reason: null, ledger_tx_hash: null, item_list_jsonb: items } as any
+  const dto = toSettlementLineDTO(line)
+  expect(dto.items).toEqual([])
+  expect(SettlementLineDto.safeParse(dto).success).toBe(true)
+})
+
+it('keeps valid sale items beside malformed stored items', () => {
+  const dto = toSettlementLineDTO({ transaction_id: 'sale', amount_php: '10.10', sold_at: 'time', held: false,
+    hold_reason: null, ledger_tx_hash: null, item_list_jsonb: [null,
+      { name: 'Rice', category: 'GRAINS', quantity: 1, unitPricePhp: '10.105', imageUrl: null },
+      { name: 'Milk', category: 'DAIRY', quantity: 2, unitPricePhp: -1 },
+    ] } as any)
+  expect(dto.items).toEqual([{ name: 'Rice', category: 'GRAINS', quantity: 1, unitPricePhp: '10.11', imageUrl: null }])
+})
 
 describe('DTO Mappers Snapshot Tests', () => {
   beforeEach(() => {

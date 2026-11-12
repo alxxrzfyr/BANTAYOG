@@ -1,5 +1,8 @@
 import { computeTier, computeAgeInDays, DAYS_PER_MONTH } from '../domain/eligibility.js'
-
+import type { SettlementInvoiceSummaryRow, SettlementLineDetailRow, SettlementMerchantOverviewRow } from '@bantayog/db'
+import type { SettlementInvoiceDto, SettlementLineDto, MerchantSettlementOverviewDto } from '@bantayog/schema'
+import { SettlementItemDto } from '@bantayog/schema'
+import { formatPhp } from '../domain/php-money.js'
 export interface BeneficiaryDTO {
   id: string
   guardianName: string
@@ -293,5 +296,40 @@ export function toBalanceDTO(result: any): WalletBalanceDTO {
     address: result.address,
     balance: result.balance,
     formatted: result.formatted
+  }
+}
+
+export type SettlementInvoiceRecord = SettlementInvoiceSummaryRow & { lines?: SettlementLineDetailRow[] }
+
+export function toSettlementLineDTO(row: SettlementLineDetailRow): SettlementLineDto {
+  return {
+    transactionId: row.transaction_id, amountPhp: formatPhp(row.amount_php), soldAt: row.sold_at,
+    held: row.held, holdReason: row.hold_reason, ledgerTxHash: row.ledger_tx_hash,
+    items: (Array.isArray(row.item_list_jsonb) ? row.item_list_jsonb : []).flatMap(item => {
+      if (!item || typeof item !== 'object') return []
+      const price = item.unitPricePhp
+      if ((typeof price !== 'string' && typeof price !== 'number') || !/^\d+(\.\d+)?$/.test(String(price))) return []
+      const parsed = SettlementItemDto.safeParse({ ...item, unitPricePhp: formatPhp(price), imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : null })
+      return parsed.success ? [parsed.data] : []
+    }),
+  }
+}
+
+export function toSettlementInvoiceDTO(row: SettlementInvoiceRecord): SettlementInvoiceDto {
+  return {
+    id: row.id, merchantId: row.merchant_id, storeName: row.store_name, status: row.status,
+    approved: row.approved_by !== null,
+    totalAmountPhp: formatPhp(row.total_amount_php), heldAmountPhp: formatPhp(row.held_amount_php),
+    aiSummary: row.ai_summary, paypalInvoiceId: row.paypal_invoice_id, payUrl: row.paypal_invoice_url,
+    createdAt: row.created_at, sentAt: row.sent_at, paidAt: row.paid_at,
+    ...(row.lines === undefined ? {} : { lines: row.lines.map(toSettlementLineDTO) }),
+  }
+}
+
+export function toMerchantSettlementOverviewDTO(row: SettlementMerchantOverviewRow & { invoices: SettlementInvoiceSummaryRow[] }): MerchantSettlementOverviewDto {
+  return {
+    unpaidSaleCount: row.unpaid_sale_count, unpaidAmountPhp: formatPhp(row.unpaid_amount_php),
+    waitingForLedgerCount: row.waiting_for_ledger_count, paidAmountPhp: formatPhp(row.paid_amount_php),
+    invoices: row.invoices.map(invoice => toSettlementInvoiceDTO({ ...invoice, lines: undefined })),
   }
 }

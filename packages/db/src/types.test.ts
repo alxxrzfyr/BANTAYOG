@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import type { Database, SettlementInvoiceRow, SettlementInvoiceLineRow } from './types.js'
 import type {
   TableName,
   MerchantRow,
@@ -14,6 +16,38 @@ import type {
 } from './types.js'
 
 describe('Database type structure', () => {
+  it('mirrors settlement tables and SQL-owned amounts', () => {
+    const invoice: SettlementInvoiceRow = {
+      id: 'invoice', merchant_id: 'merchant', status: 'PROPOSED', total_amount_php: '10.10',
+      ai_summary: 'Review complete.', paypal_invoice_id: null, paypal_invoice_url: null,
+      approved_by: null, created_at: '2026-11-12T00:00:00Z', sent_at: null, paid_at: null,
+    }
+    const line: SettlementInvoiceLineRow = {
+      id: 'line', invoice_id: invoice.id, transaction_id: 'sale', amount_php: '10.10', held: false, hold_reason: null,
+    }
+    const tables: TableName[] = ['settlement_invoices', 'settlement_invoice_lines']
+    const args: Database['public']['Functions']['create_settlement_proposal']['Args'] = {
+      p_merchant_id: 'merchant', p_held: [], p_ai_summary: 'Review complete.', p_sale_ids: ['sale'],
+    }
+    expect(tables).toHaveLength(2)
+    expect(line.amount_php).toBe(invoice.total_amount_php)
+    expect(args.p_sale_ids).toEqual(['sale'])
+  })
+
+  it('has SQL duplicate guards, row locks, SQL totals, and service-only access', () => {
+    const sql = readFileSync(new URL('../../../supabase/migrations/00018_paypal_settlement.sql', import.meta.url), 'utf8')
+    expect(sql).toMatch(/UNIQUE INDEX[\s\S]*?ON public\.settlement_invoices\s*\(merchant_id\)[\s\S]*?WHERE status IN \('PROPOSED', 'SENT'\)/i)
+    expect(sql).toMatch(/UNIQUE INDEX[\s\S]*?ON public\.settlement_invoice_lines\s*\(transaction_id\) WHERE held = false/i)
+    expect(sql).toContain('pg_advisory_xact_lock')
+    expect(sql).toContain('FOR UPDATE')
+    expect(sql).toContain('SUM(amount_php)')
+    expect(sql).toContain('t.id = ANY(p_sale_ids)')
+    expect(sql).toMatch(/settlement_invoices ENABLE ROW LEVEL SECURITY/)
+    expect(sql).toMatch(/settlement_invoice_lines ENABLE ROW LEVEL SECURITY/)
+    expect(sql).not.toMatch(/CREATE POLICY|UPDATE public\.(merchants|beneficiaries)|CREATE OR REPLACE FUNCTION public\.settle_sale/)
+    expect(sql).toContain('FROM PUBLIC, anon, authenticated')
+    expect(sql).toContain('TO service_role')
+  })
   it('has all catalog tables in the public schema', () => {
     // Type-level test: if this compiles, the types are correct
     const expectedTables: TableName[] = [

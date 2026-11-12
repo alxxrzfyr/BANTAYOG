@@ -3,6 +3,11 @@
 // Chain vars target Stellar testnet per the Stellar migration.
 
 export interface Env {
+  // PayPal sandbox settlement (read only through loadPayPalConfig).
+  PAYPAL_CLIENT_ID?: string
+  PAYPAL_CLIENT_SECRET?: string
+  PAYPAL_PROGRAM_PAYER_EMAIL?: string
+  PAYPAL_API_BASE?: string
   // Supabase
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string

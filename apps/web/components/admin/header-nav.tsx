@@ -17,6 +17,7 @@ const navLinks = [
   { href: "/admin/register", label: "REGISTRATION" },
   { href: "/admin/beneficiaries", label: "BENEFICIARIES" },
   { href: "/admin/merchants", label: "MERCHANTS" },
+  { href: "/admin/settlements", label: "SETTLEMENTS" },
   { href: "/admin/analytics", label: "ANALYTICS" },
 ] as const;
 
@@ -76,6 +77,7 @@ export function AdminHeaderNav() {
         <nav className="flex items-center gap-1">
           {navLinks.map(({ href, label }) => {
             const isActive = pathname === href ||
+              (href === "/admin/settlements" && pathname.startsWith("/admin/settlements/")) ||
               (href === "/admin/beneficiaries" && pathname === "/admin");
 
             return (

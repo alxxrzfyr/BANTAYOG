@@ -62,12 +62,11 @@ export async function callGeminiWithFallback(
 
   // Loop through available API keys
   for (const apiKey of apiKeys) {
-    const maskedKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
     
     // Loop through fallback models
     for (const model of chain) {
       try {
-        console.log(`[Gemini SDK fallback] Attempting call with model: ${model} using key ${maskedKey}`)
+        console.log(`[Gemini SDK fallback] Attempting call with model: ${model}`)
         const ai = new GoogleGenAI({ apiKey })
 
         const parts: any[] = []
@@ -107,10 +106,9 @@ export async function callGeminiWithFallback(
         }
         return text.trim()
       } catch (err: any) {
-        const errMsg = err.message || ''
         const statusCode = err.status || err.statusCode || 0
 
-        console.warn(`[Gemini SDK fallback] Model ${model} failed (${statusCode}) with key ${maskedKey}: ${errMsg.slice(0, 200)}`)
+        console.warn(`[Gemini SDK fallback] Model ${model} failed (${statusCode})`)
         lastError = err
 
         if (statusCode === 429) {

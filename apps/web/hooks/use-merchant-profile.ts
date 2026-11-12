@@ -14,6 +14,12 @@ export interface MerchantProfile {
   status: string;
 }
 
+class MerchantProfileError extends Error {
+  constructor(readonly status: number) {
+    super(`Failed to fetch merchant profile (status ${status})`);
+  }
+}
+
 // Fetches the authenticated merchant's profile with a 10-second timeout.
 // Uses AbortController so the request is cancelled and surfaces as an error
 // if the server does not respond within 10 seconds (Req 7.5, 17.4).
@@ -27,7 +33,7 @@ async function fetchMerchantProfile(): Promise<MerchantProfile> {
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch merchant profile (status ${res.status})`);
+      throw new MerchantProfileError(res.status);
     }
 
     return res.json();
@@ -41,11 +47,14 @@ async function fetchMerchantProfile(): Promise<MerchantProfile> {
 export function useMerchantProfile() {
   const tokenExists = typeof window !== "undefined" && !!window.localStorage.getItem(MERCHANT_TOKEN_KEY);
 
-  const { data, isLoading, isError, refetch } = useQuery<MerchantProfile>({
+  const { data, isLoading, isError, error, refetch } = useQuery<MerchantProfile>({
     queryKey: ["merchant-profile"],
     queryFn: fetchMerchantProfile,
     enabled: tokenExists,
   });
 
-  return { data, isLoading, isError, refetch };
+  const isAuthError = isError && error instanceof MerchantProfileError
+    && (error.status === 401 || error.status === 403);
+
+  return { data, isLoading, isError, isAuthError, refetch };
 }

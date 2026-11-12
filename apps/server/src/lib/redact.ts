@@ -80,11 +80,12 @@ function cloneWithout<T>(value: T): T {
 // operation) passed in explicitly.
 export function collectConfiguredSecrets(
   config: {
-    issuerSecret: string
-    distributionSecret: string
-    sponsorSecret: string
-    keyEncryptionKey: string
-    qrTokenSecret: string
+    issuerSecret?: string
+    distributionSecret?: string
+    sponsorSecret?: string
+    keyEncryptionKey?: string
+    qrTokenSecret?: string
+    clientSecret?: string
   },
   ...extra: string[]
 ): string[] {
@@ -94,6 +95,7 @@ export function collectConfiguredSecrets(
     config.sponsorSecret,
     config.keyEncryptionKey,
     config.qrTokenSecret,
+    config.clientSecret,
     ...extra,
-  ].filter(Boolean)
+  ].filter((secret): secret is string => Boolean(secret))
 }

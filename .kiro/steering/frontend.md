@@ -10,10 +10,10 @@ surfaces; `middleware.ts` decides which one by hostname.
 ## Routing & sandboxing
 
 - Route groups: `(auth)` → `/login` (`(auth)/register/` is an empty placeholder), `(merchant)` →
-  `/merchant-login`, `/dashboard`, `/dashboard/transactions`, `/cart`, `/cart/branded`,
+  `/merchant-login`, `/dashboard`, `/dashboard/transactions`, `/dashboard/settlements`, `/cart`, `/cart/branded`,
   `/cart/non-branded`, `/checkout`, `/checkout/complete`; plus `admin/*` (`/admin`,
   `/admin/login`, `/admin/register`, `/admin/registry`, `/admin/merchants`,
-  `/admin/beneficiaries`) and `balance/`.
+  `/admin/beneficiaries`, `/admin/settlements`, `/admin/settlements/[id]`) and `balance/`.
 - `middleware.ts`: merchant hostnames redirect `/` → `/merchant-login`; balance hostnames redirect
   `/` → `/balance`; everything else → `/login`. Off-surface routes return a plain 404 (skipped on
   localhost so all three work in dev). It then runs a Supabase SSR session check and guards
@@ -34,6 +34,9 @@ surfaces; `middleware.ts` decides which one by hostname.
 - TanStack Query for server state (see `hooks/use-merchant-profile.ts`), Zustand for local state:
   `stores/cart-store.ts` (cart items and totals), `stores/pin-store.ts` (PIN gate), plus
   `stores/auth-context.tsx`. `providers/pin-lock-provider.tsx` wraps the merchant surface.
+- The merchant layout clears the access token and expiry after a profile HTTP 401 or 403, or a
+  `SUSPENDED` profile. Other profile errors keep the session. The dashboard shows its existing
+  retry screen. Independent pages, such as settlements, can still load their own data.
 - Types come from `@bantayog/schema` / `@bantayog/db`. Do not redeclare DTO shapes locally.
 
 ## Approved Urban and Rural build boundary — planned
