@@ -27,6 +27,11 @@ surfaces; `middleware.ts` decides which one by hostname.
 
 ## Data access
 
+- The merchant profile API returns `walletBalance` as an exact decimal string. Keep that
+  type in the profile hook and wallet card. Format with string operations; do not call
+  numeric `.toFixed()` on API balances. The dashboard renders below the PIN overlay,
+  so a dashboard render error also prevents PIN entry.
+
 - Always call the API through `authFetch` (`lib/api.ts`). Token precedence: merchant localStorage
   token (with expiry check and silent refresh via `/api/auth/merchant-refresh`) → Supabase browser
   session. Merchant token wins so an admin session cannot leak into merchant-only endpoints.

@@ -9,7 +9,7 @@ export interface MerchantProfile {
   storeName: string;
   ownerName: string;
   walletAddress: string | null;
-  walletBalance: number;
+  walletBalance: string;
   connected: boolean;
   status: string;
 }

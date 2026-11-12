@@ -134,7 +134,7 @@ describe("merchant profile failures in the merchant layout", () => {
   it.each(["ACTIVE", "SUSPENDED"])("keeps existing %s merchant behavior", async (status) => {
     const profile: MerchantProfile = {
       id: "merchant", storeName: "Store", ownerName: "Owner", walletAddress: null,
-      walletBalance: 12, connected: false, status,
+      walletBalance: "12.0000000", connected: false, status,
     };
     mocks.authFetch.mockResolvedValue(Response.json(profile));
     await loadProfile();

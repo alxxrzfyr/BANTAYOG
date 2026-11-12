@@ -7,8 +7,8 @@ import { authFetch } from "@/lib/api";
 // Wallet Balance Card — matches the dark teal card in merchantPages/13.png
 
 interface WalletBalanceCardProps {
-  /** PHPC balance (numeric) */
-  balance: number;
+  /** Exact PHPC decimal string returned by the merchant profile API. */
+  balance: string;
   /** Merchant's EVM wallet address */
   walletAddress: string | null;
   /** Whether the wallet is connected */
@@ -75,8 +75,10 @@ export function WalletBalanceCard({
     return `${addr.slice(0, 10)}...${addr.slice(-6)}`;
   };
 
-  const formattedBalance = balance.toFixed(2);
-  const phpEquivalent = balance.toFixed(2);
+  // Remove display-only trailing zeros, keeping at least two decimal places.
+  const formattedBalance = balance.replace(/(\.\d{2,}?)0+$/, "$1");
+  const phpEquivalent = formattedBalance;
+  const hasBalance = /[1-9]/.test(balance);
 
   return (
     <>
@@ -186,7 +188,7 @@ export function WalletBalanceCard({
         )}
 
         {/* Informational prompt warnings when balance > 0 and no wallet is connected */}
-        {balance > 0 && !connected && (
+        {hasBalance && !connected && (
           <p className="mb-3 font-body text-[11px] text-[#f48d79] font-medium">
             * Please connect a wallet to cash out your balance.
           </p>
@@ -200,7 +202,7 @@ export function WalletBalanceCard({
           <button
             type="button"
             onClick={() => alert("This feature is coming soon!")}
-            disabled={!connected || balance <= 0}
+            disabled={!connected || !hasBalance}
             className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#f48d79]/40"
           >
             Transfer to Wallet
