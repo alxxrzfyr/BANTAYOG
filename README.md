@@ -203,7 +203,7 @@ University of the Philippines. The team placed **1st Runner-Up** on July 9, 2026
 ## Demo and downloads
 
 - [Watch the demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
-- [Download the Android APK](https://drive.google.com/drive/folders/1WBwtM_48NqHBRsulMHh0qs_ClyvFr24N?usp=sharing)
+- [Download the Android APK](https://github.com/alxxrzfyr/BANTAYOG/releases/download/merchant-v1.0.1/BANTAYOG-merchant-v1.0.1.apk) — Android debug build. Connects to the hosted merchant app and requires internet access. The device PIN stays saved after logout.
 - [Test sign-in details](https://drive.google.com/file/d/1D7TcflxdrH6FG4aDZIQkJAVpAizVpaKg/view?usp=sharing)
 
 <br>
