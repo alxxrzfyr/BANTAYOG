@@ -138,6 +138,59 @@ public checkout uses the existing rate limiter. Configure Upstash when hosting i
 No contribution writes credits or merchant balances. Refunds and disputes need operator review.
 See ADR 007 for the accounting boundary.
 
+## Fund-backed grants and recovery safety
+
+New grants require net completed PayPal captures.
+Migration `00020_fund_backed_grants.sql` adds table `fund_grant_reservations`.
+The table uses `beneficiary_id UUID PRIMARY KEY REFERENCES public.beneficiaries(id) ON DELETE RESTRICT` (non-cascading foreign key).
+It stores `attempt_id UUID NOT NULL UNIQUE`, `amount_php NUMERIC(12,2) NOT NULL CHECK (amount_php IN (5000.00, 3500.00))`, `status TEXT NOT NULL DEFAULT 'RESERVED' CHECK (status IN ('RESERVED', 'ISSUED'))`, and `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+Row-Level Security is enabled with all permissions revoked from `PUBLIC`, `anon`, and `authenticated`.
+Only `service_role` has `SELECT`.
+Application writes use the two security-definer PL/pgSQL functions only:
+- `reserve_grant_funding(p_beneficiary_id UUID, p_attempt_id UUID, p_amount_php TEXT) RETURNS JSONB`
+- `mark_grant_funded(p_beneficiary_id UUID, p_attempt_id UUID) RETURNS BOOLEAN`
+
+Both functions enforce `transaction_isolation = 'read committed'` (raising error 25000 otherwise) and take fixed transaction advisory lock `(1111576148, 1)` in a separate statement before data reads.
+Existing authorization, RBAC, RLS policies, and `settle_sale` remain unchanged.
+
+### Concurrency and reservation rules
+
+1. One beneficiary / one owned attempt: `reserve_grant_funding` checks whether an allocation or an `ISSUED` reservation already exists (returns `{ "outcome": "issued" }`).
+2. If any reservation row exists for the beneficiary, it returns `{ "outcome": "busy" }`. This blocks simultaneous and repeated attempts for the same beneficiary. A `busy` outcome requires operator review; the service never submits to chain on `busy`.
+3. Available funding is computed strictly in SQL: sum of `net_amount_php` from `fund_topups` with status `COMPLETED` minus sum of `amount_php` across all reservations in `fund_grant_reservations`. PayPal fees are excluded from the available pool. Both `RESERVED` and `ISSUED` amounts reduce available funds.
+4. Legacy allocations issued before migration 00020 keep their existing records and credits. They do not debit the new pool.
+5. If available funds are less than requested, the function returns `{ "outcome": "insufficient", "availablePhp": "<amount>" }`.
+6. Only an `acquired` result permits chain submission.
+7. `mark_grant_funded` updates status to `ISSUED` only when `beneficiary_id` and `attempt_id` match and a corresponding row exists in `allocations` with matching `amount_phpc = amount_php` and a non-null, non-empty `onchain_tx_hash`. It returns `true` on success or repeat with matching issued proof, and `false` on missing proof or wrong ownership.
+
+`fund_ledger_summary` appends `backed_grants_php` (all reservations) and `available_to_grant_php` (net completed contributions minus backed grants). DTO field names are `backedGrantsPhp` and `availableToGrantPhp`. Previous column meanings remain unchanged: `owed_php` represents `confirmed_sales - paid_invoices`, not cash.
+
+### Why no automatic recovery
+
+The Stellar SDK wrapper cannot distinguish a network timeout from an accepted payment on the ledger.
+Existing database writes for credit balance updates and allocation records are non-atomic.
+If an automatic release or retry ran after a timeout, the pool could be released while a grant transfer actually succeeded on-chain, creating unbacked credits.
+
+Therefore, **all failures retain the reservation**:
+- Missing custodial wallet or chain configuration errors.
+- Trustline check errors.
+- Stellar submission errors or timeouts.
+- Thrown runtime exceptions.
+- Balance update failures.
+- Allocation insert failures.
+- Finalization errors or lost RPC responses.
+
+No application release API, expiry API, or takeover API exists.
+
+### Operator recovery procedure
+
+When an unresolved reservation (`RESERVED`) requires recovery:
+1. An operator must stop all workers for that beneficiary.
+2. The operator must inspect the Stellar public ledger to prove whether an on-chain transfer occurred.
+3. The operator must verify the exact `attempt_id` under the fund advisory lock `(1111576148, 1)`.
+4. If proof of non-payment is absent, the operator must retain the reservation.
+5. If payment occurred with partial database writes, the operator must reconcile the database. The operator must never call the grant endpoint again to repair a partial write.
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.

@@ -18,7 +18,7 @@ const env = { PAYPAL_CLIENT_ID: 'client', PAYPAL_CLIENT_SECRET: 'private-secret'
 function fakeRepository() {
   return { begin: vi.fn(), get: vi.fn(async () => stored), byOrder: vi.fn(async () => stored), saveOrder: vi.fn(async (_id: string, orderId: string) => { stored.paypal_order_id = orderId }),
     recordCapture: vi.fn(async (_id: string, _orderId: string, capture: PayPalOrderCapture) => { stored = { ...stored, status: 'COMPLETED', paypal_capture_id: capture.id, fee_php: capture.fee, net_amount_php: capture.net, completed_at: '2026-11-12T00:01:00Z' } }),
-    ledger: vi.fn(async () => ({ summary: { gross_contributions_php: '50.00', fees_php: '16.70', net_contributions_php: '33.30', grants_issued_php: '100.00', grant_count: 1, confirmed_sales_php: '75.00', paid_invoices_php: '50.00', owed_php: '25.00' }, topups: [stored] })) }
+    ledger: vi.fn(async () => ({ summary: { gross_contributions_php: '50.00', fees_php: '16.70', net_contributions_php: '33.30', grants_issued_php: '100.00', grant_count: 1, confirmed_sales_php: '75.00', paid_invoices_php: '50.00', owed_php: '25.00', backed_grants_php: '0.00', available_to_grant_php: '33.30' }, topups: [stored] })) }
 }
 function service(overrides: Partial<typeof env> = {}) {
   return new FundService({} as SupabaseClient<Database>, { repository: repository as unknown as FundRepository, gateway: gateway as unknown as PayPalGateway, env: { ...env, ...overrides } })

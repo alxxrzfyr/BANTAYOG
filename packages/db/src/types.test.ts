@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, expectTypeOf } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { Database, SettlementInvoiceRow, SettlementInvoiceLineRow } from './types.js'
 import type {
@@ -16,6 +16,24 @@ import type {
 } from './types.js'
 
 describe('Database type structure', () => {
+  it('mirrors funded grant rows, function arguments, outcomes and ledger strings', () => {
+    type Reservation = Database['public']['Tables']['fund_grant_reservations']['Row']
+    expectTypeOf<Reservation>().toEqualTypeOf<{
+      beneficiary_id: string; attempt_id: string; amount_php: string | number;
+      status: 'RESERVED' | 'ISSUED'; created_at: string
+    }>()
+    expectTypeOf<Database['public']['Functions']['reserve_grant_funding']>().toEqualTypeOf<{
+      Args: { p_beneficiary_id: string; p_attempt_id: string; p_amount_php: string }
+      Returns: { outcome: 'acquired' } | { outcome: 'busy' } | { outcome: 'issued' } |
+        { outcome: 'insufficient'; availablePhp: string }
+    }>()
+    expectTypeOf<Database['public']['Functions']['mark_grant_funded']>().toEqualTypeOf<{
+      Args: { p_beneficiary_id: string; p_attempt_id: string }; Returns: boolean
+    }>()
+    type Ledger = Database['public']['Views']['fund_ledger_summary']['Row']
+    expectTypeOf<Ledger['backed_grants_php']>().toEqualTypeOf<string>()
+    expectTypeOf<Ledger['available_to_grant_php']>().toEqualTypeOf<string>()
+  })
   it('mirrors the service-only fund records and SQL functions', () => {
     const row: Database['public']['Tables']['fund_topups']['Row'] = {
       id: 'fund', amount_php: '50.00', status: 'COMPLETED', paypal_order_id: '5O190127TN364715T',

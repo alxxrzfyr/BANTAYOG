@@ -69,12 +69,12 @@ describe('fresh Supabase install', () => {
       await db.exec(sql)
       const tables = ['beneficiaries', 'merchants', 'transactions', 'products', 'qr_passes',
         'beneficiary_wallets', 'merchant_wallets', 'outbox', 'allocations', 'market_prices',
-        'product_variants', 'settlement_invoices', 'settlement_invoice_lines', 'fund_topups']
+        'product_variants', 'settlement_invoices', 'settlement_invoice_lines', 'fund_topups', 'fund_grant_reservations']
       for (const table of tables) {
         const result = await db.query('SELECT to_regclass($1) IS NOT NULL AS present', ['public.' + table])
         expect(result.rows[0]).toEqual({ present: true })
       }
-      for (const table of ['settlement_invoices', 'settlement_invoice_lines', 'fund_topups']) {
+      for (const table of ['settlement_invoices', 'settlement_invoice_lines', 'fund_topups', 'fund_grant_reservations']) {
         const result = await db.query(`SELECT relrowsecurity,
           has_table_privilege('anon', oid, 'SELECT') AS anon_read,
           has_table_privilege('authenticated', oid, 'SELECT') AS authenticated_read
@@ -84,8 +84,8 @@ describe('fresh Supabase install', () => {
       const functions = await db.query(`SELECT proname FROM pg_proc
         JOIN pg_namespace n ON n.oid = pronamespace WHERE n.nspname = 'public'
         AND proname IN ('create_settlement_proposal', 'approve_settlement', 'cancel_settlement',
-          'create_fund_topup', 'record_fund_capture')`)
-      expect(functions.rows).toHaveLength(5)
+          'create_fund_topup', 'record_fund_capture', 'reserve_grant_funding', 'mark_grant_funded')`)
+      expect(functions.rows).toHaveLength(7)
       await db.exec(readFileSync(join(root, 'supabase/seed.sql'), 'utf8'))
       const before = await db.query<{ count: number }>('SELECT count(*)::int AS count FROM public.products')
       expect(before.rows[0].count).toBeGreaterThan(0)
@@ -99,8 +99,7 @@ describe('fresh Supabase install', () => {
   it('rolls back the full install if a late migration fails', async () => {
     const db = await database()
     try {
-      const broken = sql.replace('-- Source: 00019_paypal_fund.sql',
-        'SELECT missing_install_probe();\n-- Source: 00019_paypal_fund.sql')
+      const broken = sql.replace(/COMMIT;\s*$/, 'SELECT missing_install_probe();\nCOMMIT;\n')
       await expectFailure(db, broken, '42883')
       const result = await db.query(`SELECT count(*)::int AS count FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace

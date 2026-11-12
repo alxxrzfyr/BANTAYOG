@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { authFetch } from "@/lib/api";
 
 /* ─────────────────────────────────────────────────────────
@@ -172,12 +173,21 @@ export function AddCreditsModal({
             </div>
           )}
 
-          {/* API error */}
+          {/* API error / Server refusal */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-700 font-semibold">
-              {error}
+            <div role="alert" className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-700 font-semibold space-y-1.5">
+              <p>{error}</p>
             </div>
           )}
+
+          <p className="text-center text-xs text-brand-darkTeal/75">
+            <Link
+              href="/admin/fund"
+              className="inline-flex min-h-[44px] items-center font-bold text-brand-darkTeal underline underline-offset-2 hover:text-brand-activeTeal"
+            >
+              View program fund ledger
+            </Link>
+          </p>
 
           {/* Confirm button */}
           <button

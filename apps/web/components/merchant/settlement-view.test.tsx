@@ -71,6 +71,15 @@ function render(patch: Partial<MerchantSettlementViewProps>): string {
 }
 
 describe("MerchantSettlementView", () => {
+  it("clearly says funder paid program through PayPal and store payout is separate step in announcement and body without claiming local payout or GCash", () => {
+    const paid = invoice({ status: "PAID", totalAmountPhp: "1500.00", paidAt: "2026-11-12T08:00:00.000Z" });
+    const html = render({ overview: overview({ invoices: [paid] }) });
+    expect(html).toContain("The funder paid the program through PayPal. Store payout is a separate step handled by your program.");
+    expect(html).toMatch(/role="status"[^>]*>[^<]*The funder paid the program through PayPal\. Store payout is a separate step handled by your program\./);
+    expect(html).not.toMatch(/GCash|gcash/i);
+    expect(html).not.toMatch(/You have been paid|The money is yours|on its way to you|Paid to you/);
+  });
+
   it("describes the paid invoice amount and possible fee without promising merchant receipt", () => {
     const paid = invoice({ status: "PAID" });
     const html = render({ overview: overview({ invoices: [paid] }) });
@@ -110,6 +119,8 @@ describe("MerchantSettlementView", () => {
     const html = render({ overview: overview({ unpaidSaleCount: 3, unpaidAmountPhp: "4500.00" }) });
     expect(html).toContain("₱4,500.00");
     expect(html).toContain("3 confirmed sales");
+    expect(html).not.toContain("then pays you through PayPal");
+    expect(html).toContain("Store payout is a separate step handled by your program.");
     expect(html).toMatch(/<button[^>]*min-h-\[52px\][^>]*>.*Get paid/);
   });
 

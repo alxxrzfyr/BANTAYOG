@@ -40,7 +40,7 @@ turning into a second contribution.
 
 This scope gives a working contribution path without changing credits, `settle_sale`, existing
 RLS policies or merchant balances. Linking fund receipts to child grants requires a separate
-allocation design and review.
+allocation design and review (superseded by [ADR 008](008-fund-backed-grants.md)).
 
 Sources and verification: [fund contract](../designs/paypal-fund.md) and
 [verification record](../paypal-hackathon/verification.md).

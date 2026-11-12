@@ -19,7 +19,8 @@ checkout and your own sandbox keys. [verification.md](verification.md) records t
 The public contribution flow does not need Stellar keys. A new invoice needs a confirmed food
 sale. Configure the existing Stellar testnet flow and complete a sale before an invoice test,
 or use an existing confirmed synthetic sale in your own test project. Do not mark a real sale
-confirmed by hand. Contributions do not issue child credits or pay invoices from a pooled fund.
+confirmed by hand. New grants require net completed PayPal captures; without sufficient available
+captured funding, grant allocation is refused.
 
 ## New database
 
@@ -49,8 +50,10 @@ of a new hosted Supabase project's Auth or Storage services.
 
 Read [SCHEMA.md](../context/SCHEMA.md). Do not run the fresh-install file on an existing project.
 Apply only the reviewed, unapplied migrations with owner approval. The PayPal additions are
-`00018_paypal_settlement.sql` and `00019_paypal_fund.sql`. Never replay historical migration
-`00011`: it contains a data reset from the earlier testnet cutover.
+`00018_paypal_settlement.sql`, `00019_paypal_fund.sql` and `00020_fund_backed_grants.sql`.
+Before enabling grant issuance, stop older API instances. Run the API from the same source
+revision as migration `00020`. Never replay historical migration `00011`: it contains a data
+reset from the earlier testnet cutover.
 
 ## Production build
 

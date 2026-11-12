@@ -95,13 +95,28 @@ The admin header keeps the existing branding, colors and desktop row. Below the 
 the navigation wraps below the logo. Links and the sign-out button have 44-pixel touch targets.
 The header must fit the viewport without page-level horizontal scrolling.
 
-## PayPal fund
+## PayPal fund and settlement UI
 
 PayPal fund pages are `/fund` (public sandbox checkout and receipt) and `/admin/fund` (admin
 ledger). `lib/fund/api.ts` validates responses with the shared schemas. Create and capture use
 guest fetch; the ledger uses the admin session. A return URL triggers a server proof check and
 never displays payment success by itself. The browser saves the request UUID and amount before
 checkout and reuses them on retry. A failed return check keeps the same order for retry.
+
+`/fund` states that new grants of PHP 5,000 or PHP 3,500 are backed by net captured contributions.
+
+`/admin/fund` displays `availableToGrantPhp` ("Available to grant") as the main hero figure.
+Cards display net contributions, backed grants (`backedGrantsPhp`), confirmed sales, paid invoices,
+and amount owed (`confirmed_sales - paid_invoices`, not cash). It explains that backed grants include
+reservations and issued grants; unresolved reservations stay covered until operator review. Legacy
+demonstration grants are shown in a separate all-history section and do not reduce available funds.
+
+`AddCreditsModal` displays server refusal messages (`role="alert"`) when funding is insufficient
+or when a busy reservation requires operator review, providing a direct link to `/admin/fund`.
+
+`MerchantSettlementView` in the paid state clearly states that the funder paid the program through
+PayPal and store payout is a separate step handled by the program on local rails. It does not claim
+local transfer execution or make promises about merchant bank receipts.
 
 ## Workspace builds and private requests
 

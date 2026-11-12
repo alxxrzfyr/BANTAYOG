@@ -17,6 +17,9 @@ feature adds that step with PayPal Invoicing (sandbox only).
    approves.
 5. The server creates and sends a PayPal invoice. The officer pays it in PayPal.
 6. The server reads the invoice status from PayPal. The store owner sees "Paid".
+   The funder paid the program through PayPal. Store payout is a separate step handled by the
+   program on local rails; paying an invoice to the program business account does not prove that
+   local store transfer executed. The store has no PayPal account requirement.
 
 Rule: the model proposes, server rules fix the totals, a person approves, PayPal executes.
 
@@ -115,7 +118,9 @@ or `SUBMITTED` are counted as "waiting for ledger confirmation" and are not invo
 - `detail.reference` = the settlement invoice id.
 - Hackathon shortcut: one sandbox business account is the invoicer for every store. Mark it in
   code with `shortcut:` and state it in `apps/server/README.md`. Payment goes to that sandbox
-  account. This does not prove payment to a separate merchant account.
+  account. This does not prove payment to a separate merchant account. The store has no PayPal
+  account requirement. The program pays each store on the local rail the store already uses.
+  Paying an invoice proves payment from funder to program, not local transfer execution.
 - Never log or return the client secret or the access token. Use `redactSecrets` around calls.
 - Save the remote draft ID before send. Check the remote ID, reference, PHP currency and total
   before send and on refresh. Use a fixed invoice number in addition to the POST request keys.
@@ -224,13 +229,13 @@ production dependency: use CSS for motion and respect `prefers-reduced-motion`.
 - Web code does no eligibility, total or price decision. It shows what the API returns.
 - Web owns `apps/web` only. It does not edit `packages/*` or `apps/server`.
 
-## 8. Second phase outline
+## 8. Subsequent phases
 
-- Table `fund_topups` with a unique `paypal_capture_id`.
-- `POST /api/fund/topups` (create order), `POST /api/fund/topups/:orderId/capture` (server
-  capture, amount and currency checked against the order).
-- `GET /api/fund/ledger`: top-ups, grants issued, sales, invoices paid, amount still owed.
-- One funder page and one ledger screen.
+- Phase 2: table `fund_topups`, Orders v2 create and capture, and `GET /api/fund/ledger` (ADR 007).
+- Phase 3: table `fund_grant_reservations`, `reserve_grant_funding`, and `mark_grant_funded` under
+  advisory lock `(1111576148, 1)`. New grants require net completed PayPal captures. All failures
+  retain funding. No second gate exists on invoices, and no double counting occurs.
+  See `docs/designs/paypal-fund.md` and ADR 008.
 
 ## 9. Done means
 

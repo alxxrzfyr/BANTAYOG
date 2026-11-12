@@ -101,6 +101,7 @@ export function FunderCheckout() {
           <Button className="mt-4 min-h-[48px] w-full" loading={pending} onClick={() => void capture(returnOrder)}>Check payment again</Button>
         </section> : <form onSubmit={start} aria-label="Sandbox contribution" aria-busy={pending} className="rounded-2xl border border-brand-sageBorder bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-brand-darkTeal">Add a sandbox contribution</h2>
+          <p className="mt-2 text-xs leading-relaxed text-brand-darkTeal/75">New grants of PHP 5,000 or PHP 3,500 are backed by net captured contributions.</p>
           <label htmlFor="contribution-amount" className="mt-5 block text-sm font-bold text-brand-darkTeal">Amount (PHP)</label>
           <input id="contribution-amount" name="amount" inputMode="decimal" autoComplete="off" required maxLength={9} pattern="[0-9]+\.[0-9]{2}" aria-describedby="amount-help" value={amount} onChange={e => setAmount(e.target.value)} disabled={pending}
             className="mt-2 min-h-[52px] w-full rounded-xl border border-brand-sageBorder bg-white px-4 text-xl font-bold tabular-nums text-brand-darkTeal focus:outline-2 focus:outline-brand-activeTeal" />

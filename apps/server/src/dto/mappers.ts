@@ -17,7 +17,9 @@ export function toFundLedgerDTO(data: { summary: FundLedgerSummaryRow; topups: F
   return { grossContributionsPhp: s.gross_contributions_php, feesPhp: s.fees_php,
     netContributionsPhp: s.net_contributions_php, grantsIssuedPhp: s.grants_issued_php,
     grantCount: s.grant_count, confirmedSalesPhp: s.confirmed_sales_php,
-    paidInvoicesPhp: s.paid_invoices_php, owedPhp: s.owed_php, topups: data.topups.map(row => toFundTopupDTO(row)) }
+    paidInvoicesPhp: s.paid_invoices_php, owedPhp: s.owed_php,
+    backedGrantsPhp: s.backed_grants_php, availableToGrantPhp: s.available_to_grant_php,
+    topups: data.topups.map(row => toFundTopupDTO(row)) }
 }
 
 export interface BeneficiaryDTO {

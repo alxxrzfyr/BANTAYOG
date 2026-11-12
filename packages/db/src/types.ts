@@ -268,11 +268,26 @@ export interface FundLedgerSummaryRow {
   confirmed_sales_php: string
   paid_invoices_php: string
   owed_php: string
+  backed_grants_php: string
+  available_to_grant_php: string
+}
+
+export interface FundGrantReservationRow {
+  beneficiary_id: string
+  attempt_id: string
+  amount_php: string | number
+  status: 'RESERVED' | 'ISSUED'
+  created_at: string
 }
 
 export interface Database {
   public: {
     Tables: {
+      fund_grant_reservations: {
+        Row: FundGrantReservationRow
+        Insert: Pick<FundGrantReservationRow, 'beneficiary_id' | 'attempt_id' | 'amount_php'> & Partial<Pick<FundGrantReservationRow, 'status' | 'created_at'>>
+        Update: Partial<Omit<FundGrantReservationRow, 'beneficiary_id' | 'created_at'>>
+      }
       fund_topups: {
         Row: FundTopupRow
         Insert: Pick<FundTopupRow, 'id' | 'amount_php'> & Partial<Omit<FundTopupRow, 'id' | 'amount_php'>>
@@ -399,6 +414,11 @@ export interface Database {
       settlement_merchant_overviews: { Row: SettlementMerchantOverviewRow }
     }
     Functions: {
+      reserve_grant_funding: {
+        Args: { p_beneficiary_id: string; p_attempt_id: string; p_amount_php: string }
+        Returns: { outcome: 'acquired' } | { outcome: 'busy' } | { outcome: 'issued' } | { outcome: 'insufficient'; availablePhp: string }
+      }
+      mark_grant_funded: { Args: { p_beneficiary_id: string; p_attempt_id: string }; Returns: boolean }
       create_fund_topup: { Args: { p_id: string; p_amount_php: string }; Returns: string }
       record_fund_capture: { Args: { p_id: string; p_order_id: string; p_capture_id: string; p_amount_php: string; p_fee_php: string; p_net_amount_php: string }; Returns: string }
       create_settlement_proposal: { Args: { p_merchant_id: string; p_held: { transactionId: string; reason: string }[]; p_ai_summary: string; p_sale_ids: string[] }; Returns: { id: string; created: boolean } }

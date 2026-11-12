@@ -90,6 +90,22 @@ exports[`DTO Mappers Snapshot Tests > should correctly map a wallet balance resu
 }
 `;
 
+exports[`maps SQL fund amounts without combining legacy grants or losing decimal precision 1`] = `
+{
+  "availableToGrantPhp": "9007199254735976.26",
+  "backedGrantsPhp": "5000.00",
+  "confirmedSalesPhp": "125.50",
+  "feesPhp": "16.95",
+  "grantCount": 2,
+  "grantsIssuedPhp": "8500.00",
+  "grossContributionsPhp": "9007199254740993.21",
+  "netContributionsPhp": "9007199254740976.26",
+  "owedPhp": "25.50",
+  "paidInvoicesPhp": "100.00",
+  "topups": [],
+}
+`;
+
 exports[`maps a completed contribution with separate gross, fee and net amounts 1`] = `
 {
   "amountPhp": "50.00",

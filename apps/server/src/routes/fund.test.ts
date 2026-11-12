@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.create.mockResolvedValue(ok({ topup: row, approvalUrl: null }))
   mocks.capture.mockResolvedValue(ok({ topup: row, approvalUrl: null }))
-  mocks.ledger.mockResolvedValue(ok({ summary: { gross_contributions_php: '50.00', fees_php: '16.70', net_contributions_php: '33.30', grants_issued_php: '100.00', grant_count: 1, confirmed_sales_php: '75.00', paid_invoices_php: '50.00', owed_php: '25.00' }, topups: [row] }))
+  mocks.ledger.mockResolvedValue(ok({ summary: { gross_contributions_php: '50.00', fees_php: '16.70', net_contributions_php: '33.30', grants_issued_php: '100.00', grant_count: 1, confirmed_sales_php: '75.00', paid_invoices_php: '50.00', owed_php: '25.00', backed_grants_php: '0.00', available_to_grant_php: '33.30' }, topups: [row] }))
 })
 describe('Fund routes and mounted access rules', () => {
   it('permits guest create and capture and returns only safe receipt fields', async () => {

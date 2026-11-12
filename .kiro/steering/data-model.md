@@ -20,9 +20,13 @@ all of them — migration 00001 alone is out of date. Mirror every schema change
 | 00008 | `products.image_url`; category consolidation to `FRUITS, VEGETABLES, MEATS, BEVERAGES, DAIRY, GRAINS, CANNED_GOODS, SNACKS, OTHER` |
 | 00009 | `qr_passes.expires_at` nullable (passes can be non-expiring) |
 | 00010 | pg_trgm + `market_prices` (commodity/local name, unit, min/max, source, `as_of_date`, trigram GIN indexes) |
+| 00018 | `settlement_invoices`, `settlement_invoice_lines`, 4 views, 3 RPCs |
+| 00019 | `fund_topups`, `fund_topup_details`, `fund_ledger_summary`, 2 RPCs |
+| 00020 | `fund_grant_reservations`, `reserve_grant_funding()`, `mark_grant_funded()`, updated `fund_ledger_summary` view with `backed_grants_php` and `available_to_grant_php` |
 
 ## Tables
 
+- **fund_grant_reservations** — PK = `beneficiary_id` (references `beneficiaries(id)` ON DELETE RESTRICT, non-cascading FK), unique `attempt_id` UUID, `amount_php NUMERIC(12,2) CHECK IN (5000.00, 3500.00)`, `status CHECK IN ('RESERVED', 'ISSUED')`, `created_at TIMESTAMPTZ`. Service-only SELECT and function execution.
 - **beneficiaries** — guardian name + hashed mobile, `child_name`, `child_age_months` (0–120),
   `monthly_income_php`, GPS lat/lng with range CHECKs, `pin_hash_argon2id` + `pin_salt`,
   `eligibility_status ∈ {PENDING, ELIGIBLE, INELIGIBLE, SUSPENDED}`, `credit_balance NUMERIC(12,2) >= 0`,
@@ -104,6 +108,13 @@ state. It is not a new `transactions.status` value.
   `products.image_embedding`.
 - `has_role(required_role)` — reads `auth.users.raw_app_meta_data->>'role'`; `admin` satisfies
   every role check.
+- `reserve_grant_funding(p_beneficiary_id, p_attempt_id, p_amount_php)` — under advisory lock `(1111576148, 1)`,
+  checks prior allocations/reservations, computes available funds from net completed topups minus
+  all reservations (`RESERVED` and `ISSUED`), and returns `issued`, `busy`, `insufficient` (with
+  `availablePhp`), or inserts and returns `acquired`. Only `acquired` permits submission.
+- `mark_grant_funded(p_beneficiary_id, p_attempt_id)` — under advisory lock `(1111576148, 1)`,
+  updates reservation `status = 'ISSUED'` when matching allocation with same amount and on-chain
+  hash exists. Returns boolean. No release API exists.
 
 ## RLS
 
@@ -174,4 +185,12 @@ Migration 00019 adds `fund_topups`, `fund_topup_details`, `fund_ledger_summary`,
 `create_fund_topup` and `record_fund_capture`. The table fixes one request amount and one order
 and capture ID. The capture function locks the row, checks exact gross, fee and net, and keeps
 repeat capture idempotent. All objects are service-only. The table has RLS with no client policy.
-Both views return money as text. No existing balance or policy changes. See ADR 007 and SCHEMA.
+Both views return money as text.
+
+Migration 00020 adds `fund_grant_reservations`, `reserve_grant_funding` and `mark_grant_funded`.
+It appends `backed_grants_php` (sum of all reservations) and `available_to_grant_php` (net
+completed contributions minus backed grants) to `fund_ledger_summary`. DTO field names are
+`backedGrantsPhp` and `availableToGrantPhp`. All reservation amounts reduce available funds;
+fees are excluded. Legacy demonstration grants remain in `grants_issued_php` but do not debit
+`available_to_grant_php`. Both tables have RLS and no client policy or client grants. Existing
+balance functions and policies remain unchanged. See ADR 007, ADR 008, and SCHEMA.

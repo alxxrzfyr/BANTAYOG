@@ -8,7 +8,7 @@ export default function FundPage() {
         <p className="text-xs font-bold uppercase tracking-widest text-brand-activeTeal">PayPal sandbox</p>
         <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Help nutrition aid reach the food counter.</h1>
         <p className="mt-4 text-base leading-relaxed">BANTAYOG checks food purchases at approved stores and records the invoices paid through PayPal.</p>
-        <p className="mb-7 mt-3 text-sm leading-relaxed text-brand-darkTeal/80">Try a sandbox contribution. This prototype records funding separately from child credits and store payments. It does not yet assign your contribution to a child or pay a store from that contribution.</p>
+        <p className="mb-7 mt-3 text-sm leading-relaxed text-brand-darkTeal/80">Try a sandbox contribution. No captured PayPal money, no new grant. The program reserves net funding before an administrator can issue credits. Store payout is a separate step.</p>
         <FunderCheckout />
       </div>
     </main>

@@ -84,7 +84,7 @@ function announce(display: Display, overview: MerchantSettlementOverviewDto): st
     case "sent":
       return `Invoice of ${formatPhp(display.invoice.totalAmountPhp)} sent. Waiting for payment.`;
     case "paid":
-      return `PayPal invoice paid. Invoice amount: ${formatPhp(display.invoice.totalAmountPhp)}. PayPal can deduct its fee.`;
+      return `PayPal invoice paid. Invoice amount: ${formatPhp(display.invoice.totalAmountPhp)}. The funder paid the program through PayPal. Store payout is a separate step handled by your program.`;
   }
 }
 
@@ -200,7 +200,7 @@ function Hero({
     case "ready":
       label = "Ready to claim";
       amount = overview.unpaidAmountPhp;
-      body = `${plural(overview.unpaidSaleCount, "confirmed sale", "confirmed sales")}. The program officer checks your claim, then pays you through PayPal.`;
+      body = `${plural(overview.unpaidSaleCount, "confirmed sale", "confirmed sales")}. The program officer checks your claim and requests payment to the program through PayPal. Store payout is a separate step handled by your program.`;
       action = (
         <button type="button" onClick={onGetPaid} className={heroPrimaryAction}>
           Get paid
@@ -238,7 +238,7 @@ function Hero({
       amount = display.invoice.totalAmountPhp;
       body = (
         <StatusLine tone="done">
-          Paid{display.invoice.paidAt ? ` ${formatSaleTime(display.invoice.paidAt)}` : ""}. This is the invoice amount. PayPal can deduct its fee. Thank you for serving families in your area.
+          Paid{display.invoice.paidAt ? ` ${formatSaleTime(display.invoice.paidAt)}` : ""}. This is the invoice amount. PayPal can deduct its fee. The funder paid the program through PayPal. Store payout is a separate step handled by your program.
         </StatusLine>
       );
       break;
@@ -314,8 +314,8 @@ function StatusLine({ tone, children }: { tone: "wait" | "done"; children: React
 
 const STEPS = [
   { title: "Officer review", who: "The program officer checks each sale and approves." },
-  { title: "PayPal payment", who: "The program pays the invoice in PayPal." },
-  { title: "Paid", who: "The PayPal invoice is paid." },
+  { title: "PayPal payment", who: "The funder pays the program through PayPal." },
+  { title: "Invoice paid", who: "The PayPal invoice is paid. Store payout is separate." },
 ] as const;
 
 function Progress({ display }: { display: Display }) {
@@ -502,7 +502,7 @@ function LineRow({ line }: { line: SettlementLineDto }) {
 const PAST_LABEL: Record<SettlementInvoiceDto["status"], string> = {
   PROPOSED: "With the officer",
   SENT: "Waiting for payment",
-  PAID: "Paid",
+  PAID: "Invoice paid",
   CANCELLED: "Not approved",
 };
 

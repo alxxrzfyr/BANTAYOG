@@ -21,6 +21,7 @@ erDiagram
     auth_users        ||--o{ merchants            : "auth_user_id"
     beneficiaries     ||--o| beneficiary_wallets  : "1 custodial wallet"
     beneficiaries     ||--o| allocations          : "1 one-time grant (UNIQUE)"
+    beneficiaries     ||--o| fund_grant_reservations : "1 grant reservation (PK)"
     beneficiaries     ||--o{ qr_passes            : "issued passes"
     beneficiaries     ||--o{ transactions         : "spends"
     merchants         ||--o{ transactions         : "receives"
@@ -35,6 +36,7 @@ to `products`. The `outbox` row points at a transaction through its JSON payload
 ```
 beneficiaries ──1:1── beneficiary_wallets      (PK = beneficiary_id)
 beneficiaries ──1:0..1── allocations           (beneficiary_id UNIQUE)
+beneficiaries ──1:0..1── fund_grant_reservations (PK = beneficiary_id, ON DELETE RESTRICT)
 beneficiaries ──1:N── qr_passes                (ON DELETE CASCADE)
 beneficiaries ──1:N── transactions             (ON DELETE RESTRICT)
 merchants     ──1:N── transactions             (ON DELETE RESTRICT)
@@ -58,6 +60,7 @@ products, market_prices, outbox                (no foreign key)
 | `00010_market_prices.sql` | `pg_trgm`; `market_prices` with trigram indexes |
 | `00018_paypal_settlement.sql` | Two settlement tables, four service views and three service functions. See the settlement sections below |
 | `00019_paypal_fund.sql` | `fund_topups`, two service views and two service functions. No balance or existing policy changes |
+| `00020_fund_backed_grants.sql` | `fund_grant_reservations`, `reserve_grant_funding()`, `mark_grant_funded()`, updated `fund_ledger_summary` view with `backed_grants_php` and `available_to_grant_php` |
 
 ### Warnings about re-running migrations
 
@@ -375,6 +378,21 @@ from `PUBLIC`, `anon` and `authenticated`. SQL returns each money amount as deci
 The waiting count includes `PENDING_CHAIN` and `SUBMITTED` sales. Held sales remain eligible
 unless another invoice reserves them. The server selects at most 100 sales, oldest first.
 
+### fund_grant_reservations (00020)
+
+| Column | Type | Constraint |
+| --- | --- | --- |
+| `beneficiary_id` | UUID | PK, references `beneficiaries(id)` ON DELETE RESTRICT (non-cascading FK) |
+| `attempt_id` | UUID | NOT NULL, UNIQUE |
+| `amount_php` | NUMERIC(12,2) | NOT NULL, CHECK `amount_php IN (5000.00, 3500.00)` |
+| `status` | TEXT | NOT NULL, default `RESERVED`, CHECK `status IN ('RESERVED', 'ISSUED')` |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `now()` |
+
+RLS is enabled. Access is revoked from `PUBLIC`, `anon`, and `authenticated`.
+Only `service_role` has `SELECT`.
+Application writes use the two grant funding functions only.
+An unresolved reservation (`status = 'RESERVED'`) holds funding against the pool until operator review.
+
 ## 4. Functions and RPCs
 
 ### settle_sale — the only money path
@@ -421,6 +439,20 @@ same transaction lock for a merchant. Approval and cancellation also lock the in
 | `approve_settlement(p_invoice_id UUID, p_admin_id UUID, p_release UUID[]) RETURNS UUID` | Validate selected sales and reservations. Release selected lines, require a positive SQL total and record the first approval. A repeat cannot release another held line. Do not change status until send |
 | `cancel_settlement(p_invoice_id UUID, p_reason TEXT) RETURNS UUID` | Cancel only an unapproved proposal. Require a nonblank reason. Hold every line with that reason and set the total to zero. Repeat cancellation returns the same ID |
 
+### Grant funding functions (00020)
+
+Both functions use `SECURITY DEFINER` and `search_path = public`.
+Only `service_role` has `EXECUTE`. Access is revoked from `PUBLIC`, `anon`, and `authenticated`.
+Both functions enforce `transaction_isolation = 'read committed'` (raising error 25000 otherwise).
+Both functions take fixed transaction advisory lock `(1111576148, 1)` in a separate statement before any reads.
+
+| Function | Behavior |
+| --- | --- |
+| `reserve_grant_funding(p_beneficiary_id UUID, p_attempt_id UUID, p_amount_php TEXT) RETURNS JSONB` | Enforces parameter validity (amount `'5000.00'` or `'3500.00'`, non-null IDs). Returns `{outcome: 'issued'}` for existing allocation or `ISSUED` reservation; `{outcome: 'busy'}` for any active reservation on that child; `{outcome: 'insufficient', availablePhp}` when net completed top-ups minus all reservations < amount; or inserts `RESERVED` row and returns `{outcome: 'acquired'}`. Only a new reservation permits submission |
+| `mark_grant_funded(p_beneficiary_id UUID, p_attempt_id UUID) RETURNS BOOLEAN` | Updates reservation `status = 'ISSUED'` matching `beneficiary_id` and `attempt_id` only when an `allocations` record exists with matching `amount_phpc = amount_php` and non-null, non-empty `onchain_tx_hash`. Returns `true` on success or repeat with matching issued proof; `false` on missing proof or wrong ownership |
+
+No application release, expiry or takeover API exists.
+
 ## 5. RLS policies
 
 RLS is enabled on every application table. The API server uses the service role key and therefore
@@ -438,6 +470,8 @@ bypasses RLS. Route guards and explicit ownership checks are the real gate. Keep
 | `allocations` | `admin_all_allocations` |
 | `market_prices` | `Allow authenticated read access to market_prices` |
 | `settlement_invoices`, `settlement_invoice_lines` | RLS enabled. No client policy. Only `service_role` has direct SELECT, INSERT, UPDATE and DELETE grants |
+| `fund_topups` | RLS enabled. No client policy. Revoked from PUBLIC, anon, authenticated. service_role SELECT only |
+| `fund_grant_reservations` | RLS enabled. No client policy. Revoked from PUBLIC, anon, authenticated. service_role SELECT only. Writes via functions only |
 
 There is no policy that lets a merchant `UPDATE` a transaction, and no policy that lets any client
 read `beneficiary_wallets`. The public balance view works because the server holds the service
@@ -481,22 +515,32 @@ Consequences:
 4. Reconciling `types.ts` with the migrations is a useful, self-contained task. Do it as one
    change, with `packages/db/src/types.test.ts` updated in the same commit.
 
-## 7. PayPal fund objects (migration 00019)
+## 7. PayPal fund objects (migrations 00019 and 00020)
 
-`fund_topups` stores a caller request UUID, a fixed `amount_php`, `CREATED` or `COMPLETED`
+`fund_topups` (00019) stores a caller request UUID, a fixed `amount_php`, `CREATED` or `COMPLETED`
 status, unique nullable `paypal_order_id` and `paypal_capture_id`, nullable `fee_php` and
 `net_amount_php`, and creation and completion times. Money is `NUMERIC(12,2)`. A completed row
 requires all payment fields and `amount_php = fee_php + net_amount_php`. No payer data is stored.
 
-`fund_topup_details` returns money as text. `fund_ledger_summary` computes contribution gross,
-fees and net, issued grants with a ledger hash, confirmed sales, paid invoice totals and the
-amount still owed. Both views use `security_invoker = true` and service-only read grants.
+`fund_grant_reservations` (00020) stores a non-cascading `beneficiary_id` primary key, unique
+`attempt_id` UUID, `amount_php` (5000.00 or 3500.00), `status` (`RESERVED` or `ISSUED`), and creation time.
+
+`fund_topup_details` returns money as text.
+`fund_ledger_summary` computes contribution gross, fees and net, issued grants with a ledger hash,
+confirmed sales, paid invoice totals, the amount still owed, `backed_grants_php` (sum of all reservations),
+and `available_to_grant_php` (net contributions minus backed grants).
+Both views use `security_invoker = true` and service-only read grants.
+Legacy demonstration grants remain in `grants_issued_php` but do not debit `available_to_grant_php`.
 
 `create_fund_topup(p_id, p_amount_php)` fixes the amount on first use. A retry with a different
 amount fails. `record_fund_capture(p_id, p_order_id, p_capture_id, p_amount_php, p_fee_php,
 p_net_amount_php)` locks the row and checks its order, exact amount and fee equation. Repeating
-the same proof is safe; different proof fails. Both functions execute only for `service_role`.
-The table has RLS and no client policy or client grants. Existing balance functions are unchanged.
+the same proof is safe; different proof fails.
+
+`reserve_grant_funding(p_beneficiary_id, p_attempt_id, p_amount_php)` and
+`mark_grant_funded(p_beneficiary_id, p_attempt_id)` guard the grant gate under advisory lock `(1111576148, 1)`.
+All four functions execute only for `service_role`.
+Both tables have RLS and no client policy or client grants. Existing balance functions are unchanged.
 
 ## 8. Checklist for a schema change
 

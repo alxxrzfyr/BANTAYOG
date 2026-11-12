@@ -10,13 +10,17 @@ beside the code as `<name>.test.ts` — there is no separate `tests/` tree.
 ```bash
 pnpm test                                  # turbo: all packages
 pnpm --filter @bantayog/server test        # server unit + e2e-style tests
-pnpm --filter @bantayog/web test           # lib/** and app/api/** only
-pnpm --filter @bantayog/db test
+pnpm --filter @bantayog/web test           # lib/**, app/api/**, and components/**
+pnpm --filter @bantayog/db test            # db unit + PGlite SQL tests
 ```
 
-`apps/web/vitest.config.ts` restricts `include` to `lib/**/*.test.ts` and `app/api/**/*.test.ts`
-and aliases `@`, `@bantayog/schema`, `@bantayog/db` — component tests are not set up, so put
-testable logic in `lib/`.
+`apps/web/vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts`, and
+`components/**/*.test.tsx`. Component tests render via `react-dom/server` in the Node environment
+(no DOM library) with esbuild JSX compilation enabled.
+
+`packages/db` uses a PGlite dev harness (`@electric-sql/pglite`) for local PostgreSQL WASM testing
+of migrations and SQL functions. PGlite proves SQL behavior and rollback under transactional fixtures,
+but multi-connection concurrent advisory lock proof requires actual PostgreSQL.
 
 ## Patterns already in the repo
 

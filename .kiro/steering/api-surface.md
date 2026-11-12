@@ -76,8 +76,13 @@ Auth (`routes/auth.ts`)
 - `POST /api/auth/verify-qr` — verifies the JWS token, rejects revoked/expired passes, then
   re-evaluates tier and returns the beneficiary.
 
-Beneficiaries (admin) — list/create/detail, QR pass issue, one-time allocation trigger. The
-allocation amount is derived from the computed tier, never from the request body.
+Beneficiaries (admin) — list/create/detail, QR pass issue, one-time allocation trigger (`PATCH /api/beneficiaries/:id/credits`).
+The allocation amount is derived from the computed tier (Tier 1: 5000.00, Tier 2: 3500.00), never
+from the request body. Gated by SQL advisory lock `(1111576148, 1)` and `reserve_grant_funding`.
+Refuses with `ValidationError` on `insufficient` funds (with needed and available PHP amounts),
+`busy` (unresolved reservation requires operator review), or `issued` (duplicate prior allocation).
+Only an `acquired` reservation permits submission to Stellar. All failure paths strictly retain
+funding (no automatic release). Finalizes via `mark_grant_funded` upon confirmed allocation insert.
 
 Merchants (admin) — registration/approval/suspension and listing. `GET /api/merchants?summary=1`
 returns the privacy-safe analytics projection (`{id, status}` only) and selects just those two
@@ -212,6 +217,8 @@ with no release selection returns a validation message before the approval funct
 Both return the safe contribution DTO. They use a 1 KiB body limit and the existing checkout
 rate limiter. A completed capture retry returns the same receipt.
 
-`GET /api/fund/ledger` requires `admin`. SQL supplies aggregate funding, grants, confirmed sales,
-paid invoices and the amount still owed, plus the latest 50 completed contributions. No payer
-or child information is in the contribution DTO. Credits are unchanged. See ADR 007.
+`GET /api/fund/ledger` requires `admin`. SQL supplies aggregate funding (gross, fees, net),
+backed grants (`backedGrantsPhp`), available funds (`availableToGrantPhp`), confirmed sales,
+paid invoices, and the amount still owed, plus the latest 50 completed contributions.
+Legacy demonstration grants remain in `grantsIssuedPhp` but do not debit `availableToGrantPhp`.
+No payer or child information is in the contribution DTO. See ADR 007 and ADR 008.

@@ -24,6 +24,7 @@ export const FundLedgerDto = z.object({
   netContributionsPhp: SettlementMoneySchema, grantsIssuedPhp: SettlementMoneySchema,
   grantCount: z.number().int().nonnegative(), confirmedSalesPhp: SettlementMoneySchema,
   paidInvoicesPhp: SettlementMoneySchema, owedPhp: SettlementMoneySchema,
+  backedGrantsPhp: SettlementMoneySchema, availableToGrantPhp: SettlementMoneySchema,
   topups: z.array(FundTopupDto),
 })
 export type FundLedgerDto = z.infer<typeof FundLedgerDto>

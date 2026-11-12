@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@bantayog/db'
+import { randomUUID } from 'node:crypto'
 import { BeneficiaryRepository } from '../repositories/beneficiary.repository.js'
 import { BeneficiaryWalletRepository } from '../repositories/beneficiary-wallet.repository.js'
 import { AllocationRepository } from '../repositories/allocation.repository.js'
+import { FundRepository, type GrantReservation } from '../repositories/fund.repository.js'
 import { PinService } from './pin.service.js'
 import { QrTokenService } from './qr-token.service.js'
 import { CustodialWalletService } from './custodial-wallet.service.js'
@@ -21,6 +23,7 @@ export class BeneficiaryService {
   private beneficiaryRepo: BeneficiaryRepository
   private beneficiaryWalletRepo: BeneficiaryWalletRepository
   private allocationRepo: AllocationRepository
+  private fundRepo: FundRepository
   private pinService: PinService
 
   constructor(db: SupabaseClient<Database>) {
@@ -28,6 +31,7 @@ export class BeneficiaryService {
     this.beneficiaryRepo = new BeneficiaryRepository(db)
     this.beneficiaryWalletRepo = new BeneficiaryWalletRepository(db)
     this.allocationRepo = new AllocationRepository(db)
+    this.fundRepo = new FundRepository(db)
     this.pinService = new PinService()
   }
 
@@ -213,15 +217,19 @@ export class BeneficiaryService {
   }
 
   // Allocates the one-time tier-based PHPC credit to a beneficiary.
-// Resolves the beneficiary's tier, rejects invalid tier classifications and
-// duplicate allocations, checks the on-chain treasury balance, submits the
-// on-chain allocation and waits up to 60 seconds for confirmation, and only
-// after confirmation increases the beneficiary's recorded balance and
-// persists the `allocations` record (which serves as this allocation's
-// Transaction_Record per the design's data model). Every rejection path
-// (invalid tier, duplicate allocation, insufficient treasury, on-chain
-// failure/timeout) returns before any balance is touched.
-// Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 4.8, 4.9
+  // Resolves the beneficiary's tier, rejects invalid tier classifications and
+  // duplicate allocations, reserves funding under advisory lock via FundRepository,
+  // submits the on-chain allocation and waits up to 60 seconds for confirmation, and only
+  // after confirmation increases the beneficiary's recorded balance,
+  // persists the `allocations` record (which serves as this allocation's
+  // Transaction_Record per the design's data model), and marks the grant issued.
+  // Safety limit: RESERVED status indicates an unresolved grant attempt where payment
+  // may have occurred on-chain. There is no automatic release on any failure; funding
+  // is strictly retained across wallet, config, trustline, chain timeout/error,
+  // balance update, allocation insert, and finalization errors. Operator review and
+  // reconciliation under fund lock is required to resolve retained reservations.
+  // Existing balance update and allocation insert writes remain non-atomic.
+  // Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 4.8, 4.9
   async allocateTierCredits(beneficiaryId: string): Promise<AppResult<{
     beneficiary: any;
     amount: number;
@@ -247,44 +255,70 @@ export class BeneficiaryService {
         return err(new ValidationError('Beneficiary already has a prior allocation'))
       }
 
-      // 4. Resolve the beneficiary's Stellar wallet address.
+      // 4. Compute exact allocation amounts and fresh server attempt UUID.
+      const amountPhp = tier === 1 ? '5000.00' : '3500.00'
+      const amountPhpc = tier === 1 ? TIER_1_ALLOCATION_PHPC : TIER_2_ALLOCATION_PHPC
+      const attemptId = randomUUID()
+
+      // 5. Reserve funding before wallet/config/chain work.
+      let reservation: GrantReservation
+      try {
+        reservation = await this.fundRepo.reserveGrant(beneficiaryId, attemptId, amountPhp)
+      } catch {
+        return err(new PersistenceError('Failed to reserve grant funding', 'fund_grant_reservations'))
+      }
+
+      if (reservation.outcome === 'insufficient') {
+        return err(new ValidationError(`Insufficient grant funding: needed ${amountPhp} PHP, available ${reservation.availablePhp} PHP`))
+      }
+
+      if (reservation.outcome === 'busy') {
+        return err(new ValidationError('Pending funding reservation requires operator review'))
+      }
+
+      if (reservation.outcome === 'issued') {
+        return err(new ValidationError('Beneficiary already has a prior allocation'))
+      }
+
+      if (reservation.outcome !== 'acquired') {
+        return err(new PersistenceError('Failed to reserve grant funding', 'fund_grant_reservations'))
+      }
+
+      // 6. Resolve the beneficiary's Stellar wallet address.
       const walletRows = await this.beneficiaryWalletRepo.findBy('beneficiary_id', beneficiaryId, 1)
       if (walletRows.length === 0) {
         return err(new ValidationError('Beneficiary has no provisioned Stellar wallet'))
       }
       const beneficiaryAccountId = walletRows[0].address
 
-      // 5. Load ChainConfig and construct the StellarClient.
+      // 7. Load ChainConfig and construct the StellarClient.
       const chainConfigResult = loadChainConfig(process.env)
       if (chainConfigResult.isErr()) return err(chainConfigResult.error)
       const clientResult = await StellarClient.create(chainConfigResult.value)
       if (clientResult.isErr()) return err(clientResult.error)
       const client = clientResult.value
 
-      // 6. Pre-check beneficiary trustline (risk R1).
+      // 8. Pre-check beneficiary trustline (risk R1).
       const trustlineResult = await client.hasAuthorizedTrustline(beneficiaryAccountId)
       if (trustlineResult.isErr()) return err(trustlineResult.error)
       if (!trustlineResult.value) {
         return err(new ValidationError('Beneficiary account does not have an authorized PHPC trustline'))
       }
 
-      // 7. Submit the tier-based allocation. The chain layer derives the
+      // 9. Submit the tier-based allocation. The chain layer derives the
       // amount from the tier (F4): Tier 1 = 5,000 PHPC, Tier 2 = 3,500 PHPC.
       const allocResult = await client.allocateSubsidy(beneficiaryId, beneficiaryAccountId, tier)
       if (allocResult.isErr()) return err(allocResult.error)
       const { hash: txHash, ledger } = allocResult.value
 
-      // 8. Determine the tier amount for the DB record.
-      const amountPhpc = tier === 1 ? TIER_1_ALLOCATION_PHPC : TIER_2_ALLOCATION_PHPC
-
-      // 9. Only after confirmation: increase the beneficiary's recorded
+      // 10. Only after confirmation: increase the beneficiary's recorded
       // balance (Requirements 4.1, 4.2, 4.3).
       const newBalance = Number(beneficiary.credit_balance) + amountPhpc
       const updated = await this.beneficiaryRepo.updateById(beneficiaryId, {
         credit_balance: newBalance,
       })
 
-      // 10. Persist the allocation record with hash and ledger sequence (F7).
+      // 11. Persist the allocation record with hash and ledger sequence (F7).
       await this.allocationRepo.insert({
         beneficiary_id: beneficiaryId,
         tier,
@@ -293,13 +327,23 @@ export class BeneficiaryService {
         ledger_sequence: ledger,
       })
 
+      // 12. Finalize grant reservation as issued.
+      try {
+        const marked = await this.fundRepo.markGrantIssued(beneficiaryId, attemptId)
+        if (!marked) {
+          return err(new PersistenceError('Failed to finalize grant reservation', 'fund_grant_reservations'))
+        }
+      } catch {
+        return err(new PersistenceError('Failed to finalize grant reservation', 'fund_grant_reservations'))
+      }
+
       return ok({
         beneficiary: updated,
         amount: amountPhpc,
         txHash,
       })
-    } catch (error: any) {
-      return err(new PersistenceError(`Allocation failed: ${error.message}`, 'allocations'))
+    } catch {
+      return err(new PersistenceError('Unable to complete the grant. Review its allocation and funding reservation before retrying.', 'allocations'))
     }
   }
 

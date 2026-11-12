@@ -26,7 +26,7 @@ Low-income families may struggle to afford a varied, nutritious diet, putting ch
 **The government already has a solution—but access can still be a last-mile problem.**  
 The Philippines' [DSWD Walang Gutom Program](https://www.dswd.gov.ph/dswds-walang-gutom-program-identifies-beneficiaries-based-on-psas-family-income-and-expenditure-survey-updated-cbms-database/) already provides eligible households with ₱3,000 in monthly food credits through Electronic Benefit Transfer (EBT) cards, redeemable at accredited retailers. This is not a new idea, nor does BANTAYOG replace that program.
 
-The challenge we target is **access to a nearby redemption point**. The [DSWD implementation guidelines](https://old.dswd.gov.ph/issuances/MCs/MC_2024-019.pdf) explicitly recognize limited markets in geographically isolated areas, call for retailer-access assessments in underserved communities, and provide alternative food-distribution arrangements. Small businesses, including sari-sari stores, can participate in government programs; the issue is not that they are categorically excluded. Rather, a neighborhood store that is not onboarded as an authorized redemption partner cannot accept that program's food credits. For some households, that may mean travel to a participating outlet or reliance on scheduled food distribution. The size of this access gap still needs local field research.
+The challenge we target is **access to a nearby redemption point**. The [DSWD implementation guidelines](https://old.dswd.gov.ph/issuances/MCs/MC_2024-019.pdf) explicitly recognize limited markets in geographically isolated areas, call for retailer-access assessments in underserved communities, and provide alternative food-distribution arrangements. Small businesses, including sari-sari stores (tiny neighborhood shops, often run from a family's home), can participate in government programs; the issue is not that they are categorically excluded. Rather, a neighborhood store that is not onboarded as an authorized redemption partner cannot accept that program's food credits. For some households, that may mean travel to a participating outlet or reliance on scheduled food distribution. The size of this access gap still needs local field research.
 
 **What BANTAYOG proposes**  
 BANTAYOG is a **smartphone-based food-credit redemption and accountability system for neighborhood sari-sari stores**, designed to reduce dependence on dedicated point-of-sale (POS) hardware. A participating store uses its phone to scan food items and a printed QR **Nutri-Pass**; the guardian needs no smartphone. Server rules check which items are eligible, record the purchase, and track credits. Stellar testnet provides ledger proof. AI assists with item recognition and settlement review, while PayPal sandbox invoicing lets the program confirm a store claim's payment status.
@@ -44,29 +44,43 @@ The current prototype issues **its own demonstration credits** for a child-and-g
 **The intended impact**  
 BANTAYOG aims to bring food-credit redemption closer to where beneficiaries live and shop, while giving program operators item-level purchase records and payment-status proof. Whether it reduces travel, onboarding costs, or settlement time—and whether it improves diets or health—must be tested in the field; these are goals, not measured outcomes.
 
+**Beyond the Philippines**
+BANTAYOG is built for the Philippines. The same model can fit other places where small neighborhood shops sell daily food and aid arrives as restricted credits. We have not tested it outside the Philippines.
+
 ## PayPal and AI: the new payment flow
 
 **Check each basket. Review the claim. Verify the payment.**
 
-1. The merchant requests payment for confirmed, unpaid sales.
-2. Server price rules hold unusual prices. Gemini writes the review summary and can add a hold
-   when a price reference is missing. It cannot change an amount or release a server hold.
-3. A program officer checks each sale and its ledger proof, releases a hold if appropriate, and
-   approves. The server creates and sends the PayPal invoice.
-4. The program pays in PayPal. BANTAYOG checks the remote invoice and shows paid only for `PAID`.
-5. A funder can make a separate sandbox contribution at `/fund`. The server captures an approved
-   Orders v2 order. The receipt and `/admin/fund` show gross, fee and net separately.
+Why PayPal: a sponsor can use PayPal Checkout to fund the program. The server checks PayPal's capture record before that net contribution can back a new grant.
 
-Item-level checks use the store's phone and a printed pass. Payment status comes from PayPal.
-This is the intended value for both local programs and international aid funders.
+**Rule: No captured PayPal money, no grant.**
+
+1. A funder contributes at `/fund`. The server captures an approved Orders v2 order.
+   The receipt and `/admin/fund` show gross, fee, and net separately.
+2. The administrator triggers a grant. The database checks net completed PayPal captures.
+   Only acquired reservations permit Stellar credit issuance. Without captured funds, the grant is refused.
+3. The merchant scans eligible food items at the counter. AI assists with product recognition;
+   server rules decide food eligibility.
+4. The merchant requests payment for confirmed, unpaid sales.
+5. Server price rules hold unusual prices. Gemini writes the review summary and can add a hold
+   when a price reference is missing. It cannot change an amount or release a server hold.
+6. A program officer checks each sale and its ledger proof, releases a hold if appropriate, and
+   approves. The server creates and sends the PayPal invoice.
+7. The funder pays the program's invoice in PayPal. BANTAYOG checks the remote invoice and shows paid only for `PAID`.
+
+The store needs no PayPal account. PayPal records the payment to the program.
+The program must then pay the store through a separate local transfer.
 
 **Current limits:** one sandbox business account receives every store invoice. This does not
-prove payment to a separate store account. Contributions do not yet issue child credits, pay
-invoices from a pooled fund, or prove that one contribution bought a specific item. All PayPal
-payments use test funds. No live payment is supported.
+prove payment to a separate store account. Store payout on the local rail is separate and is not
+proved by a paid invoice. All new grants are backed by net completed PayPal contributions; legacy
+demonstration grants do not reduce the available pool. Successful funded grant tests use a fake
+chain client; this environment has not run a successful funded Stellar grant. All
+PayPal payments use test funds. No live payment is supported.
 
 The model proposes, server rules fix the amounts, a person approves, and PayPal executes.
-The database prevents one sale from being claimed twice and one capture from funding two records.
+The database prevents one sale from being claimed twice and one capture from being recorded twice.
+SQL reservations prevent new grants from reserving more than the net captured pool.
 
 Use the [server setup](apps/server/README.md), [build contracts](docs/designs/paypal-settlement.md),
 [fund contract](docs/designs/paypal-fund.md), and [verification record](docs/paypal-hackathon/verification.md).
@@ -97,7 +111,7 @@ well as a record of disbursement. The prototype addresses three gaps:
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Purchase control** | A cash grant can pay for many needs. The transfer alone does not prove a food purchase. | Credits are checked against the approved food list at checkout. |
 | **Item proof** | A disbursement record does not contain the store basket. | The sale record contains the items, amount, time and ledger reference. |
-| **Payment proof** | A recorded sale does not by itself prove that the store claim was paid. | The officer reviews the claim, then PayPal supplies invoice payment status. |
+| **Payment proof** | A store with daily cash needs cannot sell on an unpaid promise. A recorded sale does not by itself prove that the store claim was paid. | The officer reviews the claim, then PayPal supplies invoice payment status. |
 
 
 Two design constraints shaped everything else:
@@ -156,7 +170,9 @@ flowchart LR
  after the child is too old for it.
 3. **Grant.** Each child gets one grant only. Tier 1 gets 5,000 credits. Tier 2 gets 3,500
  credits. One credit is one peso. The tier gives the amount. No device and no user can ask for a
- different amount, and the system refuses a second grant for the same child.
+ different amount, and the system refuses a second grant for the same child. Every new grant is
+ backed by net completed PayPal captures; without sufficient captured funding, the system refuses
+ the grant. An unresolved reservation blocks simultaneous and repeated attempts until operator review.
 4. **Purchase.** The merchant photographs the product. The AI reads the brand and the product
  name. It also gives a suitability result for a small child and a price estimate. The approved
  food list then makes the eligibility decision. The AI never makes that decision. The merchant
@@ -175,6 +191,7 @@ flowchart LR
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | One path for money               | Every peso moves through one protected step in the database. That step locks the record, checks the balance, and writes the receipt together. |
 | Exact money                      | Pesos keep two decimal places. Credits are whole numbers. One credit is one peso. No rounding error can occur.                                |
+| Fund-backed grants               | New grants require net completed PayPal captures. A database advisory lock checks available net funds before reservation. All failures retain funding until operator review. |
 | A double tap cannot pay twice    | Each checkout carries one unique key. A repeated tap with the same key collides, and the system pays one time only.                           |
 | One invoice claim per sale | A database constraint reserves each released sale for one settlement invoice. |
 | The AI cannot approve a sale     | The approved food list is the only authority for eligibility. The AI only identifies the product.                                             |

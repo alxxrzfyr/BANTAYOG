@@ -17,7 +17,7 @@ const names = readdirSync(directory)
 try {
   const statements = names.map(name => {
     let sql = readFileSync(new URL(name, directory), 'utf8')
-    if (name.startsWith('00018_') || name.startsWith('00019_')) {
+    if (name.startsWith('00018_') || name.startsWith('00019_') || name.startsWith('00020_')) {
       // Keep the full install atomic, including migrations that have their own transaction.
       if (!/^BEGIN;\r?$/m.test(sql) || !/^COMMIT;\s*$/m.test(sql)) {
         throw new Error(`Expected transaction wrapper in ${name}`)

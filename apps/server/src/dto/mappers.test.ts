@@ -6,8 +6,22 @@ import {
   toClassificationDTO,
   toBalanceDTO
 } from './mappers.js'
-import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO, toFundTopupDTO } from './mappers.js'
-import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto } from '@bantayog/schema'
+import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO, toFundTopupDTO, toFundLedgerDTO } from './mappers.js'
+import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto, FundLedgerDto } from '@bantayog/schema'
+
+it('maps SQL fund amounts without combining legacy grants or losing decimal precision', () => {
+  const dto = toFundLedgerDTO({ summary: {
+    gross_contributions_php: '9007199254740993.21', fees_php: '16.95', net_contributions_php: '9007199254740976.26',
+    grants_issued_php: '8500.00', grant_count: 2, confirmed_sales_php: '125.50', paid_invoices_php: '100.00',
+    owed_php: '25.50', backed_grants_php: '5000.00', available_to_grant_php: '9007199254735976.26',
+  }, topups: [] })
+  expect(dto).toEqual({ grossContributionsPhp: '9007199254740993.21', feesPhp: '16.95',
+    netContributionsPhp: '9007199254740976.26', grantsIssuedPhp: '8500.00', grantCount: 2,
+    confirmedSalesPhp: '125.50', paidInvoicesPhp: '100.00', owedPhp: '25.50',
+    backedGrantsPhp: '5000.00', availableToGrantPhp: '9007199254735976.26', topups: [] })
+  expect(FundLedgerDto.safeParse(dto).success).toBe(true)
+  expect(dto).toMatchSnapshot()
+})
 
 it('maps a completed contribution with separate gross, fee and net amounts', () => {
   expect(toFundTopupDTO({

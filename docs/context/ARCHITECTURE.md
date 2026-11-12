@@ -203,12 +203,27 @@ never before a confirmation, so the current path does not reach it with a pre-de
 
 ```
 admin ─► POST allocation trigger ─► computeTier(currentDate)  → 1 or 2
-                                  → amount 5000 or 3500 from the tier
+                                  → amount 5000.00 or 3500.00 from the tier
+                                  → fresh attempt UUID = randomUUID()
+                                  → reserve_grant_funding(child, attempt, amount)
+                                    advisory lock (1111576148, 1)
+                                    outcomes: acquired | insufficient | busy | issued
+                                  → only acquired proceeds
+                                  → check wallet and authorized trustline
+                                  → chain allocateSubsidy, wait up to 60 s
+                                  → update credit_balance in beneficiaries
                                   → insert allocations row (beneficiary_id UNIQUE)
-                                  → chain allocateCredits, wait up to 60 s
+                                  → mark_grant_funded(child, attempt)
 ```
 
 The amount always comes from the computed tier. The request body never sets it.
+Only an `acquired` reservation permits submission.
+Every failure after acquisition strictly retains funding (no automatic release): wallet, config,
+trustline, chain timeout or error, balance update, allocation insert, and finalization errors.
+A `busy` result indicates an unresolved reservation and requires operator review.
+Balance updates and allocation inserts remain non-atomic. An operator must verify on-chain status
+under the fund advisory lock before manual release. Partial success requires database reconciliation,
+never retrying the grant endpoint.
 
 ### 6.4 Product scan
 

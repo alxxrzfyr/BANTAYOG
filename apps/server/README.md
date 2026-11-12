@@ -20,8 +20,10 @@ Use [the local setup guide](../../docs/paypal-hackathon/setup.md) for a fresh da
 replay the full historical migration sequence on an existing database.
 
 Apply migration `00018_paypal_settlement.sql` only after database review and owner approval.
-Apply `00019_paypal_fund.sql` for funder checkout and the fund ledger. Both migrations add new
-objects only. Never edit or replay a migration that is already applied.
+Apply `00019_paypal_fund.sql` for funder checkout and the fund ledger. Apply
+`00020_fund_backed_grants.sql` for the required grant reservation functions and ledger fields.
+Before enabling grant issuance, stop older API instances. Run the API from the same source
+revision as migration `00020`. Never edit or replay a migration that is already applied.
 
 Shortcut: one sandbox business account invoices for every store. Payment goes to that account.
 This does not prove payment to a separate merchant account. Add store onboarding before that use.
@@ -59,10 +61,15 @@ The first `CORS_ORIGIN` entry supplies the return-page origin. Set it to the HTT
 when hosting. HTTP localhost is accepted only outside production. Do not pass a return URL
 from the browser. Configure the existing Upstash rate limiter when hosting public checkout.
 
-Contributions do not issue credits or pay an invoice from a pooled fund. The ledger keeps these
-records separate. Its equation is confirmed sales minus paid invoices equals the amount still
-owed. This is not a PayPal account balance. Refunds, disputes and contribution allocation are
-not implemented. A completed sandbox receipt is not a quote for live fees.
+An officer must start each new grant. Its amount must be reserved from net completed PayPal
+captures before credits can be issued. Unresolved reservations retain funding and require
+operator review; retries do not release it. Use [ADR 008](../../docs/adr/008-fund-backed-grants.md)
+for the grant rule and recovery procedure.
+
+Contributions do not pay an invoice from a pooled fund. The amount still owed equals confirmed
+sales minus paid invoices. Available grant funding equals net completed contributions minus
+all reserved and issued grant amounts. These values are not a PayPal account balance. Refunds
+and disputes are not implemented. A completed sandbox receipt is not a quote for live fees.
 
 For local payment QA without Stellar keys, set `RECONCILE_INTERVAL_MS=0`. Use existing confirmed
 test sales for invoice checks. Do not drain an existing project's outbox with missing keys.

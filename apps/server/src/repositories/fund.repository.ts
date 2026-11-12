@@ -2,9 +2,42 @@
 import { BaseRepository, type Database, type FundTopupRow, type FundLedgerSummaryRow } from '@bantayog/db'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PayPalOrderCapture } from '../gateways/paypal.gateway.js'
+import { z } from 'zod'
+
+export type GrantReservation =
+  | { outcome: 'acquired' }
+  | { outcome: 'busy' }
+  | { outcome: 'issued' }
+  | { outcome: 'insufficient'; availablePhp: string }
+
+const grantReservationSchema = z.discriminatedUnion('outcome', [
+  z.strictObject({ outcome: z.literal('acquired') }),
+  z.strictObject({ outcome: z.literal('busy') }),
+  z.strictObject({ outcome: z.literal('issued') }),
+  z.strictObject({ outcome: z.literal('insufficient'), availablePhp: z.string().regex(/^(0|[1-9]\d*)\.\d{2}(?![\s\S])/) }),
+])
 
 export class FundRepository extends BaseRepository<'fund_topups'> {
   constructor(db: SupabaseClient<Database>) { super(db, 'fund_topups') }
+
+  async reserveGrant(beneficiaryId: string, attemptId: string, amountPhp: string): Promise<GrantReservation> {
+    const { data, error } = await (this.db as SupabaseClient).rpc('reserve_grant_funding', {
+      p_beneficiary_id: beneficiaryId, p_attempt_id: attemptId, p_amount_php: amountPhp,
+    })
+    if (error) throw error
+    const parsed = grantReservationSchema.safeParse(data)
+    if (!parsed.success) throw new Error('Invalid grant reservation response.')
+    return parsed.data
+  }
+
+  async markGrantIssued(beneficiaryId: string, attemptId: string): Promise<boolean> {
+    const { data, error } = await (this.db as SupabaseClient).rpc('mark_grant_funded', {
+      p_beneficiary_id: beneficiaryId, p_attempt_id: attemptId,
+    })
+    if (error) throw error
+    if (typeof data !== 'boolean') throw new Error('Invalid grant finalization response.')
+    return data
+  }
 
   async begin(id: string, amountPhp: string): Promise<void> {
     const { error } = await (this.db as SupabaseClient).rpc('create_fund_topup', { p_id: id, p_amount_php: amountPhp })

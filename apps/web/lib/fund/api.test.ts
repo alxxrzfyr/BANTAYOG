@@ -17,7 +17,7 @@ describe("Fund API client", () => {
     expect(mocks.authFetch).not.toHaveBeenCalled();
   });
   it("uses the admin session for the ledger and keeps SQL totals", async () => {
-    const ledger = { grossContributionsPhp: "50.00", feesPhp: "16.70", netContributionsPhp: "33.30", grantsIssuedPhp: "100.00", grantCount: 1, confirmedSalesPhp: "75.00", paidInvoicesPhp: "50.00", owedPhp: "25.00", topups: [receipt] };
+    const ledger = { grossContributionsPhp: "50.00", feesPhp: "16.70", netContributionsPhp: "33.30", grantsIssuedPhp: "100.00", grantCount: 1, confirmedSalesPhp: "75.00", paidInvoicesPhp: "50.00", owedPhp: "25.00", backedGrantsPhp: "0.00", availableToGrantPhp: "33.30", topups: [receipt] };
     mocks.authFetch.mockResolvedValue(new Response(JSON.stringify(ledger)));
     expect(await getFundLedger()).toEqual(ledger);
     expect(mocks.authFetch).toHaveBeenCalledWith("/api/fund/ledger", expect.any(Object));
