@@ -39,6 +39,12 @@ app.use(
 // Logger: structured pino request logging
 app.use('*', requestLogger)
 
+// Financial and authenticated API responses must not be stored by HTTP caches.
+app.use('/api/*', async (c, next) => {
+  c.header('Cache-Control', 'no-store')
+  await next()
+})
+
 // Global rate limit: 100 requests per minute per IP
 app.use('*', rateLimit('global', 100, 60))
 

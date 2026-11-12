@@ -47,6 +47,7 @@ describe('Settlement routes and mounted access rules', () => {
   it.each([merchantPath, adminPath])('requires authentication at %s', async path => {
     const response = await request(path, null)
     expect(response.status).toBe(401)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
   })
   it('denies merchants on admin routes and admins on merchant routes', async () => {
     expect((await request(adminPath, 'merchant')).status).toBe(403)
@@ -55,6 +56,7 @@ describe('Settlement routes and mounted access rules', () => {
   it('gets the merchant overview without detail lines', async () => {
     const response = await request(`${merchantPath}?merchantId=foreign`, 'merchant')
     expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(mocks.merchantForUser).toHaveBeenCalledWith('user-merchant')
     expect(mocks.overview).toHaveBeenCalledWith(merchantId)
     expect(await response.json()).toMatchObject({ unpaidAmountPhp: '10.10', invoices: [{ id, approved: false }] })

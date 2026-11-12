@@ -95,6 +95,10 @@ Webpack resolves workspace `.js` imports to TypeScript when emitted JavaScript i
 `experimental.extensionAlias`. Both dev and production builds use Webpack because Serwist does
 not support Turbopack. This permits runtime use of the shared Zod schema barrel.
 
+The service worker uses `NetworkOnly` before default cache rules for API paths and requests
+with an Authorization header. It cannot supply an offline API balance, invoice or fund receipt.
+The API also sends `Cache-Control: no-store`. Public static assets retain the default rules.
+
 ## Testing
 
 `vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts` and

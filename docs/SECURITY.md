@@ -116,6 +116,13 @@ a remote `DRAFT` and checks remote ID, reference, currency and amount before sta
 missing payer URL can be saved on a later refresh without changing the original send time.
 Payment sync keeps a saved URL when PayPal omits it. See ADR 006 for source checks and limits.
 
+## Private API cache policy
+
+All API responses send `Cache-Control: no-store`. The PWA checks API paths and authorization
+headers before its default runtime cache rules and uses `NetworkOnly`. An outage must not show
+a cached financial response or a prior user's authenticated data. Public static assets keep
+their existing cache rules. This changes no server role or RLS policy.
+
 ## Reporting Vulnerabilities
 
 If you discover a security vulnerability in this project, please open an issue or contact the project maintainers directly.
