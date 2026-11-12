@@ -5,6 +5,11 @@ Written in ASD-STE100 Simplified Technical English.
 **Audience:** the implementing agent (GPT-5.6 Terra Low, with execution tools).
 **Author:** planning session, 2026-07-28.
 **Status:** plan approved by the repository owner. No code is written yet.
+This is a partially unfinished packaging handoff, not a current description of every runtime
+feature. The wallet connection and cash-out instructions in Task 7 were superseded by the
+Stellar migration. Do not restore their modal or contract code. Use
+`docs/stellar-testnet.md` and the current API for the live chain boundary. Other packaging and
+Rural tasks remain subject to their existing approval and acceptance gates.
 **Deadline context:** the WOCEE 2026 live showcase is August 8, 2026. See `docs/SHOWCASE.md`.
 
 **Scope note — 2026-08-04:** This handoff describes the original merchant APK packaging work.

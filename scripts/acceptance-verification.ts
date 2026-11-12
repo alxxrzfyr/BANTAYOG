@@ -2,7 +2,7 @@
  * scripts/acceptance-verification.ts
  *
  * Runbook Acceptance Verification — exercises all 10 steps from the
- * STELLAR_MIGRATION_RUNBOOK.md against a real Stellar testnet.
+ * docs/archive/implemented/stellar-migration-runbook.md against a real Stellar testnet.
  *
  * Prerequisites:
  *   - Stellar testnet accounts bootstrapped: `pnpm bootstrap:stellar`

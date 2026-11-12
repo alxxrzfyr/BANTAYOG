@@ -4,7 +4,7 @@ import { z } from 'zod'
 // Enums
 // ---------------------------------------------------------------------------
 
-/** Transaction lifecycle states (XState v5 machine in domain/transaction.machine.ts). */
+/** Transaction lifecycle statuses exposed by the shared DTO schema. */
 export const TransactionStatusSchema = z.enum([
   'PENDING_CHAIN',
   'CONFIRMED',

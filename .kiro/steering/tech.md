@@ -25,7 +25,7 @@ imports use explicit `.js` extensions on relative paths; `apps/web` does not (Ne
 | Cache/limits | Upstash Redis + `@upstash/ratelimit` sliding window                                                                       |
 | Crypto       | `@node-rs/argon2` (Argon2id PINs), `jose` (JWS QR tokens), node `crypto` (AES-256-GCM wallet keys)                        |
 | AI           | `@google/genai` (Gemini vision + grounded research) via `apps/server/src/lib/gemini-client.ts`                            |
-| Chain        | Stellar SDK, XState 5 for the transaction lifecycle machine                                             |
+| Chain        | Stellar SDK for classic testnet assets; the database and reconcile worker track transaction status |
 | Tests        | Vitest 2 (`environment: node`), `fast-check` for property tests                                                           |
 
 
@@ -50,9 +50,10 @@ Prefer `pnpm --filter <pkg> <script>` over `cd`-ing into a package.
 ## Infra
 
 - **Web**: Next.js app; `/api/[...proxy]` edge route forwards everything under `/api/*` to the
-API server (`NEXT_PUBLIC_API_BASE_URL`, default the Railway deployment). The web app holds no
+API server (`NEXT_PUBLIC_API_BASE_URL` or `API_BASE_URL`, with a hosted Render fallback). The web app holds no
 business logic.
-- **Server**: Hono on Railway, `PORT` env (3001 local). `GET /health` is public.
+- **Server**: Hono, `PORT` env (3001 local). `GET /health` is public. The current setup guide
+  documents hosting; old Railway deployment notes are not active configuration.
 - **DB**: Supabase Postgres, migrations in `supabase/migrations/*.sql` (numbered, additive,
 `IF NOT EXISTS`-style). Extensions in use: `pgvector`, `pg_trgm`. Server code uses the service
 role client and therefore bypasses RLS — RLS is defense in depth, not the only gate.
@@ -80,8 +81,6 @@ Do not read chain env vars ad hoc.
 
 ## Known repo-level drift
 
-- Root `package.json` `description` still says "mock PHPC on Ronin Saigon testnet"; the code
-targets Stellar testnet. Stale metadata, not behavior.
 - `packages/db/src/types.ts` lags the SQL migrations in several places — see `data-model.md` for
 the verified table of differences before trusting those types.
 - `apps/web` pins `vitest ^2.1.8` alongside `@vitest/coverage-v8 ^4.1.9`; coverage runs may

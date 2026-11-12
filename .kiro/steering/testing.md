@@ -14,7 +14,7 @@ pnpm --filter @bantayog/web test           # lib/**, app/api/**, and components/
 pnpm --filter @bantayog/db test            # db unit + PGlite SQL tests
 ```
 
-`apps/web/vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts`, and
+`apps/web/vitest.config.ts` includes `lib/**/*.test.ts`, `app/**/*.test.{ts,tsx}`, and
 `components/**/*.test.tsx`. Component tests render via `react-dom/server` in the Node environment
 (no DOM library) with esbuild JSX compilation enabled.
 

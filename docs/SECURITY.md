@@ -29,7 +29,9 @@ The `requireRole` middleware checks the decoded token's user role metadata and r
 
 1. **Argon2id Hashing**: Beneficiary verification PINs are hashed using Argon2id (`@node-rs/argon2`). No raw PINs are stored.
 2. **Log Redaction**: Pino structured logs are configured to automatically redact sensitive parameters including `pin`, `pin_hash`, `password`, `privateKey`, and `authorization`.
-3. **No Image Storage**: AI Product Scanner base64 photos are classified inline and in-memory by Gemini and immediately discarded. Images are never stored in databases or static directories.
+3. **Product images**: The current scan path can save a base64 image in `products.image_url`.
+   Do not treat scanned images as automatically discarded. Use synthetic product images for
+   testing, and review image retention before using real records.
 
 ## API Security & Rate Limiting
 

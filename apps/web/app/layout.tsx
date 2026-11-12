@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "DOH-supported social initiative bridging LGU beneficiary registry with AI-verified sari-sari store merchants via on-chain settlement.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.png",
     apple: "/apple-icon.png",
   },
   appleWebApp: {

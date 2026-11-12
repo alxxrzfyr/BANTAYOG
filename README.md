@@ -125,6 +125,19 @@ Contributions back grants, but they do not automatically pay store invoices from
 Although the intended model asks each sponsor to contribute once, the prototype still requires a separate sandbox account to pay each invoice.
 It does not transfer the contribution to that payer or verify the payer's funding source, so an invoice cannot prove the sponsor paid only once.
 
+### Tools used
+
+| Tool | Use in BANTAYOG |
+| --- | --- |
+| [PayPal sandbox](https://developer.paypal.com/tools/sandbox/) | Provides test accounts and test funds for contributions and invoice payments. The server uses OAuth 2.0 to get access tokens. |
+| [PayPal Orders v2](https://developer.paypal.com/docs/api/orders/v2/) | Creates contribution orders, captures approved payments, and reads payment details to verify the gross amount, fee, and net amount. |
+| [PayPal Invoicing v2](https://developer.paypal.com/docs/api/invoicing/v2/) | Creates and sends invoices for approved store claims. The server reads invoice status before it records a claim as paid. |
+| [Google Gemini](https://ai.google.dev/gemini-api/docs) through `@google/genai` | Helps identify food products, estimate prices, and write store-claim review summaries. Server rules and officer approval control eligibility, holds, and payments. |
+| [APIMatic Context Plugin for PayPal](https://paypalaihackathon.devpost.com/details/apimatic) | Supplied PayPal API context during AI-assisted development of the integration. It is a development tool, not a payment service that users must configure. |
+| [Render](https://render.com/) | Hosts the Hono API used by the application. PayPal requests and Gemini calls run on the server. |
+
+The server calls the PayPal REST APIs with `fetch`. Testers do not need to install the APIMatic plugin to use the application.
+
 <br>
 
 ## Quick Start
@@ -140,9 +153,9 @@ Use an internet-connected browser or Android phone to try the hosted demo withou
 For checkout, you need a test Nutri-Pass, its guardian PIN, and enough test credits to cover the basket.
 Use a phone with a camera when scanning food or the pass.
 
-1. **Sign in as a merchant.** Open the [merchant web app](https://merchant-bantayog.vercel.app/merchant-login)
-   or install the [Android APK](https://github.com/alxxrzfyr/BANTAYOG/releases/download/merchant-v1.0.1/BANTAYOG-merchant-v1.0.1.apk),
-   which is a debug build that connects to the hosted app. Sign in with the merchant test account.
+1. **Sign in as a merchant.** Install the [Android APK](https://github.com/alxxrzfyr/BANTAYOG/releases/download/merchant-v1.0.1/BANTAYOG-merchant-v1.0.1.apk),
+   allow camera access, and sign in with the merchant test account. Use this debug APK for merchant testing;
+   the merchant web app is not available. The APK requires internet access.
 2. **Build a basket and check out.** Photograph a packaged product or select a fresh-market item,
    then scan the test Nutri-Pass and enter its guardian PIN at checkout.
 3. **Check the result.** After a successful purchase, the receipt records the food and amount,
@@ -241,13 +254,15 @@ The interface in `apps/web` uses shared request schemas and database types to co
 where the business rules and API operations run.
 
 | Layer | Technology and purpose |
-| --- | --- |
+| :---: | --- |
 | Web | Next.js 16, React 19, TypeScript, and Tailwind CSS 4 for the admin, merchant, and guardian screens. |
 | Android | Capacitor 8 packages the merchant frontend as an installable app. |
 | API | Hono 4 handles requests with Zod 4 input validation and neverthrow results for expected failures. |
 | Data and rate limits | Supabase Postgres and Auth store records and manage sign-in. Upstash Redis limits requests and PIN attempts. |
 | Payments | PayPal Orders v2 captures sandbox contributions to back new grants after fees. Invoicing v2 sends invoices for approved store claims so the server can check payment status with PayPal. |
-| AI | Google Gemini assists with product recognition, price estimates, and claim summaries. |
+| AI | Google Gemini, through `@google/genai`, assists with product recognition, price estimates, and claim summaries. |
+| Integration support | The APIMatic Context Plugin supplied PayPal API context during development. |
+| Hosting | Render hosts the Hono API. |
 | Ledger | Stellar testnet records mock PHPC transfers, with sponsored transaction fees and no Soroban contracts. |
 | Workspace and tests | pnpm 9 and Turborepo 2 manage packages. Vitest 2 and fast-check test behavior and boundary cases. |
 
@@ -255,6 +270,7 @@ where the business rules and API operations run.
 
 ## Documentation
 
+- The [documentation index](docs/README.md) separates current guides, planned work, and archived records.
 - [Architecture](docs/context/ARCHITECTURE.md) explains application boundaries and data flow.
 - [Server setup](apps/server/README.md) covers configuration and sandbox payment routes.
 - The [settlement contract](docs/designs/paypal-settlement.md) and [fund contract](docs/designs/paypal-fund.md) define the payment rules.
@@ -279,7 +295,7 @@ The event was organized by GDG on Campus at the Polytechnic University of the Ph
 
 ## Demo and downloads
 
-- [Watch the demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
+- [Watch the demo](https://www.youtube.com/watch?v=Y_qVhvHtKDk)
 - [Download the Android APK](https://github.com/alxxrzfyr/BANTAYOG/releases/download/merchant-v1.0.1/BANTAYOG-merchant-v1.0.1.apk) to use the hosted merchant app through an Android debug build with internet access. The device PIN stays saved after logout.
 - Follow the [test access and walkthrough](#quick-start) for sign-in details and steps to try the hosted demo.
 

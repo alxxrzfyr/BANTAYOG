@@ -1,4 +1,4 @@
-there's# ADR 001: Transactional Outbox Pattern for Blockchain Submissions
+# ADR 001: Transactional Outbox Pattern for Blockchain Submissions
 
 ## Context
 

@@ -56,8 +56,8 @@ refactor unrelated code to satisfy a principle.
 | Request and response shapes | `packages/schema` |
 | Design tokens | `apps/web/app/globals.css` |
 
-- `apps/web/lib/domain/*` duplicates some server rules for display. This is a known exception. If
-  you change a rule, change the server copy first, then the client copy, or delete the client copy.
+- Keep tier and nutrition rules on the server. The unused web policy copies were removed;
+  frontend displays must use server results rather than a second implementation.
 
 ## 4. SOLID
 

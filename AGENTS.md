@@ -22,9 +22,9 @@ BANTAYOG turns LGU nutrition cash grants into nutrition-locked subsidies for the
 "First 1,000 Days" cohort: guardians get a printed QR "Nutri-Pass", credits are spent only on
 child-appropriate food at approved sari-sari stores, and settlement is recorded on Stellar
 testnet with a mock PHPC asset. pnpm workspace + Turborepo: `apps/web` (Next.js 16 PWA, view
-layer only), `apps/server` (Hono 4 API, all business logic), `apps/mobile` (Capacitor 8 Android
-shell bundling a merchant-only static export of `apps/web`), `packages/{schema,db,config}`,
-`supabase/migrations`.
+layer only), `apps/server` (Hono 4 API, all business logic), `packages/{schema,db,config}` and
+`supabase/migrations`. Bundled Android packaging is planned separately; this checkout has no
+`apps/mobile` workspace package.
 
 The project is entered in the Cryptita Plays Builder Showcase at WOCEE 2026 (live pitch
 August 8, 2026, SMX Convention Center Manila, *Bayanihan Finance* category). Event facts, the
@@ -44,10 +44,9 @@ sponsors, the PayPal sandbox reference and the submission checklist live in
 - Lint: `pnpm lint` (eslint, `--max-warnings 0` — unused vars must be `_`-prefixed or deleted)
 - Build: `pnpm build` (web = `next build`; server "build" is `tsc --noEmit`, so it emits nothing)
 - Types: `pnpm type-check` across the graph
-- Android APK: `pnpm --filter @bantayog/web build:mobile` (merchant-only static export) then
-  `pnpm --filter @bantayog/mobile exec cap sync android`; live reload with
-  `pnpm --filter @bantayog/mobile dev:emulator`. Export `ANDROID_HOME` and build with the Android
-  Studio JBR 21, not the system JDK. See `docs/MOBILE_BUILD.md` and `docs/adr/005-merchant-android-packaging.md`
+- Android: the README links to a separately published debug APK. This checkout has no
+  `build:mobile` script. Keep unfinished packaging work in `docs/handoff/MERCHANT_APK_HANDOFF.md`
+  and the Rural plan; do not treat old mobile build commands as working commands here.
 
 Env lives in root `.env`, `apps/server/.env`, `apps/web/.env.local`.
 New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
@@ -66,7 +65,7 @@ New vars must also be added to `turbo.json#globalEnv` or the cache goes stale.
   `BaseRepository<'table'>`. Domain logic in `apps/server/src/domain/*` stays pure and takes an
   injectable `currentDate`.
 - Prefer `pnpm --filter <pkg> add <dep>` when installing dependencies; pin in the existing style.
-  Stay on the current stack: viem (not ethers), Zustand (not Redux), `fetch` (not axios),
+  Stay on the current stack: Stellar SDK (no EVM client), Zustand (not Redux), `fetch` (not axios),
   Supabase client + repositories (no ORM).
 - Relative imports in `apps/server` and `packages/*` carry explicit `.js` extensions; `apps/web`
   uses `@/…` aliases declared in both `tsconfig.json` and `vitest.config.ts` (update both).

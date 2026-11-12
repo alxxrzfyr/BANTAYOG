@@ -67,7 +67,7 @@ const ALLOWLISTED_PATH_SUBSTRINGS = [
   '/docs/adr/004-stellar-migration.md',
   '/docs/adr/004-rural-offline-quota-authorization.md',
   '/docs/superpowers/specs/2026-08-04-offline-product-validation-and-transactions-design.md',
-  '/docs/STELLAR_MIGRATION_RUNBOOK.md',
+  '/docs/archive/implemented/stellar-migration-runbook.md',
   '/docs/SMART_CONTRACT_OPS.md',
   '/supabase/migrations/00003_polygon_amoy_migration.sql',
   '/AGENTS.md',

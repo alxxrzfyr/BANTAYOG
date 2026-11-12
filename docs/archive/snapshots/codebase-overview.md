@@ -1,5 +1,10 @@
 # BANTAYOG: Complete Codebase Overview
 
+Archived on 2026-11-13 as a superseded codebase snapshot. Its file paths, migration count,
+deployment details, and behavior descriptions are historical. Use the
+[documentation index](../../README.md) and [current architecture](../../context/ARCHITECTURE.md)
+instead. The original snapshot is preserved below; it is not an active implementation plan.
+
 ## Project Summary
 
 BANTAYOG is a nutrition-locked subsidy system that turns government cash grants into targeted, traceable, nutrition-only credits for Filipino children in the First 1,000 Days window (RA 11148). It serves three user groups through one monorepo: LGU administrators, sari-sari store merchants, and guardians/beneficiaries.

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Keypair } from '@stellar/stellar-sdk'
-import { createActor } from 'xstate'
 import { VisionService } from '../services/vision.service.js'
 import { TransactionService } from '../services/transaction.service.js'
 import { QrTokenService } from '../services/qr-token.service.js'
@@ -363,25 +362,6 @@ describe('End-to-End Transaction Flow Integration', () => {
     expect(confirmed.status).toBe('CONFIRMED')
     expect(confirmed.onchain_tx_hash).toBe(txHash)
 
-    // ── 10. Verify state machine can transition to RECONCILED ──
-    const { transactionMachine } = await import('../services/transaction.machine.js')
-    const actor = createActor(transactionMachine)
-    actor.start()
-
-    actor.send({ type: 'VALIDATE' })
-    expect(actor.getSnapshot().value).toBe('VALIDATING')
-
-    actor.send({ type: 'VALID' })
-    expect(actor.getSnapshot().value).toBe('PENDING_CHAIN')
-
-    actor.send({ type: 'SUBMIT' })
-    expect(actor.getSnapshot().value).toBe('SUBMITTED')
-
-    actor.send({ type: 'CONFIRM' })
-    expect(actor.getSnapshot().value).toBe('CONFIRMED')
-
-    actor.send({ type: 'RECONCILE' })
-    expect(actor.getSnapshot().value).toBe('RECONCILED')
   })
 
   it('rejects ineligible products from the catalog', async () => {
@@ -506,64 +486,6 @@ describe('End-to-End Transaction Flow Integration', () => {
     const reeval = reevalResult._unsafeUnwrap()
     expect(reeval.tier).toBe(2)
     expect(reeval.beneficiary.child_name).toBe('Baby Maggie')
-  })
-
-  it('state machine transitions through all lifecycle states correctly', async () => {
-    const { transactionMachine } = await import('../services/transaction.machine.js')
-    const actor = createActor(transactionMachine)
-    actor.start()
-
-    expect(actor.getSnapshot().value).toBe('IDLE')
-
-    actor.send({ type: 'VALIDATE' })
-    expect(actor.getSnapshot().value).toBe('VALIDATING')
-
-    actor.send({ type: 'VALID' })
-    expect(actor.getSnapshot().value).toBe('PENDING_CHAIN')
-
-    actor.send({ type: 'SUBMIT' })
-    expect(actor.getSnapshot().value).toBe('SUBMITTED')
-
-    actor.send({ type: 'CONFIRM' })
-    expect(actor.getSnapshot().value).toBe('CONFIRMED')
-
-    actor.send({ type: 'RECONCILE' })
-    expect(actor.getSnapshot().value).toBe('RECONCILED')
-    expect(actor.getSnapshot().status).toBe('done')
-  })
-
-  it('state machine transitions to FAILED from any active state', async () => {
-    const { transactionMachine } = await import('../services/transaction.machine.js')
-
-    const actor1 = createActor(transactionMachine)
-    actor1.start()
-    actor1.send({ type: 'VALIDATE' })
-    actor1.send({ type: 'INVALID' })
-    expect(actor1.getSnapshot().value).toBe('FAILED')
-
-    const actor2 = createActor(transactionMachine)
-    actor2.start()
-    actor2.send({ type: 'VALIDATE' })
-    actor2.send({ type: 'VALID' })
-    actor2.send({ type: 'FAIL' })
-    expect(actor2.getSnapshot().value).toBe('FAILED')
-
-    const actor3 = createActor(transactionMachine)
-    actor3.start()
-    actor3.send({ type: 'VALIDATE' })
-    actor3.send({ type: 'VALID' })
-    actor3.send({ type: 'SUBMIT' })
-    actor3.send({ type: 'FAIL' })
-    expect(actor3.getSnapshot().value).toBe('FAILED')
-
-    const actor4 = createActor(transactionMachine)
-    actor4.start()
-    actor4.send({ type: 'VALIDATE' })
-    actor4.send({ type: 'VALID' })
-    actor4.send({ type: 'SUBMIT' })
-    actor4.send({ type: 'CONFIRM' })
-    actor4.send({ type: 'FAIL' })
-    expect(actor4.getSnapshot().value).toBe('FAILED')
   })
 
   it('rejects unrecognizable product when vision confidence is below threshold', async () => {

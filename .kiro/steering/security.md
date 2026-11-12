@@ -16,7 +16,7 @@ including the places where the two disagree.
   `<mobile-digits>@merchant.bantayog.local`. Access + refresh tokens live in `localStorage`
   (`bantayog_merchant_access_token`, `..._refresh_token`, `..._expires`) and `authFetch` refreshes
   them 30s before expiry. `SUSPENDED` merchants are rejected at login and on `/api/merchants/me`.
-  Wallet login is also supported via a `personal_sign` proof matched to an APPROVED merchant.
+  The retired wallet-login flow is not a supported identity path.
 - **Beneficiary** — no credentials. A JWS (HS256) QR token carries
   `{beneficiaryId, childName, guardianName, tier, pin_hash_ref, walletRef}`.
 
@@ -24,9 +24,8 @@ including the places where the two disagree.
 
 - Tokens are signed with `QR_TOKEN_SECRET` and are **not** time-limited: `generateToken` sets
   `iat` only (`QR_TOKEN_TTL_SECONDS` is validated in config but unused). Revocation and expiry are
-  enforced by the `qr_passes` row instead — but only partially: `POST /api/auth/verify-qr` checks
-  both `revoked` and `expires_at`, while `POST /api/transactions` and `GET /api/balance/view`
-  check `expires_at` only. A revoked pass can therefore still transact. Treat this as a real gap.
+  enforced by the `qr_passes` row. QR verification, checkout, and the public balance view check
+  both `revoked` and `expires_at`.
 - `QrTokenService.getSecretKey()` falls back through `JWT_SIGNING_SECRET` → `JWT_SECRET` → a
   hardcoded literal. That fallback is a real risk in any non-local environment: always set
   `QR_TOKEN_SECRET` explicitly, and treat removing the literal as a valid hardening change.
@@ -132,10 +131,8 @@ architecture decision.
 - Keep `.freebuff`, `.commandcode`, private reports and research notes out of source commits.
   Stellar tests generate keys at runtime. A new tree does not clear secret data from old history.
 
-- `docs/SECURITY.md` states scanned images are never stored. In the current `analyzeScan` path,
-  `ProductsService.validateOrCreateProduct` persists the scan as a base64 data URL in
-  `products.image_url`, and migration 00005 adds a `reference-images` bucket. Treat the doc as
-  aspirational; if you touch that flow, either stop persisting images or update the doc.
-- `docs/SECURITY.md` describes on-chain `processTransaction` enforcement; today's reconcile cron
-  performs a plain treasury→merchant PHPC transfer instead (see `blockchain.md`).
+- The current `analyzeScan` path can persist a base64 image in `products.image_url`. The security
+  policy now states this behavior. Retention still needs review before using real records.
+- The reconcile worker submits custodial beneficiary-to-merchant payments; it does not use a
+  bookkeeping contract. See `blockchain.md` and the current architecture.
 - CORS defaults to `http://localhost:3000` when `CORS_ORIGIN` is unset — set it per environment.

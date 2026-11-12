@@ -8,7 +8,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     // View tests render with react-dom/server in the node environment (no DOM library).
-    include: ["lib/**/*.test.ts", "app/api/**/*.test.ts", "components/**/*.test.tsx"],
+    include: ["lib/**/*.test.ts", "app/**/*.test.{ts,tsx}", "components/**/*.test.tsx"],
     testTimeout: 30000,
     coverage: {
       provider: "v8",

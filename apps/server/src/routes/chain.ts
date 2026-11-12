@@ -44,7 +44,7 @@ chainRoutes.get('/balance', async (c) => {
 
 // POST /api/chain/transfer
 // This endpoint is being redesigned in a later migration phase
-// (STELLAR_MIGRATION_RUNBOOK.md Phase 6/7). The former EVM-based arbitrary
+// (docs/archive/implemented/stellar-migration-runbook.md Phase 6/7). The former EVM-based arbitrary
 // transfer from the deployer wallet has no direct Stellar equivalent in the
 // new architecture.
 chainRoutes.post('/transfer', async (c) => {

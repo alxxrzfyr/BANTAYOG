@@ -30,7 +30,7 @@ subdomain (localhost is exempt so all surfaces work in dev).
 ## Core flows
 
 - **Registration (admin).** Guardian + child, income, GPS, 6-digit guardian PIN (Argon2id),
-  card serial. A custodial EVM wallet is generated per beneficiary; its private key is stored
+  card serial. A custodial Stellar wallet is generated per beneficiary; its private key is stored
   only as AES-256-GCM ciphertext.
 - **Tiering.** Tier is computed, never stored as ground truth: Tier 1 (Critical) while age from
   conception ≤ 1,000 days (= ≤ 730 days from birth), else Tier 2 (Standard). Recomputed on read,
@@ -43,12 +43,11 @@ subdomain (localhost is exempt so all surfaces work in dev).
   (ADR-003). Unknown identified products are auto-inserted as draft catalog rows.
 - **Checkout.** Verify QR token (JWS HS256) → check `qr_passes.expires_at` → verify guardian PIN
   with lockout → reject non-positive or over-balance totals → `settle_sale` Postgres RPC
-  atomically deducts beneficiary credit, credits the merchant's off-chain `wallet_balance`, and
-  inserts the transaction as `CONFIRMED`. (`qr_passes.revoked` is only checked by
-  `POST /api/auth/verify-qr`, not by checkout or the balance view — a known gap.)
-- **Cash-out (merchant).** Merchant connects an EVM wallet with a `personal_sign` proof, then
-  cashes out: `cashout_in_progress` flag guards concurrency, PHPC is transferred on-chain to the
-  merchant wallet, and the off-chain balance is zeroed only after confirmation.
+  atomically deducts beneficiary credit and credits the merchant's audit balance. The
+  `settle_sale_and_enqueue` wrapper sets `PENDING_CHAIN` and writes the outbox event in that
+  transaction. Checkout and the balance view also check pass revocation.
+- **Merchant balance.** The profile reads the custodial Stellar account's live PHPC balance.
+  Store claims use the separate PayPal invoice workflow; there is no cash-out mutation.
 - **Balance view (guardian).** Scanning the pass shows current balance plus up to 50 past
   transactions, read-only, no mutating controls.
 

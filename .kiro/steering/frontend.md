@@ -61,16 +61,14 @@ The web layer may display local state and call a native merchant-edge adapter. I
 eligibility, balance, reservation amount, settlement, or cash-out status. The Rural build must not
 display a local pending amount as an official merchant balance.
 
-The current Android shell is in the linked `BANTAYOG-worktrees/merchant-apk` worktree. Its package
-and Capacitor configuration files are zero-byte placeholders. Its generated Android project uses
-Groovy `build.gradle`, namespace `ph.bantayog.merchant`, and a Java `MainActivity`. The Rural plan
-first restores a buildable baseline, then adds `urban` and `rural` Gradle product flavors.
+This checkout has no `apps/mobile` package or `build:mobile` script. The old worktree and
+zero-byte-file notes in the handoff are planning snapshots, not current local state. Task 0 must
+verify a buildable shared baseline before adding `urban` and `rural` Gradle product flavors.
 Rural-only Kotlin storage, Keystore, catalog, OCR, and synchronization classes must stay in the Rural
 source set so the Urban APK does not contain them. The shared barcode class stays in `src/main`.
 
-Urban development stays in `BANTAYOG-worktrees/merchant-apk`. After the reviewed shared baseline is
-committed, Task 0 creates `BANTAYOG-worktrees/merchant-apk-rural` for Rural development. Final
-signed Urban and Rural APKs must come from one clean approved integration revision.
+Task 0 defines the approved worktree split. Final signed Urban and Rural APKs must come from
+one clean approved integration revision; do not use old paths as proof that the baseline exists.
 
 Rural checkout creates one sale ID and one local event before upload. It can fall back for network,
 DNS, timeout, 408, 429, or 5xx only when assignment, catalog, merchant certificate, permit, and
@@ -92,13 +90,17 @@ not fall back for ineligible, invalid-image, authentication, signature, or confi
 
 ## Client-side domain logic
 
-`lib/domain/` (eligibility, nutrition-policy) mirrors server logic for display only.
 Registration, grants, guardian PIN checks, and pass signing use the server implementations.
 Do not add web service copies only for tests. The merchant's local device PIN in
 `stores/pin-store.ts` is separate. QR scanning uses `lib/qr/scanner.ts`.
 Argon2 and `jose` are server dependencies, not direct web dependencies.
-If a domain rule changes, update `apps/server/src/domain` first and keep the display copy in sync
-or delete it. `lib/env.ts` has development fallbacks (random JWT/QR secrets). Never use those
+The unused web tier and nutrition-policy copies were removed. The retired confirmation mock,
+cash-out modal, contract ABI module, and service-role database helper had no runtime callers.
+The wallet card still imports a legacy connection adapter and can call a retired wallet route.
+This is not a working identity path. Identity-related UI and its unfinished verifier stub need
+a separate owner-approved change; this cleanup does not change them.
+Keep unimplemented QR and photo placeholders until the owner approves their removal.
+`lib/env.ts` has development fallbacks (random JWT/QR secrets). Never use those
 fallbacks in a deployed environment.
 
 ## Admin navigation on small screens
@@ -157,6 +159,6 @@ The merchant wallet card shows no PayPal mark and no `Transfer to Wallet` button
 
 ## Testing
 
-`vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts` and
+`vitest.config.ts` includes `lib/**/*.test.ts`, `app/**/*.test.{ts,tsx}` and
 `components/**/*.test.tsx`. Component tests use `react-dom/server` in the Node environment.
 Path aliases must be added in both `tsconfig.json` and `vitest.config.ts`.

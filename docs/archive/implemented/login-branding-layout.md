@@ -1,5 +1,9 @@
 # Fix Branding Block Spacing — Bantayog Login Page
 
+Archived on 2026-11-13. The login page now groups the branding elements separately from the
+feature cards and uses responsive gaps. The specification below records the implemented fix;
+it is not a new instruction to change authentication or restore older page content.
+
 ## Target file
 `apps/web/app/(auth)/login/page.tsx` — edit only this file.
 

@@ -1,5 +1,11 @@
 # Stellar Migration Runbook
 
+Archived on 2026-11-13. Phases 0 through 7 are recorded as complete in this document.
+This is an implementation record, not a current setup guide. Use
+[Stellar testnet operations](../../stellar-testnet.md) for current commands and
+[ADR 004](../../adr/004-stellar-migration.md) for the remaining Soroban roadmap.
+The original phase instructions and historical verification results are preserved below.
+
 Implementation instructions for migrating BANTAYOG's chain layer from Polygon Amoy to Stellar.
 
 - **Decision record:** `docs/adr/004-stellar-migration.md`. That document explains *why*. This

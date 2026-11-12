@@ -70,8 +70,6 @@ Auth (`routes/auth.ts`)
 - `POST /api/auth/merchant-login` — mobile → `<digits>@merchant.bantayog.local`; blocks
   `SUSPENDED`; returns access + refresh token and merchant summary.
 - `POST /api/auth/merchant-refresh` — refresh-token exchange.
-- `POST /api/auth/wallet-login` — Stellar wallet proof → matches an APPROVED merchant by
-  `wallet_address`, then mints a session via admin magiclink + `verifyOtp`.
 - `POST /api/auth/verify-pin` — 6-digit PIN check (no lockout on this path).
 - `POST /api/auth/verify-qr` — verifies the JWS token, rejects revoked/expired passes, then
   re-evaluates tier and returns the beneficiary.
@@ -89,16 +87,14 @@ returns the privacy-safe analytics projection (`{id, status}` only) and selects 
 columns, so owner names and mobile numbers never reach the analytics surface. Without `summary=1`
 the full merchant DTO is unchanged.
 
-Analytics (admin, `/admin/analytics` consumer) — **not implemented yet.** The frontend already
-calls these paths and renders an explicit "not yet available" state on the 404 from
-`app.notFound`. Contracts live in `packages/schema/src/analytics.ts` (imported by the web app as
+Analytics (admin, `/admin/analytics` consumer) — implemented in `routes/analytics.ts` and
+`AnalyticsService`. Responses are read-only aggregates. Contracts live in
+`packages/schema/src/analytics.ts` (imported by the web app as
 `@bantayog/schema/analytics`):
 - `GET /api/analytics/top-products?days=<n>` → `AnalyticsTopProductsResponseDto`
-- `GET /api/analytics/scan-outcomes` → `AnalyticsScanOutcomesDto` (blocked: scan verdicts are
-  never persisted)
+- `GET /api/analytics/scan-outcomes` → `AnalyticsScanOutcomesDto`
 - `GET /api/analytics/tier-spend` → `AnalyticsTierSpendDto`
-- `GET /api/analytics/vision-performance` → `AnalyticsVisionPerformanceDto` (blocked: no latency
-  or success telemetry is stored; the Gemini response has no confidence field)
+- `GET /api/analytics/vision-performance` → `AnalyticsVisionPerformanceDto`
 - `GET /api/analytics/security-events` → `AnalyticsSecurityEventsDto` (reads the Upstash Redis
   sliding-window counters, not Postgres)
 - `POST /api/analytics/dpa-export` → `DpaExportRequestDto` in; `DpaExportJsonResponseDto`
@@ -108,19 +104,17 @@ calls these paths and renders an explicit "not yet available" state on the 404 f
 
 Merchant self (`routes/merchant-self.ts`)
 - `GET /api/merchants/me` — profile DTO incl. `walletBalance`, `connected`; 403 if suspended.
-- `POST /api/merchants/me/wallet` — validates 0x+40-hex address and verifies `verifyMessage`
-  ownership before persisting.
-- `POST /api/merchants/me/cashout` — requires connected wallet and positive balance; takes the
-  `cashout_in_progress` lock via conditional update, transfers PHPC, waits up to 300s for
-  confirmation, then zeroes the balance. Every failure path releases the lock and returns 502.
+- `walletBalance` is an exact decimal string read from the custodial Stellar account.
+- Wallet login, wallet connection, and cash-out mutations were retired. Do not implement callers
+  from historical mobile instructions.
 
 Transactions (`routes/transactions.ts`)
 - `POST /api/transactions` (merchant) — body: `qrToken`, 6-char `pin`, `items[]`
   (`category` from the 9-value nutrition enum, `name`, `quantity`, `unitPricePhp`, `creditCost`),
   `idempotencyKey` (UUID, also used as the transaction id), optional `photoStoragePath`.
-  Order: merchant APPROVED → QR token → `qr_passes.expires_at` (note: `revoked` is **not**
-  checked here) → beneficiary not SUSPENDED/INELIGIBLE → PIN with lockout → total > 0 →
-  sufficient balance → `settle_sale` RPC. Returns 201 with the DTO plus `remainingBalance`.
+  Order: merchant APPROVED → QR token → pass revocation and expiry → beneficiary not
+  SUSPENDED/INELIGIBLE → PIN with lockout → total > 0 → sufficient balance →
+  `settle_sale_and_enqueue` RPC. Returns 201 with `PENDING_CHAIN` and `remainingBalance`.
 - `GET /api/transactions` — paginated (`page`, `limit`, `status`); merchants are force-scoped to
   their own rows. `summary=1` switches the response to the privacy-safe analytics projection
   (`{id, merchantId, totalCreditDeducted, onchainTxHash, status, createdAt}`) and drops the

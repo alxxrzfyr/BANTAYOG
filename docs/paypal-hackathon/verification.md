@@ -155,3 +155,21 @@ that the compiler rejects an invalid money type without changing a source file.
 Active server behavior, migrations and DTO snapshot contents stayed unchanged. These checks did
 not repeat the live sandbox flows or the production build. The earlier payment and testnet limits
 still apply.
+
+## Repository cleanup follow-up (November 13, 2026)
+
+The cleanup removed unused web policy copies, legacy UI and contract modules, a state machine
+used only by tests, and 17 unreferenced or duplicate assets (5,938,826 bytes). Completed
+instructions and superseded snapshots now live in `docs/archive/`; current contracts and
+unfinished QR, photo, native, and Rural work remain active.
+
+Root lint and type checks passed. The full suites passed 111 schema, 68 database, 533 server,
+and 188 web tests. After fixing a pre-existing missing favicon reference, web lint and type
+checks passed again with 189 web tests, including the new icon-file regression check
+(901 tests across the packages). Documentation links, runtime image paths, preserved archive
+contents, and unchanged unfinished work also passed checks.
+
+The production build passed with existing framework warnings. No migration, authentication,
+RLS, DTO shape, or money-movement behavior changed. No live payment or chain operation ran in
+this cleanup. Moving files into an archive does not remove them from Git history or make them
+private.
