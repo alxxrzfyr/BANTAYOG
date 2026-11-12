@@ -42,4 +42,5 @@ This scope gives a working contribution path without changing credits, `settle_s
 RLS policies or merchant balances. Linking fund receipts to child grants requires a separate
 allocation design and review.
 
-Source: [fund contract](../designs/paypal-fund.md).
+Sources and verification: [fund contract](../designs/paypal-fund.md) and
+[verification record](../paypal-hackathon/verification.md).

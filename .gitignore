@@ -76,3 +76,4 @@ research_notes/
 
 # Serwist creates this file during the production build.
 apps/web/public/sw.js
+/fresh-bantayog.sql

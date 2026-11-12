@@ -16,6 +16,8 @@ Set these variables on the server:
 The server also needs its existing Supabase and authentication variables. Use the root or server
 `.env.example` as the variable list. Set a dedicated private `QR_TOKEN_SECRET` and a private
 `CUSTODIAL_KEY_ENCRYPTION_KEY`. Keep credentials out of the repository and browser.
+Use [the local setup guide](../../docs/paypal-hackathon/setup.md) for a fresh database. Do not
+replay the full historical migration sequence on an existing database.
 
 Apply migration `00018_paypal_settlement.sql` only after database review and owner approval.
 Apply `00019_paypal_fund.sql` for funder checkout and the fund ledger. Both migrations add new

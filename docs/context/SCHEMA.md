@@ -61,6 +61,10 @@ products, market_prices, outbox                (no foreign key)
 
 ### Warnings about re-running migrations
 
+For a new project, use [the guarded fresh-install procedure](../paypal-hackathon/setup.md).
+It skips the redundant `00006` file, enables the UUID extension and keeps the full install in
+one transaction. It refuses an existing application schema. The source migrations stay unchanged.
+
 - `00006` runs `ALTER TABLE public.products ADD COLUMN image_embedding vector(768)` without
   `IF NOT EXISTS`. It fails if `00005` already ran. Treat `00006` as historical noise.
 - `00005` runs `CREATE INDEX ON public.products USING hnsw (...)` with no name and no

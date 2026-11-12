@@ -211,7 +211,7 @@ cp .env.example .env                          # Supabase, Upstash, Gemini, chain
 cp apps/server/.env.example apps/server/.env
 cp apps/web/.env.example apps/web/.env.local
 
-# 3. database — apply supabase/migrations/*.sql in order to your project
+# 3. database — follow docs/paypal-hackathon/setup.md for a new or existing project
 
 # 4. Stellar asset bootstrap (issues PHPC, sets issuer flags, funds distribution)
 pnpm bootstrap:stellar                        # idempotent; safe to re-run after a testnet reset
@@ -219,6 +219,12 @@ pnpm bootstrap:stellar                        # idempotent; safe to re-run after
 # 5. run — web on :3000, API on :3001
 pnpm dev
 ```
+
+Use [the local setup guide](docs/paypal-hackathon/setup.md) for the guarded fresh-install SQL
+file. Do not replay an applied migration. PayPal needs migrations `00018` and `00019` and the server
+settings in [the setup guide](apps/server/README.md). Use your own sandbox accounts and keys.
+For payment tests against existing confirmed test sales, Stellar keys are not required. Keep
+`RECONCILE_INTERVAL_MS=0` in that local environment so it cannot drain a live outbox.
 
 Quality gate and per-package commands:
 
@@ -248,4 +254,3 @@ team placed **1st Runner-Up** on July 9, 2026.
 - **Live Demo:** [Watch Demo](https://drive.google.com/file/d/1HbexEd2dmRrOxbiT5l1bJY4QRoW5PWiQ/view?usp=drive_link)
 - **APK Download:** [Download APK](https://drive.google.com/drive/folders/1WBwtM_48NqHBRsulMHh0qs_ClyvFr24N?usp=sharing)
 - **Test Credentials (So you can login and test our project):** [Testing_Access](https://drive.google.com/file/d/1D7TcflxdrH6FG4aDZIQkJAVpAizVpaKg/view?usp=sharing) 
-
