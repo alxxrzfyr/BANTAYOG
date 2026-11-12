@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react";
 import { pickWallet } from "@/lib/chain/wallet-adapter";
 import { authFetch } from "@/lib/api";
-import { PayPalLogo } from "@/components/ui/paypal-logo";
 
 // Wallet Balance Card — matches the dark teal card in merchantPages/13.png
 
@@ -79,7 +78,6 @@ export function WalletBalanceCard({
   // Remove display-only trailing zeros, keeping at least two decimal places.
   const formattedBalance = balance.replace(/(\.\d{2,}?)0+$/, "$1");
   const phpEquivalent = formattedBalance;
-  const hasBalance = /[1-9]/.test(balance);
 
   return (
     <>
@@ -188,30 +186,11 @@ export function WalletBalanceCard({
           </p>
         )}
 
-        {/* Informational prompt warnings when balance > 0 and no wallet is connected */}
-        {hasBalance && !connected && (
-          <p className="mb-3 font-body text-[11px] text-[#f48d79] font-medium">
-            * Please connect a wallet to cash out your balance.
-          </p>
-        )}
-
-        <div role="img" aria-label="PayPal" className="mb-3 w-fit">
-          <PayPalLogo onDark />
-        </div>
-
-        {/* Bottom row: address + transfer button */}
+        {/* Bottom row: address. Store payment runs through Get paid. */}
         <div className="flex items-center justify-between gap-3">
           <span className="truncate font-body text-xs text-white/70">
             {connected && walletAddress ? truncateAddress(walletAddress) : "No wallet connected"}
           </span>
-          <button
-            type="button"
-            onClick={() => alert("This feature is coming soon!")}
-            disabled={!connected || !hasBalance}
-            className="flex-shrink-0 rounded-full bg-[#f48d79] px-4 py-2 min-h-[44px] font-body text-xs font-bold text-[#034C52] transition-colors hover:bg-[#f9a899] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#f48d79]/40"
-          >
-            Transfer to Wallet
-          </button>
         </div>
       </div>
     </>

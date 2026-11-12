@@ -151,11 +151,9 @@ weight from a photo. Missing weight or a price failure does not select the nutri
 The page validates request and response shapes with the shared schemas. Edits invalidate the
 current result; responses from an older request cannot approve changed details.
 
-## Merchant transfer branding
+## Merchant PayPal placement
 
-The merchant wallet card shows the PayPal logo near `Transfer to Wallet`.
-The logo does not add a transfer flow. The existing button still reports that the feature
-is coming soon and requires a connected wallet and a positive balance.
+The merchant wallet card shows no PayPal mark and no `Transfer to Wallet` button. In the store app, PayPal appears only on the `Get paid` screen (`/dashboard/settlements`).
 
 ## Testing
 
