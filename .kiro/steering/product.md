@@ -12,7 +12,7 @@ stores, and settlement is recorded on Stellar testnet using a mock PHPC asset.
 Built for SparkFest 2026 (GDG on Campus – PUP) by a 4-person team, and entered in the **Cryptita
 Plays Builder Showcase at WOCEE 2026** — live pitch on August 8, 2026 at SMX Convention Center
 Manila, submitted under the *Bayanihan Finance* category (event facts and stage scope live in
-`docs/SHOWCASE.md`). Hackathon-stage code: testnet only, demo-grade in places, but the
+`docs/SHOWCASE.md`). PayPal AI Hackathon 2026 context lives in `docs/paypal-hackathon/`. Hackathon-stage code: testnet only, demo-grade in places, but the
 architecture is real (see ADRs in `docs/adr/`).
 
 ## Three user surfaces (one Next.js app, sandboxed by hostname)

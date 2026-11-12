@@ -31,6 +31,10 @@ August 8, 2026, SMX Convention Center Manila, *Bayanihan Finance* category). Eve
 category choice and the stage scope live in `docs/SHOWCASE.md` — keep them there, and do not add
 features "for the demo".
 
+PayPal AI Hackathon 2026 (Devpost, deadline November 12, 2026, 12:00 PST): rules, judging,
+sponsors, the PayPal sandbox reference and the submission checklist live in
+`docs/paypal-hackathon/`. Read it before any PayPal work or any hackathon submission step.
+
 ## Setup & commands
 
 - Install: `pnpm install` (pnpm 9.15.0 is pinned in `packageManager`; Node >= 20)
