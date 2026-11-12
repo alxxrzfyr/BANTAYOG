@@ -18,22 +18,31 @@ BANTAYOG
 
 ## Project Brief
 
-**The problem our solution addresses**  
-Nutrition aid has a proof gap. A cash transfer record shows that money arrived. It does not show which food was bought. When a grant intended for child nutrition also pays for other needs, the program cannot verify the intended purchase from the transfer alone. Small neighborhood stores also need a practical way to make a claim and check payment.
+> **food credits should be usable where people already shop—not only where payment infrastructure exists.**
 
-**our proposed solution**  
-BANTAYOG uses nutrition-locked credits and a printed QR "Nutri-Pass". The store uses its phone to identify items. Server rules check the approved food list and record the sale. Stellar testnet records the ledger proof. A reviewed PayPal sandbox invoice adds payment status for the store claim. The guardian needs no smartphone, and the store needs no payment terminal.
+**Food credits address a real nutrition need.**  
+Low-income families may struggle to afford a varied, nutritious diet, putting children and other vulnerable household members at risk of poor nutrition. Food-credit programs help by giving eligible households purchasing power for approved food items instead of unrestricted cash. Their aim is to improve access to food and support healthier diets. **But food credits only help when families can actually redeem them.**
+
+**The government already has a solution—but access can still be a last-mile problem.**  
+The Philippines' [DSWD Walang Gutom Program](https://www.dswd.gov.ph/dswds-walang-gutom-program-identifies-beneficiaries-based-on-psas-family-income-and-expenditure-survey-updated-cbms-database/) already provides eligible households with ₱3,000 in monthly food credits through Electronic Benefit Transfer (EBT) cards, redeemable at accredited retailers. This is not a new idea, nor does BANTAYOG replace that program.
+
+The challenge we target is **access to a nearby redemption point**. The [DSWD implementation guidelines](https://old.dswd.gov.ph/issuances/MCs/MC_2024-019.pdf) explicitly recognize limited markets in geographically isolated areas, call for retailer-access assessments in underserved communities, and provide alternative food-distribution arrangements. Small businesses, including sari-sari stores, can participate in government programs; the issue is not that they are categorically excluded. Rather, a neighborhood store that is not onboarded as an authorized redemption partner cannot accept that program's food credits. For some households, that may mean travel to a participating outlet or reliance on scheduled food distribution. The size of this access gap still needs local field research.
+
+**What BANTAYOG proposes**  
+BANTAYOG is a **smartphone-based food-credit redemption and accountability system for neighborhood sari-sari stores**, designed to reduce dependence on dedicated point-of-sale (POS) hardware. A participating store uses its phone to scan food items and a printed QR **Nutri-Pass**; the guardian needs no smartphone. Server rules check which items are eligible, record the purchase, and track credits. Stellar testnet provides ledger proof. AI assists with item recognition and settlement review, while PayPal sandbox invoicing lets the program confirm a store claim's payment status.
+
+The current prototype issues **its own demonstration credits** for a child-and-guardian program. It **does not accept existing DSWD EBT balances** or connect to DSWD systems. Stores must still be approved by the program operator. Its PayPal sandbox setup also does not yet prove direct payment to each individual store.
 
 **The intended users or beneficiaries**
 
-- Infants &amp; guardians in the First 1,000 Days cohort
-- Low-income families relying on local credit
-- LGUs (Local Government Units) administering the subsidies
-- Local sari-sari store merchants
+- Infants &amp; guardians in the First 1,000 Days cohort (the current prototype)
+- Low-income households that could benefit from locally redeemable food assistance
+- LGUs (Local Government Units) and aid organizations running food-credit programs
+- Approved neighborhood sari-sari store merchants
 - Funders, including local programs and international aid groups. No agency partnership is claimed.
 
-**The impact of our project**  
-BANTAYOG aims to give a program item-level purchase records and payment proof at small stores. These records do not measure a child's nutrition outcome. A field study and program evaluation are still needed.
+**The intended impact**  
+BANTAYOG aims to bring food-credit redemption closer to where beneficiaries live and shop, while giving program operators item-level purchase records and payment-status proof. Whether it reduces travel, onboarding costs, or settlement time—and whether it improves diets or health—must be tested in the field; these are goals, not measured outcomes.
 
 ## PayPal and AI: the new payment flow
 
