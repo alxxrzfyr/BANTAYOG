@@ -143,8 +143,11 @@ Local checks passed on Windows with Node 22.23.4 and pnpm 9.15.0:
 - `pnpm run test --concurrency=1`: 111 schema, 68 database, 500 server and 183 web tests passed
   (862 total).
 
-The cleanup removed unused web service copies, their tests, and unused QR, email and photo
-placeholders. It also removed two tests of third-party result helpers and two unused direct web
+The cleanup removed unused web service copies, their tests, and an unused owner-name email helper.
+The unimplemented QR and photo modules were restored after the owner clarified the cleanup scope.
+Their contents match the pre-cleanup files. Web lint, type checks and all 183 web tests passed
+again after restoration.
+The cleanup also removed two tests of third-party result helpers and two unused direct web
 dependencies. Database fixture-value checks now use type assertions. The database test script
 checks those assertions with TypeScript before Vitest runs. An in-memory negative check confirmed
 that the compiler rejects an invalid money type without changing a source file.

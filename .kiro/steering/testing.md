@@ -26,6 +26,8 @@ The database `test` script first runs TypeScript with `tsconfig.type-tests.json`
 `expectTypeOf` contracts in `src/types.test.ts`, which the source-only build excludes. The script
 then runs Vitest. Do not replace type assertions with checks of values set in the same fixture.
 Do not retain unused production modules only to keep their tests running.
+Keep unimplemented feature placeholders unless the owner approves their removal. An unused
+implementation and an unimplemented feature are not the same cleanup target.
 
 ## Patterns already in the repo
 

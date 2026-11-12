@@ -14,7 +14,7 @@ apps/web/                    Next.js 16 PWA — UI only, no business logic
     api/[...proxy]/          Edge proxy: /api/* -> API server
     sw.ts                    Serwist service worker source
   components/{admin,merchant,ui,shared}/
-  lib/                       api.ts (authFetch), env.ts, db.ts,
+  lib/                       api.ts (authFetch), env.ts, db.ts, anon-photo-store.ts,
                              chain/, qr/, domain/, middleware/, supabase/
   stores/                    Zustand stores + auth-context.tsx
   hooks/  providers/         React hooks and app-level providers
