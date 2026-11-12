@@ -36,7 +36,7 @@ export function AdminHeaderNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/15 bg-gradient-to-r from-admin-header-start to-admin-header-end">
-      <div className="max-w-[1280px] mx-auto px-6 h-[72px] flex items-center justify-between gap-4">
+      <div className="max-w-[1280px] mx-auto px-6 min-h-[72px] flex flex-col items-start justify-between gap-3 py-4 xl:h-[72px] xl:flex-row xl:items-center xl:gap-4 xl:py-0">
 
         {/* ── Left: Logo + wordmark + badge + subtext ── */}
         <Link href="/admin/beneficiaries" className="flex flex-row items-center gap-3 flex-nowrap select-none">
@@ -75,7 +75,7 @@ export function AdminHeaderNav() {
         </Link>
 
         {/* ── Right: Navigation links + Sign Out ── */}
-        <nav className="flex items-center gap-1">
+        <nav aria-label="Administrator navigation" className="flex w-full flex-wrap items-center gap-1 xl:w-auto xl:flex-nowrap">
           {navLinks.map(({ href, label }) => {
             const isActive = pathname === href ||
               (href === "/admin/settlements" && pathname.startsWith("/admin/settlements/")) ||
@@ -86,7 +86,7 @@ export function AdminHeaderNav() {
                 key={href}
                 href={href}
                 className={`
-                  px-4 py-2 rounded-full text-[11px] font-bold tracking-wider
+                  inline-flex min-h-[44px] items-center px-4 py-2 rounded-full text-[11px] font-bold tracking-wider xl:min-h-0
                   transition-all duration-200 select-none
                   ${isActive
                     ? "bg-admin-header-active-bg text-admin-header-active-text shadow-sm"
@@ -102,7 +102,7 @@ export function AdminHeaderNav() {
           {/* Sign Out icon button */}
           <button
             onClick={() => setShowSignOutModal(true)}
-            className="ml-2 w-9 h-9 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 select-none cursor-pointer"
+            className="ml-2 w-11 h-11 xl:w-9 xl:h-9 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 select-none cursor-pointer"
             aria-label="Sign Out"
           >
             <svg

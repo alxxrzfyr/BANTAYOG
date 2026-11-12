@@ -89,6 +89,12 @@ beneficiary) mirror server logic for display and legacy Next-API paths. The serv
 authoritative — if a rule changes, update `apps/server/src/domain` first and keep the client copy
 in sync or delete it. `lib/env.ts` has dev-friendly fallbacks (random JWT/QR secrets) so `pnpm dev` doesn't crash on boot without a `.env.local` that must never be relied on in a deployed environment.
 
+## Admin navigation on small screens
+
+The admin header keeps the existing branding, colors and desktop row. Below the `xl` breakpoint,
+the navigation wraps below the logo. Links and the sign-out button have 44-pixel touch targets.
+The header must fit the viewport without page-level horizontal scrolling.
+
 ## PayPal fund
 
 PayPal fund pages are `/fund` (public sandbox checkout and receipt) and `/admin/fund` (admin
