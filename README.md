@@ -22,18 +22,18 @@ A food-credit system that lets families buy approved food at local stores with a
 
 ### Food credits address a nutrition need
 
-Low-income families may struggle to afford a varied, nutritious diet, putting children and other vulnerable household members at risk of poor nutrition.
+&emsp;&emsp;Low-income families may struggle to afford a varied, nutritious diet, putting children and other vulnerable household members at risk of poor nutrition.
 Food-credit programs give eligible households purchasing power for approved food instead of unrestricted cash, with the aim of improving food access and diets.
 That support can reach families only when they can actually redeem the credits.
 
 ### Access to a nearby redemption point
 
-The Philippines'
+&emsp;&emsp;The Philippines'
 [DSWD Walang Gutom Program](https://www.dswd.gov.ph/dswds-walang-gutom-program-identifies-beneficiaries-based-on-psas-family-income-and-expenditure-survey-updated-cbms-database/)
 already provides eligible households with **₱3,000 in monthly food credits** through Electronic Benefit Transfer (EBT) cards, redeemable at accredited retailers.
 BANTAYOG does not replace this program, but focuses on **access to a nearby redemption point**.
 
-The [DSWD implementation guidelines](https://old.dswd.gov.ph/issuances/MCs/MC_2024-019.pdf) recognize limited markets in geographically isolated areas
+&emsp;&emsp;The [DSWD implementation guidelines](https://old.dswd.gov.ph/issuances/MCs/MC_2024-019.pdf) recognize limited markets in geographically isolated areas
 and call for retailer-access assessments in underserved communities, with alternative food-distribution arrangements.
 Small businesses, including sari-sari stores, can participate in government programs, but a store must be an authorized partner before accepting that program's credits.
 For some households, a nearby store that is not an authorized partner may mean travel to a participating outlet or reliance on scheduled food distribution.
@@ -41,12 +41,12 @@ The size of this access gap still needs local field research.
 
 ### What BANTAYOG proposes
 
-BANTAYOG proposes a **smartphone-based food-credit redemption and accountability system for neighborhood sari-sari stores** to reduce dependence on dedicated point-of-sale hardware.
+&emsp;&emsp;BANTAYOG proposes a **smartphone-based food-credit redemption and accountability system for neighborhood sari-sari stores** to reduce dependence on dedicated point-of-sale hardware.
 A participating merchant uses a phone to scan food items and a printed QR **Nutri-Pass**, so the guardian does not need a smartphone.
 The server checks which items are eligible while recording purchases and tracking credits.
 AI assists with item recognition and settlement review, while Stellar testnet provides ledger proof and PayPal sandbox invoicing confirms a store claim's payment status.
 
-The prototype issues **its own demonstration credits** for a child-and-guardian program and requires stores to be approved by the program operator.
+&emsp;&emsp;The prototype issues **its own demonstration credits** for a child-and-guardian program and requires stores to be approved by the program operator.
 It does not accept existing DSWD EBT balances or connect to DSWD systems, and its PayPal sandbox setup does not prove direct payment to each store.
 
 ### Who it is for
@@ -59,7 +59,7 @@ It does not accept existing DSWD EBT balances or connect to DSWD systems, and it
 
 ### The intended impact
 
-BANTAYOG aims to bring food-credit redemption closer to where beneficiaries live and shop, while giving operators item-level purchase records and payment-status proof.
+&emsp;&emsp;BANTAYOG aims to bring food-credit redemption closer to where beneficiaries live and shop, while giving operators item-level purchase records and payment-status proof.
 Whether it reduces travel, onboarding costs, or settlement time, or improves diets and health, still needs field testing.
 These are goals rather than measured outcomes.
 
@@ -287,12 +287,8 @@ The event was organized by GDG on Campus at the Polytechnic University of the Ph
 
 ## Acknowledgements
 
-BANTAYOG's core flows rely on these platforms and their developer resources.
-
-- **PayPal:** [Sandbox testing](https://developer.paypal.com/sandbox-testing/overview), [Orders v2](https://developer.paypal.com/api/orders/v2), and [Invoicing v2](https://developer.paypal.com/api/invoicing/v2) for test contributions and claim invoices.
-- **Google Gemini:** [Gemini API docs](https://ai.google.dev/gemini-api/docs) and the [Google GenAI SDK](https://github.com/googleapis/js-genai) for product recognition and claim review.
-- **Stellar:** [Developer docs](https://developers.stellar.org/docs) and the [JavaScript SDK](https://github.com/stellar/js-stellar-sdk) for the testnet ledger and mock PHPC transfers.
-- **Supabase:** [Platform docs](https://supabase.com/docs) for PostgreSQL, authentication, and storage.
+- We're grateful to **PayPal** for providing the free [sandbox](https://developer.paypal.com/sandbox-testing/overview) and the [Orders v2](https://developer.paypal.com/api/orders/v2) and [Invoicing v2](https://developer.paypal.com/api/invoicing/v2) resources that helped us build and test BANTAYOG's payment features.
+- We also appreciate the teams and open-source contributors behind [Google Gemini](https://ai.google.dev/gemini-api/docs), [Stellar](https://developers.stellar.org/docs), and [Supabase](https://supabase.com/docs) for the tools and documentation we relied on throughout development.
 
 <br>
 
