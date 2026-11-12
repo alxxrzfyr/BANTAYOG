@@ -17,6 +17,19 @@ We will isolate the multimodal vision model's scope to **Product Identification*
 3. For each high-confidence candidate, the server runs a case-insensitive fuzzy match (trigram similarity) against the database `products` table.
 4. The eligibility status (`eligible` or `ineligible`) and pricing constraints are read directly from the matching database catalog record and returned to the merchant app.
 
+## Non-branded price review correction
+
+The non-branded route keeps its AI image and food review. The server owns price approval.
+It uses the stored price reference and its stated unit. It converts kilos and 100 grams with
+integer ratios. It needs a measured weight to compare a piece or pack with a kilo price.
+It does not infer weight from the photo. It can compare a dozen with a per-piece reference.
+
+The response keeps price, image match, and nutrition results separate. A price failure or a
+missing reference does not mean that the food is not nutritious. AI cannot change the reference
+range or approve a failed server price check. The screen shows the matched commodity, unit,
+source, and date. The stored file is not a live local price feed. AI review does not prove food
+safety or freshness. This correction does not change catalog eligibility or checkout rules.
+
 ## Consequences
 
 ### Benefits

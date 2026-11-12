@@ -142,7 +142,16 @@ Vision (merchant, `routes/vision.ts` + `services/vision.service.ts`). All bodies
   Gemini quota/format errors are translated to `rate_limit:` / `image_error:` / `scan_error:`
   prefixed validation errors.
 - `POST /api/vision/validate-non-branded` — palengke items: image + manual `productName`,
-  `price`, `unit` validated against `market_prices` by `PricingValidationService`.
+  `price`, `unit`, and optional integer `unitWeightGrams`. Shared Zod schemas validate the
+  request and response. `PricingValidationService` checks the stored price file, not a live
+  `market_prices` feed. It compares equivalent units with integer ratios and the existing
+  20% tolerance. Per-piece, pack, or dozen prices need a measured sale-unit weight when the
+  reference is per kilo. A dozen can use a per-piece reference without a weight.
+  Responses separate `priceStatus` and `priceReasoning` from the AI image and nutrition review.
+  `researchedPriceUnit`, reference name, source, and date describe the stored reference.
+  Missing weight or reference blocks price approval; neither means the food is not nutritious.
+  AI cannot replace reference prices or release a failed server price check. A photo mismatch
+  also blocks approval. Invalid AI data returns a safe error. This does not change checkout rules.
 
 Only `/classify` and `/analyze-nutrition` carry the 10/60s Gemini rate limit in `app.ts`;
 `/analyze-scan` and `/validate-non-branded` fall back to the global 100/60s limit despite being

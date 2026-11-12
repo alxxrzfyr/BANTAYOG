@@ -5,7 +5,8 @@ import { createServiceClient } from '../lib/supabase.js'
 import { VisionService } from '../services/vision.service.js'
 import { ProductsService } from '../services/products.service.js'
 import { PricingValidationService } from '../services/pricing-validation.service.js'
-import { toClassificationDTO } from '../dto/mappers.js'
+import { toClassificationDTO, toNonBrandedValidationDTO } from '../dto/mappers.js'
+import { ValidateNonBrandedDto } from '@bantayog/schema'
 import { errorToHttpStatus, errorToResponseBody } from '../lib/errors.js'
 import type { Env } from '../types/env.js'
 
@@ -20,13 +21,6 @@ const classifySchema = z.object({
 
 const lookupBarcodeSchema = z.object({
   gtin: z.string().regex(/^\d{8}$|^\d{12,14}$/, 'Must be an 8, 12, 13, or 14 digit GTIN')
-})
-
-const validateNonBrandedSchema = z.object({
-  imageBase64: z.string().min(1).max(MAX_BASE64_LENGTH, 'Image base64 payload exceeds size limit'),
-  productName: z.string().min(1),
-  price: z.number().positive(),
-  unit: z.string().min(1)
 })
 
 // POST /api/vision/classify
@@ -93,14 +87,14 @@ visionRoutes.post('/lookup-barcode', zValidator('json', lookupBarcodeSchema), as
 
 // POST /api/vision/validate-non-branded
 // Validates a non-branded palengke item with image and manual inputs.
-visionRoutes.post('/validate-non-branded', zValidator('json', validateNonBrandedSchema), async (c) => {
-  const { imageBase64, productName, price, unit } = c.req.valid('json')
+visionRoutes.post('/validate-non-branded', zValidator('json', ValidateNonBrandedDto), async (c) => {
+  const { imageBase64, productName, price, unit, unitWeightGrams } = c.req.valid('json')
   const pricingValidationService = new PricingValidationService()
 
-  const result = await pricingValidationService.validateNonBranded(imageBase64, productName, price, unit)
+  const result = await pricingValidationService.validateNonBranded(imageBase64, productName, price, unit, unitWeightGrams)
 
   return result.match(
-    (res) => c.json(res),
+    (res) => c.json(toNonBrandedValidationDTO(res)),
     (error) => c.json(errorToResponseBody(error), errorToHttpStatus(error))
   )
 })

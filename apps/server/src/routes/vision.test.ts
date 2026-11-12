@@ -1,14 +1,16 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 process.env.GEMINI_API_KEY = 'fake-gemini-key-for-tests'
 
 // ── Dynamic Gemini response ──
-let geminiMockResponseText = JSON.stringify({
+const defaultGeminiResponse = {
   product_name: "Mock Milk",
   is_child_friendly: true,
   flagged_ingredients: ["Sugar"],
   reasoning: "Contains some added sugar, but otherwise safe."
-})
+}
+let geminiMockResponseText = JSON.stringify(defaultGeminiResponse)
+beforeEach(() => { geminiMockResponseText = JSON.stringify(defaultGeminiResponse) })
 
 // Mock the Gemini SDK
 vi.mock('@google/genai', () => {
@@ -65,6 +67,30 @@ vi.mock('../lib/supabase.js', () => ({
 const { app } = await import('../app.js')
 
 describe('Vision Route API Tests', () => {
+  it.each([100, undefined])('keeps banana price units and nutrition separate for weight %s', async unitWeightGrams => {
+    geminiMockResponseText = JSON.stringify({ image_matches: true, is_child_friendly: true,
+      reasoning: 'The image shows a fresh banana.', flagged_ingredients: [], suggested_category: 'FRUITS', mismatch_reason: '' })
+    const res = await app.request('/api/vision/validate-non-branded', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer fake-token' },
+      body: JSON.stringify({ imageBase64: 'fake', productName: 'Banana', price: 10, unit: 'per piece', unitWeightGrams }),
+    })
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.isChildFriendly).toBe(true)
+    expect(json.isJustified).toBe(unitWeightGrams !== undefined)
+    expect(json.priceStatus).toBe(unitWeightGrams === undefined ? 'needs_weight' : 'valid')
+    expect(json.researchedPriceUnit).toBe('per kilo')
+  })
+
+  it.each([{ unitWeightGrams: 0 }, { unitWeightGrams: -1 }, { unitWeightGrams: 0.5 },
+    { unitWeightGrams: 1000001 }, { price: 10.001 }, { unit: 'per truck' }])('rejects invalid price inputs %j', async invalid => {
+    const res = await app.request('/api/vision/validate-non-branded', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer fake-token' },
+      body: JSON.stringify({ imageBase64: 'fake', productName: 'Banana', price: 10, unit: 'per piece', ...invalid }),
+    })
+    expect(res.status).toBe(400)
+  })
+
   it('POST /api/vision/analyze-nutrition returns child safety diagnosis', async () => {
     const res = await app.request('/api/vision/analyze-nutrition', {
       method: 'POST',

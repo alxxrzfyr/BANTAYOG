@@ -157,3 +157,23 @@ exports[`maps settlement proof without private sale fields and fixes decimal str
   "totalAmountPhp": "10.10",
 }
 `;
+
+exports[`preserves separate price and nutrition results and the stored reference unit 1`] = `
+{
+  "flaggedIngredients": [],
+  "imageMatches": true,
+  "isChildFriendly": true,
+  "isJustified": false,
+  "mismatchReason": "Enter the measured weight.",
+  "priceReasoning": "Enter the measured weight.",
+  "priceStatus": "needs_weight",
+  "reasoning": "The photo shows a banana.",
+  "referenceDate": "2026-07-07",
+  "referenceProductName": "Banana (Lakatan)",
+  "referenceSource": "Bantay Presyo (DA-AMAS)",
+  "researchedPriceMax": 110,
+  "researchedPriceMin": 70,
+  "researchedPriceUnit": "per kilo",
+  "suggestedCategory": "FRUITS",
+}
+`;

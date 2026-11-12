@@ -7,7 +7,19 @@ import {
   toBalanceDTO
 } from './mappers.js'
 import { toSettlementInvoiceDTO, toMerchantSettlementOverviewDTO, toSettlementLineDTO, toFundTopupDTO, toFundLedgerDTO } from './mappers.js'
-import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto, FundLedgerDto } from '@bantayog/schema'
+import { SettlementInvoiceDto, MerchantSettlementOverviewDto, SettlementLineDto, FundLedgerDto, NonBrandedValidationDto } from '@bantayog/schema'
+import { toNonBrandedValidationDTO } from './mappers.js'
+
+it('preserves separate price and nutrition results and the stored reference unit', () => {
+  const dto = toNonBrandedValidationDTO({ isJustified: false, imageMatches: true,
+    isChildFriendly: true, reasoning: 'The photo shows a banana.', flaggedIngredients: [],
+    suggestedCategory: 'FRUITS', mismatchReason: 'Enter the measured weight.',
+    priceStatus: 'needs_weight', priceReasoning: 'Enter the measured weight.',
+    researchedPriceMin: 70, researchedPriceMax: 110, researchedPriceUnit: 'per kilo',
+    referenceProductName: 'Banana (Lakatan)', referenceDate: '2026-07-07', referenceSource: 'Bantay Presyo (DA-AMAS)' })
+  expect(NonBrandedValidationDto.safeParse(dto).success).toBe(true)
+  expect(dto).toMatchSnapshot()
+})
 
 it('maps SQL fund amounts without combining legacy grants or losing decimal precision', () => {
   const dto = toFundLedgerDTO({ summary: {

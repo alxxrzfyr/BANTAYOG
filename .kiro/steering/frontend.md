@@ -137,6 +137,17 @@ The service worker uses `NetworkOnly` before default cache rules for API paths a
 with an Authorization header. It cannot supply an offline API balance, invoice or fund receipt.
 The API also sends `Cache-Control: no-store`. Public static assets retain the default rules.
 
+## Non-branded price review
+
+`/cart/non-branded` keeps price review separate from image and nutrition review. It shows the
+stored reference unit, matched commodity, source, and date. It does not label a kilo reference
+as a piece price or describe static data as a live local quote. The optional whole-gram input
+is the measured weight of one sale unit: one piece, one pack, or the full dozen. The server
+requests that weight when it must compare that unit with a kilo reference. It never estimates
+weight from a photo. Missing weight or a price failure does not select the nutrition rejection.
+The page validates request and response shapes with the shared schemas. Edits invalidate the
+current result; responses from an older request cannot approve changed details.
+
 ## Testing
 
 `vitest.config.ts` includes `lib/**/*.test.ts`, `app/api/**/*.test.ts` and

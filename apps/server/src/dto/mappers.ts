@@ -4,7 +4,17 @@ import type { SettlementInvoiceDto, SettlementLineDto, MerchantSettlementOvervie
 import { SettlementItemDto } from '@bantayog/schema'
 import { formatPhp } from '../domain/php-money.js'
 import type { FundTopupRow, FundLedgerSummaryRow } from '@bantayog/db'
-import type { FundTopupDto, FundLedgerDto } from '@bantayog/schema'
+import type { FundTopupDto, FundLedgerDto, NonBrandedValidationDto } from '@bantayog/schema'
+
+export function toNonBrandedValidationDTO(data: NonBrandedValidationDto): NonBrandedValidationDto {
+  return { isJustified: data.isJustified, imageMatches: data.imageMatches,
+    isChildFriendly: data.isChildFriendly, reasoning: data.reasoning,
+    flaggedIngredients: data.flaggedIngredients, suggestedCategory: data.suggestedCategory,
+    mismatchReason: data.mismatchReason, priceStatus: data.priceStatus, priceReasoning: data.priceReasoning,
+    researchedPriceMin: data.researchedPriceMin, researchedPriceMax: data.researchedPriceMax,
+    researchedPriceUnit: data.researchedPriceUnit, referenceProductName: data.referenceProductName,
+    referenceDate: data.referenceDate, referenceSource: data.referenceSource }
+}
 
 export function toFundTopupDTO(row: FundTopupRow, approvalUrl: string | null = null): FundTopupDto {
   return { id: row.id, status: row.status, amountPhp: row.amount_php, feePhp: row.fee_php,

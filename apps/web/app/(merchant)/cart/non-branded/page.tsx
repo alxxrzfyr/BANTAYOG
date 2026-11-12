@@ -11,17 +11,12 @@ import { CartSummary } from "@/components/merchant/cart-summary";
 import { ItemCard } from "@/components/merchant/item-card";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
 import { authFetch, clearMerchantToken } from "@/lib/api";
+import { NonBrandedUnitSchema, NonBrandedValidationDto, ValidateNonBrandedDto } from "@bantayog/schema";
+import { NonBrandedValidationResult } from "@/components/merchant/non-branded-validation-result";
 
 type Stage = 1 | 2 | 3;
 
-const UNITS = [
-  "per piece",
-  "per 100g",
-  "per kilo",
-  "per bundle/pack",
-  "per liter",
-  "per dozen",
-];
+const UNITS = NonBrandedUnitSchema.options;
 
 export default function NonBrandedPage() {
   return (
@@ -46,21 +41,20 @@ function NonBrandedContent() {
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [unit, setUnit] = useState(UNITS[0]);
+  const [unit, setUnit] = useState<string>(UNITS[0]);
+  const [unitWeightGrams, setUnitWeightGrams] = useState("");
+  const requestVersion = useRef(0);
 
   // ── Validation State ──
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationResult, setValidationResult] = useState<{
-    isJustified: boolean;
-    isChildFriendly: boolean;
-    reasoning: string;
-    flaggedIngredients: string[];
-    researchedPriceMin: number;
-    researchedPriceMax: number;
-    suggestedCategory: string;
-    mismatchReason?: string;
-  } | null>(null);
+  const [validationResult, setValidationResult] = useState<NonBrandedValidationDto | null>(null);
+  const invalidateValidation = () => {
+    requestVersion.current += 1;
+    setValidationResult(null);
+    setIsValidating(false);
+    setError(null);
+  };
 
   // ── Camera State ──
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,7 +92,16 @@ function NonBrandedContent() {
   }, [stopCamera]);
 
   const handleValidate = async () => {
-    if (!productName || !price || isNaN(parseFloat(price))) return;
+    const request = ValidateNonBrandedDto.safeParse({
+      imageBase64: capturedImage, productName, price: Number(price), unit,
+      unitWeightGrams: ["per piece", "per bundle/pack", "per dozen"].includes(unit) && unitWeightGrams
+        ? Number(unitWeightGrams) : undefined,
+    });
+    if (!request.success) {
+      setError("Enter a product, a positive price with at most two decimal places, and a whole-gram weight if provided.");
+      return;
+    }
+    const version = ++requestVersion.current;
     setIsValidating(true);
     setError(null);
     setValidationResult(null);
@@ -107,13 +110,9 @@ function NonBrandedContent() {
       const res = await authFetch("/api/vision/validate-non-branded", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: capturedImage,
-          productName: productName.trim(),
-          price: parseFloat(price),
-          unit,
-        }),
+        body: JSON.stringify(request.data),
       });
+      if (version !== requestVersion.current) return;
 
       if (!res.ok) {
         let serverError = "";
@@ -121,6 +120,7 @@ function NonBrandedContent() {
           const errBody = await res.json();
           serverError = errBody?.message || "";
         } catch { /* ignore */ }
+        if (version !== requestVersion.current) return;
 
         if (res.status === 401 || res.status === 403) {
           clearMerchantToken();
@@ -134,12 +134,17 @@ function NonBrandedContent() {
         return;
       }
 
-      const result = await res.json();
-      setValidationResult(result);
+      const result = NonBrandedValidationDto.safeParse(await res.json());
+      if (version !== requestVersion.current) return;
+      if (!result.success) {
+        setError("The validation response was incomplete. Please try again.");
+        return;
+      }
+      setValidationResult(result.data);
     } catch {
-      setError("Something went wrong during validation. Please try again.");
+      if (version === requestVersion.current) setError("Something went wrong during validation. Please try again.");
     } finally {
-      setIsValidating(false);
+      if (version === requestVersion.current) setIsValidating(false);
     }
   };
 
@@ -166,6 +171,7 @@ function NonBrandedContent() {
     setPrice("");
     setQuantity(1);
     setUnit(UNITS[0]);
+    setUnitWeightGrams("");
     setValidationResult(null);
     setError(null);
   };
@@ -293,6 +299,7 @@ function NonBrandedContent() {
                 <button
                   type="button"
                   onClick={() => {
+                    invalidateValidation();
                     setCapturedImage(null);
                     setStage(1);
                   }}
@@ -315,7 +322,7 @@ function NonBrandedContent() {
                 value={productName}
                 onChange={(e) => {
                   setProductName(e.target.value);
-                  setValidationResult(null);
+                  invalidateValidation();
                 }}
                 placeholder="e.g., Kangkong, Tilapia, Rice"
                 className="w-full font-body text-lg font-bold text-gray-900 outline-none placeholder:text-gray-300 transition-colors focus:border-[#017075] border-b border-gray-200 pb-2"
@@ -337,7 +344,7 @@ function NonBrandedContent() {
                     value={price}
                     onChange={(e) => {
                       setPrice(e.target.value);
-                      setValidationResult(null);
+                      invalidateValidation();
                     }}
                     placeholder="0.00"
                     className="w-full bg-transparent font-body text-sm text-gray-800 outline-none"
@@ -353,7 +360,8 @@ function NonBrandedContent() {
                   value={unit}
                   onChange={(e) => {
                     setUnit(e.target.value);
-                    setValidationResult(null);
+                    setUnitWeightGrams("");
+                    invalidateValidation();
                   }}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors focus:border-[#017075] focus:ring-1 focus:ring-[#017075]"
                 >
@@ -361,6 +369,22 @@ function NonBrandedContent() {
                 </select>
               </div>
             </div>
+
+            {["per piece", "per bundle/pack", "per dozen"].includes(unit) && (
+              <div className="mt-4">
+                <label htmlFor="unit-weight" className="mb-1.5 block font-body text-xs font-medium text-gray-600">
+                  Weight of one sale unit (grams)
+                </label>
+                <input id="unit-weight" type="number" min="1" max="1000000" step="1"
+                  value={unitWeightGrams} placeholder="Measured weight, if sold by weight"
+                  aria-describedby="unit-weight-help"
+                  onChange={(event) => { setUnitWeightGrams(event.target.value); invalidateValidation(); }}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 font-body text-sm text-gray-800 outline-none transition-colors focus:border-[#017075] focus:ring-1 focus:ring-[#017075]" />
+                <p id="unit-weight-help" className="mt-1 font-body text-xs text-gray-500">
+                  Required when the price reference is per kilo. Weigh one piece, one pack, or the full dozen for the selected unit. Do not estimate from the photo.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4">
               <QuantitySelector value={quantity} onChange={setQuantity} min={1} />
@@ -392,57 +416,7 @@ function NonBrandedContent() {
             </div>
           )}
 
-          {validationResult && (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#b2dfdb] bg-white shadow-sm">
-              <div className={`px-4 py-3 flex items-center justify-between border-b ${validationResult.isJustified && validationResult.isChildFriendly ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"}`}>
-                <span className="font-body text-xs font-bold uppercase tracking-wider text-[#034C52]">
-                  AI Validation Result
-                </span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-body text-xs font-semibold ${validationResult.isJustified ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
-                  {validationResult.isJustified ? "✓ Justified" : "⚠ Not Justified"}
-                </span>
-              </div>
-              <div className="px-4 py-4 space-y-3">
-                {!validationResult.isJustified && (
-                  <div className="rounded-xl bg-red-50 p-3 border border-red-100">
-                    <p className="font-body text-xs text-red-700 font-semibold leading-relaxed">
-                      {validationResult.mismatchReason || "The provided details don't match the image or the price is unreasonable."}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <h4 className="font-body text-[10px] font-semibold text-gray-400 uppercase tracking-wider">AI Reasoning</h4>
-                  <p className="mt-1 font-body text-sm text-gray-700 leading-relaxed">{validationResult.reasoning}</p>
-                </div>
-                <div>
-                  <h4 className="font-body text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Market Price Estimate</h4>
-                  <p className="mt-1 font-body text-sm font-semibold text-[#034C52]">
-                    ₱{validationResult.researchedPriceMin} - ₱{validationResult.researchedPriceMax} / {unit}
-                  </p>
-                </div>
-                {validationResult.flaggedIngredients.length > 0 && (
-                  <div>
-                    <h4 className="font-body text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Flagged Ingredients</h4>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {validationResult.flaggedIngredients.map((ing, idx) => (
-                        <span key={idx} className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 font-body text-xs font-medium text-amber-800">
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {validationResult && !validationResult.isChildFriendly && (
-            <div className="mt-4 rounded-xl bg-red-50 p-4 border border-red-100">
-              <p className="font-body text-xs text-red-700 font-semibold leading-relaxed">
-                ⚠ Purchase Blocked: This product is flagged as "Not Good for Children". In compliance with local nutritional health policies, it cannot be sold to beneficiaries.
-              </p>
-            </div>
-          )}
+          {validationResult && <NonBrandedValidationResult result={validationResult} />}
 
           {validationResult && (
             <div className="mt-5 space-y-3">
