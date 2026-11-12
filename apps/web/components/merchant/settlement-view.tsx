@@ -446,13 +446,22 @@ function ClaimLines({
             Every sale in this claim is held for review.
           </p>
         ) : (
-          <ul className="stagger-children space-y-2">
-            {included.map((l) => (
-              <li key={l.transactionId} className="rounded-2xl border border-brand-sageBorder/40 bg-white px-5 py-4">
-                <LineRow line={l} />
-              </li>
-            ))}
-          </ul>
+          /* Collapsed by default: Recent Transactions already lists these sales. */
+          <details>
+            <summary className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-2xl border border-brand-sageBorder/40 bg-white px-5 py-3 font-body text-sm font-medium text-brand-darkTeal">
+              Show the {plural(included.length, "sale", "sales")} in this claim
+              <span aria-hidden="true">
+                <ChevronIcon />
+              </span>
+            </summary>
+            <ul className="mt-2 space-y-2">
+              {included.map((l) => (
+                <li key={l.transactionId} className="rounded-2xl border border-brand-sageBorder/40 bg-white px-5 py-4">
+                  <LineRow line={l} />
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </section>
 
